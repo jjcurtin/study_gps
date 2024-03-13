@@ -50,7 +50,7 @@ Github is a good choice to publish your manuscript and associated code from note
 
 2. You need to configure GitHub to publish the website from the /root of the gh-pages branch.  Go to Settings | Pages | Build and Deployment | Branch.  Set Branch to `gh-pages` and folder to `/root` and save these settings. [NOTE: if you started with our lab's template, this should already be configured for you]
 
-3. To publish the manuscript, go to the terminal at the root of the study project and type `quarto publish gh-pages. 
+3. To publish the manuscript, go to the terminal at the root of the study project and type `quarto publish gh-pages --no-browser`. 
 
 4. The publishing process will occassionally fail to delete temporary folders and files.  If this happens you should delete them manually.  This may include
 
