@@ -37,120 +37,218 @@ editor_options:
   chunk_output_type: console
 ---
 
-## Introduction
-
-You can write your text using markdown.  
-
-- Top level section headings use ## because # is reserved for the manuscript title. 
-- APA (and other?) formats support ##, ###, and #### at least.
 
 
-### Sub-heading - level 3
+## Specific Aims
 
-This is the ### level
+Smart digital therapeutics ("smart DTx") refer to treatments delivered via technology such as smartphones that use machine learning algorithms to recommend engagement with particular in-app modules at the optimal time. In the context of alcohol use disorder (AUD), these algorithms could be used 1) to predict an oncoming lapse; and 2) to encourage use of specific tools to minimize risk of that lapse occurring based on factors specifically relevant to that individual (e.g., changes in mood, difficulty with close social connections, proximity to triggering locations). In other words, these algorithms have the potential to predict both *when* and *why* a lapse may occur. This is beneficial with respect to AUD where it may be difficult for an individual to know the exact precipitants to a lapse, even if the lapse itself is anticipated. These algorithms not only need to be developed outright, but also need to perform well (i.e., pinpoint lapses accurately) and identify meaningful, actionable lapse precursors. However, before accurate personalized recommendations can be offered, smart DTx must demonstrate similar performance across sub-groups and provide a sustainable method of data collection for users (i.e., minimally burdensome).
 
+A fair algorithm is one with no preference in performance with respect to inherent or acquired characteristics (e.g., gender, race, socioeconomic status) [@wang2022]. In the context of AUD, this would mean that lapse predictions are reasonably accurate and do not favor or disadvantage any particular group. The performance of an algorithm across sub-groups can be assessed using measures of *algorithmic fairness*, which quantify relative differences in predictions like accuracy. Incorrect predictions of lapse (or lack thereof) could result in both poorer outcomes and eroded trust of these tools. Assessing algorithmic fairness during the development of smart DTx seeks to ensure that the same standard of care is provided to everyone utilizing it.
 
-#### Sub-heading - level 4
+The inputs to these algorithms are also important to consider. For example, many DTx use self-report measures administered several times per day (ecological momentary assessment or "EMA"). However, EMA may be burdensome for individuals who do not have the flexibility of filling out repeated assessments each day. One solution is to utilize data collected via unobtrusive means, like geolocation data, which captures facets of activity patterns such as movement, frequency, duration, and time. Smartphones come pre-equipped with sensors to be able to capture this granular data continuously. Furthermore, geolocation requires little maintenance following initial set-up. Minimal additional contextual data can also be solicited from individuals about frequently visited locations to distill targets for intervention. A smart DTx could take these salient features and identify helpful in-app modules accordingly. Taken together, supplemented geolocation data can provide insight into how activity patterns and location semantics interface to increase (or decrease) the probability of lapse.
 
-This is the #### level
+For my first-year project, I intend to use geolocation data collected from smartphones and corresponding self-reported contextual information for frequently visited locations to build a machine learning algorithm to predict next-day alcohol use lapse among participants with a diagnosis of AUD and a recovery goal of abstinence. I will also evaluate the algorithmic fairness of the model using both algorithmic fairness metrics for discrete subgroups and statistical modeling that accounts for cross-group membership (i.e., a more intersectional approach).
 
+To accomplish these goals, I have identified the following specific aims:
 
-##### Sub-heading - level 5
+**Aim 1: Train several machine learning algorithms to predict alcohol lapse from geolocation data.** Features will be derived from continuous geolocation data in combination with contextual information about frequently visited (\>2 per one month period) locations. Several candidate classification algorithms will be trained and evaluated to predict next-day lapse.
 
-This is the ##### level
+**Aim 2: Evaluate the best performing algorithm.** Area under the Receiver Operating Characteristic Curve (auROC) will be used as the primary performance metric to select and evaluate algorithm configurations. Secondary performance metrics (e.g., sensitivity, specificity) and interpretability metrics (i.e., SHAP values) will also be used to evaluate algorithms.
 
-
-### Symbols and Equations
-
-You can use quarto inline or display math equations as needed.  Quarto provides [details](https://quarto.org/docs/authoring/markdown-basics.html#equations) on the use of these equations.
-
-For example $x$ and $y$ are two variables. And here is an important formula:
-
-$$
-p(x) = \frac{e^{-\lambda} \lambda^{x}}{x !}
-$$ 
+**Aim 3: Evaluate the algorithmic fairness of the top performing algorithm across subgroups who experience known treatment disparities in the context of AUD.** Algorithmic fairness will be examined across race/ethnicity, marital status, education, and sex. Fairness will be evaluated using metrics calculated across discrete subgroups.
 
 
-### Citations & References
+## Significance
 
-We can use cite relevant research in multiple formats.  The two most common are: 
+-   Introduce lapses:
 
-- @knuth84 concluded something.  
-- These are the conclusions[@knuth84].
+    -   Relapse back to sustained levels of harmful use is common in AUD, with AUD being characterized as having a chronic and recurrent course for a number of individuals [@mckay2011]
 
-Article references are stored in a .bib file using betterbibtex (BBT) format.  We create these references in Zotero collections.
+    -   Lapses, or single instances of goal-inconsistent substance use, are an important target on which to intervene as they are the antecedents to relapse.
 
-Although we don't do this regularly I think, if needed you can reference figures elsewhere using the @ symbol.   Here is a reference to @fig-1
+    -   Individuals may have insight into when a lapse may occur but may not know why
+
+    -   Number of factors which can result in a lapse (give examples) and these factors can change moment-by-moment as an individual goes about their daily life
+
+### The role of location in lapse
+
+-   Relationship of location and lapse:
+
+    -   Information about an individual's location can provide a wealth of information that may relate to lapse risk, including associations with others (or lack thereof, e.g., social isolation), associations with previous drinking behaviors (e.g., whether or not alcohol is present), and associations with affect (i.e., negative versus positive emotions tied to a given location)
+    -   Environmental stimuli associated with substance use can facilitate lapse [@janakPotentEffectEnvironmental2010]; social setting (work, home, community) and lapse [@walton1995]
+
+-   Location and treatment:
+
+    -   The role of location in substance use treatment has already been established
+
+    -   Integration of coping skills relating to substance-associated contexts in several treatment strategies like mindfulness-based relapse prevention [@lecocqConsideringDrugAssociatedContexts2020]
+
+    -   Harnessing location information from individuals may not only inform our understanding of the precipitants to lapse but also enable the deployment of just-in-time interventions[@stahlerGeospatialTechnologyExposome2013]
+
+### Geolocation data for lapse prediction
+
+-   Introductory paragraph:
+
+    -   Risk is continuous and dynamic, and therefore measures which seek to quantify it need to be able to keep up with appropriate levels of granularity.
+
+    -   Temporal sensitivity and specificity is important, which is a major advantage of geolocation data because it is continuously collected unlike EMA data
+
+    -   Geolocation data may be able to identify novel risk factors not otherwise captured using other techniques
+
+-   Highlight previous research
+
+    -   Intro sentence about geolocation data
+
+    -   Within SUD/AUD literature:
+
+        -   AUD specific: [@attwoodUsingMobileHealth2017; @gonzalezComparisonSmartphoneApp2015; @gustafsonSmartphoneApplicationSupport2014a]
+
+        -   SUD broadly: [@carreiroRealizeAnalyzeEngage2021; @naughtonContextSensingMobilePhone2016]
+
+    -   Affective science literature: [@doryab2019; @heller2020; @raugh2020; @shinSystematicReviewLocation2023]
+
+    -   These two literatures take into account different features that can be derived from geolocation data: physical with risky locations (AUD/SUD lit) and affect (affective lit; incl.: isolation, mobility, novelty seeking, emotional valence of a given location)
+
+-   Taking into account this temporal perspective, my first year project will develop a sensing system that can predict lapse day-to-day from a variety of features. Moreover, it will address a crucial gap in the literature between subdisciplines by applying feature engineering techniques both from the substance use and affective science literatures into one project, therefore providing novel, dynamic lens to the use of geolocation data in predicting relapse.
+
+-   Moreover, while this framework is being used in this study to predict lapse in the context of AUD, features which represent transdiagnostic constructs will be engineered from geolocation data that could be applied within the smart DTx space more broadly. <!-- this idea about treatment recommendations is not really set up sufficiently-->
+
+### Algorithmic fairness
+
+-   Introduce concept of fairness in ML:
+
+    -   Machine learning algorithms rely on the data they are given –\> in the context of health-related data, historical patterns of health care inequities will be embedded within that data, which may unintentionally be carried forward in perpetuity by machine learning models if not critically examined
+
+    -   Without examining algorithmic fairness prior to deployment in the real-world, smart DTx run the risk of providing sub-optimal mental health care to individuals who already face disadvantages.
+
+    -   Topic of discussion in AI and health care literature broadly: [@rajkomarEnsuringFairnessMachine2018a; @wawiragichoyaEquityEssenceCall2021]
+
+    -   Algorithmic fairness not yet thought of as common performance metrics to report
+
+        -   Maybe brief sentence here about Equal Employment Opportunity Commission (EEOC) 80% rule and how there is not a legal definition of fairness for model performance between subgroups?
+
+-   How is fairness assessed?
+
+    -   Common metrics of algorithmic fairness are predicated on the assignment of a "privileged" and "non-privileged" group; then things like accuracy can be examined between those two groups [for example metrics: @wisniewski2022]
+
+-   Conclusion para:
+
+    -   At broad level, important to consider in context of AUD because risk, access to and engagement with treatment, and negative consequences from drinking vary across socioeconomic status, race, and gender in AUD [@calling2019; @vaeth2017; @witbrodt2014].
+
+    -   Location and fairness:
+
+        -   Location may play an important role in contributing to mental health inequities [@valleeRoleDailyMobility2011] –\> another motivating factor for examining fairness in the context of this study specifically\
+
+### Current study
+
+My proposed first-year project applies machine learning to predict lapse in AUD utilizing geolocation data. The first goal (Aims 1 and 2) is to build and evaluate a model to predict oncoming lapse with an almost entirely passive data stream for individuals with a recovery goal of abstinence. The second goal (Aim 3) is to critically examine the fairness of the best performing model across the intersection of various identities.
+
+### Contribution to Theory
+
+If successful, this study will contribute both to our ability to predict, and therefore our understanding of, lapse in AUD as well as how we approach designing equitable machine learning models. First, it will identify the most predictive features from a minimally burdensome and continuously collected data source, geolocation data. Furthermore, this study will also provide a critical evaluation of model performance beyond AUC by including examination of algorithmic fairness. Though many fairness metrics have been used in simulated data or in publicly available data sets (e.g., *COMPAS* recidivism data set; [@dresselAccuracyFairnessLimits2018]), few researchers in applied mental health research have made use of these tools to critically examine their own models [@timmonsCallActionAssessing2023]. Thus, this study will also advocate for transparency in reporting fairness metrics alongside standard measures of model performance.
 
 
-## Methods
+## Approach
 
-This is the methods section.
+### Overview
 
+For my first year project, I will conduct analyses using a subset of data collected between 2017 and 2019 under a larger grant funded though the National Institute of Alcohol Abuse and Alcoholism (R01 AA024391). As such, the following approach section represents aspects relevant only to my first year project, though other data were collected under this grant.
 
-## Results
+### Participants
 
-Results include
+One hundred and fifty one individuals in early-recovery (1-8 weeks of abstinence) for AUD were recruited from the Madison area to take part in a three-month study on how mobile health technology can provide recovery support. Recruitment approaches included social media platforms (e.g., Facebook), television and radio advertisements, and clinic referrals. Prospective participants completed a phone screen to assess match with eligibility criteria (Table 1). Participants were excluded if they exhibited severe symptoms of paranoia or psychosis (a score \<= 2.24 on the SCL-90 psychosis scale or a score \<= 2.82 on the SCL-90 paranoia scale administered at screening).
 
-- Markdown text
-- Figures from data
-- Figures from images (maybe included table images)
-- Analysis output (i.e. statistics)
+| Eligibility Criteria                                           |
+|----------------------------------------------------------------|
+| \>= 18 years of age                                            |
+| Ability to read and write in English                           |
+| Diagnosis of moderate AUD (\>= 4 self-reported DSM-5 symptoms) |
+| Abstinent from alcohol for 1-8 weeks                           |
+| Willing to use only one smartphone\*\* while on study          |
 
-We demonstrate each (other than markdown text, which you should know!) below
+: Eligibility criteria for study enrollment. \*\*Personal or study-provided.
 
+### Procedure
 
-### Data Figures
+Participants enrolled in a three-month study consisting of five in-person visits, daily surveys, and continuous passive monitoring of geolocation data. Following screening and enrollment visits in which participants consented to participate, learned how to manage location sharing (i.e., turn off location sharing when desired), and reported frequently visited locations, participants completed three follow-up visits one month apart. At each visit, participants were asked questions about frequently visited (\>2 times during the course of the previous month) locations. Participants were debriefed at the third and final follow-up visit. Participants were expected to provide continuous geolocation data while on study. Other personal sensing data streams (EMA, cellular communications, sleep quality, and audio check-ins) were collected as part of the parent grant’s aims (R01 AA024391).
 
-Figures are also generally created in separate notebooks and embedded into your manuscript.
+### Measures
 
-{{< embed notebooks/fig1.qmd#fig-1 >}}
+#### Geolocation data
 
-### Figures from images
+To enable collection of geolocation data, participants downloaded either the Moves app or the FollowMee app during the intake visit. Moves was bought-out and subsequently deprecated while the study was ongoing (July 2018) and data collection continued using FollowMee until the end of the study. Both apps continuously tracked location via GPS and WiFi positioning technology.
 
-Images from figures can be included using the standard code to insert image files.  These images should generally be saved in the image folder at the root of the study template by convention.  The quarto website provides [additional details](https://quarto.org/docs/authoring/figures.html)
+#### Contextual information
 
-![ARC Logo](images/arc_logo.png){#fig-2}
+Contextual information for frequently visited locations (\>2 times in the previous month) was obtained during an interview at each follow-up visit (at month 1, 2, and 3; Table 2).
 
-### Tables
+| Question                                                                                                      | Responses                                                                                                                                                                                                                                                                                      |
+|-----------------------|-------------------------------------------------|
+| Address                                                                                                       |                                                                                                                                                                                                                                                                                                |
+| Type of place                                                                                                 | Work, School, Volunteer, Health care, Home of a friend, Home of a family member, Liquor store, Errands (e.g., grocery store, post office), Coffee shop or cafe, Restaurant, Park, Bar, Gym or fitness center, AA or recovery meeting, Religious location (e.g., church, mosque, temple), Other |
+| Have you drank alcohol here before?                                                                           | No, Yes                                                                                                                                                                                                                                                                                        |
+| Is alcohol available here?                                                                                    | No, Yes                                                                                                                                                                                                                                                                                        |
+| How would you describe your experiences here?                                                                 | Pleasant, Unpleasant, Mixed, Neutral                                                                                                                                                                                                                                                           |
+| Does being at this location put you at any risk to begin drinking?                                            | No risk, Low risk, Medium risk, High risk                                                                                                                                                                                                                                                      |
+| Did the participant identify this place as a risky location they are trying to avoid now that they are sober? | No, Yes                                                                                                                                                                                                                                                                                        |
 
-We create tables using the kableExtra package.  We are working on the optimal method to embed these from notebooks.  It may be to save the tables as high res image files and then embed those images.  Stay tuned.
+: Location information collected from frequently visited locations.
 
-Alternatively, this is an example of a simple table that is hard-coded using markdown table format.  We don't recommend this for tables built from data. Tables values should come directly from data so they don't need to be typed in and will update if your data change.  However, you may have other uses for simple tables where this method is helpful.
+#### Participant characteristics
 
-| Name                | Year |
-|---------------------|------|
-| Current             | 2021 |
-| Teneguía            | 1971 |
-| Nambroque           | 1949 |
-| El Charco           | 1712 |
-| Volcán San Antonio  | 1677 |
-| Volcán San Martin   | 1646 |
-| Tajuya near El Paso | 1585 |
-| Montaña Quemada     | 1492 |
+Participants completed a baseline measure of demographics and other constructs relevant to lapse at the screening visit, which will be used both for model building and for fairness assessments (Table 3).
 
-: Recent historic eruptions on La Palma {#tbl-history}
+| Variable     | Measure                                                           |
+|--------------------------|----------------------------------------------|
+| Demographics | Age                                                               |
+|              | Sex                                                               |
+|              | Race                                                              |
+|              | Ethnicity                                                         |
+|              | Employment                                                        |
+|              | Income                                                            |
+|              | Marital Status                                                    |
+| Alcohol      | Alcohol Use History                                               |
+|              | DSM-5 Checklist for AUD                                           |
+|              | Young Adult Alcohol Problems Test                                 |
+|              | WHO-The Alcohol, Smoking and Substance Involvement Screening Test |
 
-### Analysis Results
+: Demographic and relevant alcohol use history variables sampled at screening visit.
 
-To add results that are not figures or tables, you will need to open the objects you saved from these analyses.  See lm.qmd as an example. Generally you will open csv files that contain tidied results. For example
-```{r}
-library(tidyverse)
+#### Definition of subgroups for fairness assessments
 
-coeffs <- read_csv(here::here("objects/coeff_table.csv"),
-                   col_types = cols())
-```
+Subgroups will be defined on the basis of personal individual characteristics (in the machine learning fairness literature, "sensitive attributes") that are specifically associated with treatment disparities in AUD. Characteristics will be assessed using this method to ensure the development of a model that does not further exacerbate/magnify existing treatment disparities.
 
-A significant effect of speed was observed ($\beta$ = `r sprintf("%1.1f", coeffs |> filter(term == "speed") |> pull(estimate))`, t = `r sprintf("%1.2f", coeffs |> filter(term == "speed") |> pull(statistic))`, p = `r sprintf("%1.3f", coeffs |> filter(term == "speed") |> pull(p.value))`).
+#### Lapses
 
-NOTES: 
+Alcohol lapses will be used as our outcome variable in this study and will be used to provide labels for model training, for testing model performance, and for testing issues of algorithmic fairness across our predefined subgroups. Future lapse occurrence (here conceptualized as next-day lapse) will be predicted in 24-hour rolling windows, beginning at midnight on a participant's second day of participation to ensure one full day of data collection for the first window, and at every subsequent hour (i.e., future lapse in the next 24-hours predicted each hour). This rolling window approach will take advantage of the granular, continuous nature of geolocation data, enabling frequent updating of predictions. *Lapse* and *no lapse* occurrences will be identified from the daily survey question, "Have you drank any alcohol that you have not yet reported?". Participants who responded *yes* to this question were then asked to report the date and hour of the start and the end of the drinking episode. In this case, the prediction window will be labeled *lapse*. Prediction windows will be labeled *no lapse* if no alcohol use was reported within that window. Windows will be excluded if no alcohol use occurred within the window but *did* occur within six hours of the start or end of the window for label fidelity.
 
-- We should write a function that works with tidied coeffs tables and takes the row, column, and number of decimal  places to make this code simpler.
-- This table doesnt contain df.  Need to add that to table when saving in lm
+### Feature engineering
 
+Feature engineering is the process of creating variables (or "features") from unprocessed data and will be used in this project to transform raw data from three sources: 1) demographic characteristics relevant to treatment disparities in AUD collected at intake; 2) day at prediction window onset; and 3) geolocation data collected the prior day. Features will be created using all GPS features combined with demographic and day/time features.
 
+We will generate a quantitative feature for age and dummy-coded features for race/ethnicity, marital status, education, and sex. Dummy-coded features indicating time of day (5pm - midnight versus any other time) and day of the week will also be generated. As a comparison to the geolocation model, a baseline model will also be developed utilizing only the time-of-day dummy-coded features to predict lapse. Features from geolocation data will be generated that both utilize contextual information collected from monthly surveys (i.e., location valence and perceived riskiness) as well as features that are independent of further individual input.
 
-## Discussion
+Features will be derived using examples from previous literature and will also be generated using contextual features. For example, geo-fencing techniques to identify bars and liquor stores [@gonzalez2015; @gustafson2014] have been used in the AUD literature. More broadly, features such as isolation [@doryab2019; @raugh2020] and seeking of novelty locations [@heller2020] have been used in the affective science literature as mood proxies. In addition to the wide range of possible features from the literature, this data set affords the ability to create unique features using person-specific contextual information in tandem with geolocation data, such as places where an individual has drank in the past and the emotional valence associated with that location.
+
+We will also calculate raw and change rate features based on previous geolocation data.
+
+<!--What is the best way to calculate this? Dividing number of time spent in a given location by 24-hours?Raw lapse rate features will be generated by dividing the total number of previously observed lapses within a scoring epoch by the duration of that epoch. For change rate features, we will subtract the rate of previous lapses for a given participant from their associated raw lapse rate. We will use a similar approach to calculate raw and change rate of location patterns (e.g., amount of time spent in a high-risk location / duration of epoch). -->
+
+Imputation of missing data and removal of zero-variance features are additional general processing steps that will also be undertaken during feature engineering.
+
+### Algorithm development & performance
+
+The first aim of my project is to develop a machine learning model which can predict lapse from contextualized geolocation data. To accomplish this, first, several classification candidate machine learning algorithms will be considered and will be trained and assessed using participant-grouped, nested *k*-fold cross-validation. Grouped cross-validation assigns all data from a participant as either held-in or held-out to avoid bias introduced when predicting a participant’s data from their own data. Nested cross-validation uses two nested loops for dividing and holding out folds: an outer loop, where held-out folds serve as test sets for model evaluation; and inner loops, where held-out folds serve as validation sets for model selection. Importantly, these sets are independent, maintaining separation between data used to train the models, select the best models, and evaluate those best models. Therefore, nested cross-validation removes optimization bias from the evaluation of model performance in the test sets and can yield lower variance performance estimates than single test set approaches [@jonathanUseCrossvalidationAssess2000].
+
+The primary performance metric for model selection and evaluation will be area under the Receiver Operating Characteristic Curve (auROC) [@kuhnAppliedPredictiveModeling2018]. auROC indexes the probability that the model will predict a higher score for a randomly selected positive case (lapse) relative to a randomly selected negative case (no lapse). This metric was selected because it 1) combines sensitivity and specificity, which are both important characteristics for clinical implementation; 2) is an aggregate metric across all decision thresholds, which is important because optimal decision thresholds may differ across settings and goals; and 3) is unaffected by class imbalance, which is important for comparing models with differing prediction window widths and levels of class imbalance. The best model configuration will be selected using median auROC across all validation sets. Several secondary performance metrics including sensitivity, specificity, balanced accuracy, positive predictive value (PPV), and negative predictive value (NPV) will also be assessed.
+
+SHAP (SHapley Additive exPlanations) values will be computed as our interpretability metric to identify the relative importance of different features in each final algorithm. SHAP values measure the unique contribution of features in an algorithm's predictions [@lundbergUnifiedApproachInterpreting2017]. SHAP values possess several useful properties including: Additivity (SHAP values for each feature can be computed independently and summed); Efficiency (the sum of SHAP values across features must add up to the difference between predicted and observed outcomes for each observation); Symmetry (SHAP values for two features should be equal if the two features contribute equally to all possible coalitions); and Dummy (a feature that does not change the predicted value in any coalition will have a SHAP value of 0). Highly important features represent relevant, actionable potential antecedents to lapse (and therefore points of intervention) that will be relevant in the future development of a smart DTx. However, these will be descriptive analyses because standard errors or other indices of uncertainty for importance scores are not available for SHAP values.
+
+A Bayesian hierarchical generalized linear model will be used to estimate the posterior probability distributions and 95% Bayesian confidence intervals (CIs) for auROC between the baseline (time-of-day) and geolocation models.
+
+### Algorithmic fairness
+
+The second aim of my project will be to assess the algorithmic fairness of the best-performing model. Several fairness metrics will be assessed across demographic characteristics implicated in treatment disparities, such as the true positive rate (TPR), true negative rate (TNR), and accuracy. These metrics can be calculated using a number of open source R packages [for example, @wisniewski2022]. Differences in classification are calculated by first splitting the sample by group, where one is the privileged group and the other is the unprivileged group, and then examining assigned outcomes (in this case, *lapse* or *no lapse*). Additionally, I propose to conduct further analyses in order to assess algorithmic fairness taking into account the intersection of multiple identities when examining model performance [e.g., @foulds2020]. A Bayesian hierarchical generalized linear model will be used to estimate the posterior probability distributions and 95% Bayesian confidence intervals (CIs) for auROC across different subgroups.
 
 ## References
 
