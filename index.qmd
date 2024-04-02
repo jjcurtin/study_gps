@@ -1,8 +1,8 @@
 ---
-title: A Super Cool Study - Take 2
+title: The Feasability and Equity of Geolocation Data for Lapse Prediction in AUD
 author:
-  - name: Josephine Student 
-    orcid: 0000-0002-7859-8394
+  - name: Claire Punturieri 
+    orcid: 0009-0003-7743-3736
     corresponding: false
     roles: []
     affiliations:
@@ -22,28 +22,26 @@ keywords:
   - Substance use disorders
   - Precision mental health 
 abstract: |
-  This study found some pretty cool results that have both high impact and important clinical implications.  For example ...
+  Claire's FYP!
 plain-language-summary: |
-  The ARC produces some of the best science around! ...
+  Yay geolocation data!
 key-points:
   - Take away point 1 
   - Take away point 2
 date: last-modified
 bibliography: references.bib
 citation:
-  container-title: Journal of Important Findings 
+  container-title: Journal of Geolocation is Awesome 
 number-sections: false 
 editor_options: 
   chunk_output_type: console
 ---
 
-
-
 ## Specific Aims
 
 Smart digital therapeutics ("smart DTx") refer to treatments delivered via technology such as smartphones that use machine learning algorithms to recommend engagement with particular in-app modules at the optimal time. In the context of alcohol use disorder (AUD), these algorithms could be used 1) to predict an oncoming lapse; and 2) to encourage use of specific tools to minimize risk of that lapse occurring based on factors specifically relevant to that individual (e.g., changes in mood, difficulty with close social connections, proximity to triggering locations). In other words, these algorithms have the potential to predict both *when* and *why* a lapse may occur. This is beneficial with respect to AUD where it may be difficult for an individual to know the exact precipitants to a lapse, even if the lapse itself is anticipated. These algorithms not only need to be developed outright, but also need to perform well (i.e., pinpoint lapses accurately) and identify meaningful, actionable lapse precursors. However, before accurate personalized recommendations can be offered, smart DTx must demonstrate similar performance across sub-groups and provide a sustainable method of data collection for users (i.e., minimally burdensome).
 
-A fair algorithm is one with no preference in performance with respect to inherent or acquired characteristics (e.g., gender, race, socioeconomic status) [@wang2022]. In the context of AUD, this would mean that lapse predictions are reasonably accurate and do not favor or disadvantage any particular group. The performance of an algorithm across sub-groups can be assessed using measures of *algorithmic fairness*, which quantify relative differences in predictions like accuracy. Incorrect predictions of lapse (or lack thereof) could result in both poorer outcomes and eroded trust of these tools. Assessing algorithmic fairness during the development of smart DTx seeks to ensure that the same standard of care is provided to everyone utilizing it.
+A fair algorithm is one with no preference in performance with respect to inherent or acquired characteristics (e.g., gender, race, socioeconomic status) [@wangBriefReviewAlgorithmic2022]. In the context of AUD, this would mean that lapse predictions are reasonably accurate and do not favor or disadvantage any particular group. The performance of an algorithm across sub-groups can be assessed using measures of *algorithmic fairness*, which quantify relative differences in predictions like accuracy. Incorrect predictions of lapse (or lack thereof) could result in both poorer outcomes and eroded trust of these tools. Assessing algorithmic fairness during the development of smart DTx seeks to ensure that the same standard of care is provided to everyone utilizing it.
 
 The inputs to these algorithms are also important to consider. For example, many DTx use self-report measures administered several times per day (ecological momentary assessment or "EMA"). However, EMA may be burdensome for individuals who do not have the flexibility of filling out repeated assessments each day. One solution is to utilize data collected via unobtrusive means, like geolocation data, which captures facets of activity patterns such as movement, frequency, duration, and time. Smartphones come pre-equipped with sensors to be able to capture this granular data continuously. Furthermore, geolocation requires little maintenance following initial set-up. Minimal additional contextual data can also be solicited from individuals about frequently visited locations to distill targets for intervention. A smart DTx could take these salient features and identify helpful in-app modules accordingly. Taken together, supplemented geolocation data can provide insight into how activity patterns and location semantics interface to increase (or decrease) the probability of lapse.
 
@@ -55,98 +53,45 @@ To accomplish these goals, I have identified the following specific aims:
 
 **Aim 2: Evaluate the best performing algorithm.** Area under the Receiver Operating Characteristic Curve (auROC) will be used as the primary performance metric to select and evaluate algorithm configurations. Secondary performance metrics (e.g., sensitivity, specificity) and interpretability metrics (i.e., SHAP values) will also be used to evaluate algorithms.
 
-**Aim 3: Evaluate the algorithmic fairness of the top performing algorithm across subgroups who experience known treatment disparities in the context of AUD.** Algorithmic fairness will be examined across race/ethnicity, marital status, education, and sex. Fairness will be evaluated using metrics calculated across discrete subgroups.
-
+**Aim 3: Evaluate the algorithmic fairness of the top performing algorithm across subgroups who experience known treatment disparities in the context of AUD.** Algorithmic fairness will be examined across --race/ethnicity, marital status, education, and sex--. Fairness will be evaluated using metrics calculated across discrete subgroups.
 
 ## Significance
 
--   Introduce lapses:
-
-    -   Relapse back to sustained levels of harmful use is common in AUD, with AUD being characterized as having a chronic and recurrent course for a number of individuals [@mckay2011]
-
-    -   Lapses, or single instances of goal-inconsistent substance use, are an important target on which to intervene as they are the antecedents to relapse.
-
-    -   Individuals may have insight into when a lapse may occur but may not know why
-
-    -   Number of factors which can result in a lapse (give examples) and these factors can change moment-by-moment as an individual goes about their daily life
+Chronic, recurrent patterns of relapse back to harmful alcohol use are, for many individuals with AUD, a common occurrence during the recovery process [@mckayTreatingAlcoholismChronic2011a; @moosRatesPredictorsRelapse2006]. Lapses, or single instances of goal-inconsistent use that may lead to relapse, are therefore an important intervention target [@witkiewitzRelapsePreventionAlcohol2004a]. However, the factors that may precipitate a lapse change both person-by-person and moment-by-moment, highlighting the potential utility of smart DTx in this space and, at a necessarily earlier step, the need for algorithm development to accurately predict these outcomes. Understanding not only when a lapse may happen, but also why, are both key components to facilitate optimally effective intervention. Because it is dynamic and continuous, measures which seek to quantify risk of lapse need to be able to keep up with appropriate levels of granularity.
 
 ### The role of location in lapse
 
--   Relationship of location and lapse:
+The importance of location, such as environmental cues or one's perceived riskiness of a setting, has been shown to play an important role in lapse [@janakPotentEffectEnvironmental2010; @waltonIndividualSocialEnvironmental2003;  @waltonSocialSettingsAddiction1995]. This link with lapse risk has translated into the integration of coping skills relating to substance-associated contexts in several treatment strategies like mindfulness-based relapse prevention [@lecocqConsideringDrugAssociatedContexts2020]. These findings underscore the potential wealth of information relating to lapse risk that an individual's location can provide.
 
-    -   Information about an individual's location can provide a wealth of information that may relate to lapse risk, including associations with others (or lack thereof, e.g., social isolation), associations with previous drinking behaviors (e.g., whether or not alcohol is present), and associations with affect (i.e., negative versus positive emotions tied to a given location)
-    -   Environmental stimuli associated with substance use can facilitate lapse [@janakPotentEffectEnvironmental2010]; social setting (work, home, community) and lapse [@walton1995]
-
--   Location and treatment:
-
-    -   The role of location in substance use treatment has already been established
-
-    -   Integration of coping skills relating to substance-associated contexts in several treatment strategies like mindfulness-based relapse prevention [@lecocqConsideringDrugAssociatedContexts2020]
-
-    -   Harnessing location information from individuals may not only inform our understanding of the precipitants to lapse but also enable the deployment of just-in-time interventions[@stahlerGeospatialTechnologyExposome2013]
+Some of the more nuanced facets captured within location are associations with others (or lack thereof, e.g., social isolation), associations with previous drinking behaviors (e.g., whether or not alcohol is present), and associations with affect (i.e., negative versus positive emotions tied to a given location). Moreover, these different factors may play differential roles in lapse risk across individuals. For example, for one person, spending time in locations associated with negative affect may be a strong trigger, whereas for another it may be a lack of contact with others. A key benefit to using location data to predict lapse is its ability to cast a wide net across potential triggers and, therefore, to be applicable to a wide range of people.
 
 ### Geolocation data for lapse prediction
 
--   Introductory paragraph:
+Geolocation data, also referred to as global positioning system (GPS) data, are data which quantify spatial positioning and movement across time. Many forms of technology that are now ubiquitous in daily life, such as smartphones and smartwatches, automatically and continually collect these data. This fact, paired with increasing rates of smartphone ownership, suggest that there is high potential for these data to be harnessed for mental health applications [@areanMobileTechnologyMental2016]. In the context of substance use, geolocation data has been specifically identified as being of particular use in both understanding the precipitants to harmful use and its effective treatment [@stahlerGeospatialTechnologyExposome2013].
 
-    -   Risk is continuous and dynamic, and therefore measures which seek to quantify it need to be able to keep up with appropriate levels of granularity.
+While previous mental health research utilizing geolocation data has shown promise, the features used and outcomes explored have largely been siloed across psychopathology subfields. For example, within the substance use literature, geolocation data have historically been used to examine risky locations, such as the influence of neighborhood characteristics on use [@epsteinRealtimeTrackingNeighborhood2014a; @kwanUncertaintiesGeographicContext2019] and individual physical proximity to locations of potential or past harmful use such as bars (either estimated using geofencing or user-defined) [@attwoodUsingMobileHealth2017; @carreiroRealizeAnalyzeEngage2021; @gonzalezComparisonSmartphoneApp2015; @gustafsonSmartphoneApplicationSupport2014a; @naughtonContextSensingMobilePhone2016]. Several of the applications implemented in these studies enable real-time notifications about locations to their users (e.g., "You are entering a high-risk zone").
 
-    -   Temporal sensitivity and specificity is important, which is a major advantage of geolocation data because it is continuously collected unlike EMA data
+On the other hand, contrary to the substance use literature, affective scientists have focused more on factors relating to mood and behavior. Geolocation data have been used to estimate loneliness and isolation [@doryabIdentifyingBehavioralPhenotypes2019a], to demonstrate increases in positive affect from seeking out novel environments [@@hellerAssociationRealworldExperiential2020], and to quantify depressive symptoms [@raughGeolocationDigitalPhenotyping2020]. Moreover, these data have not only been harnessed to measure mood symptoms but to also predict their emergence [for review, see @shinSystematicReviewLocation2023].
 
-    -   Geolocation data may be able to identify novel risk factors not otherwise captured using other techniques
+Latent characteristics of location -- such as isolation, mobility, novelty seeking, and the emotional valence -- are notably lacking in the substance use geolocation literature, but have historically been captured in other ways such as by way of ecological momentary assessment (EMA) data. In substance use research, EMA surveys often ask information about mood, social experiences, and daily activities. However, geolocation data provides greater temporal sensitivity and specificity compared to its EMA counterpart, which is collected at static intervals several times per day as opposed to the continuous sampling of geolocation data. While there is no doubt in the predictive utility of EMA measures in the context of lapse [@wyantMachineLearningModels2023a], the affective science literature suggests that it may be possible to quantify some of these features utilizing location data. In the context of a smart DTx, this would mean reduced patient burden (i.e., fewer surveys to fill out) and a potentially more equitable system (i.e., easier for people who can't fill out multiple surveys a day to engage with).
 
--   Highlight previous research
-
-    -   Intro sentence about geolocation data
-
-    -   Within SUD/AUD literature:
-
-        -   AUD specific: [@attwoodUsingMobileHealth2017; @gonzalezComparisonSmartphoneApp2015; @gustafsonSmartphoneApplicationSupport2014a]
-
-        -   SUD broadly: [@carreiroRealizeAnalyzeEngage2021; @naughtonContextSensingMobilePhone2016]
-
-    -   Affective science literature: [@doryab2019; @heller2020; @raugh2020; @shinSystematicReviewLocation2023]
-
-    -   These two literatures take into account different features that can be derived from geolocation data: physical with risky locations (AUD/SUD lit) and affect (affective lit; incl.: isolation, mobility, novelty seeking, emotional valence of a given location)
-
--   Taking into account this temporal perspective, my first year project will develop a sensing system that can predict lapse day-to-day from a variety of features. Moreover, it will address a crucial gap in the literature between subdisciplines by applying feature engineering techniques both from the substance use and affective science literatures into one project, therefore providing novel, dynamic lens to the use of geolocation data in predicting relapse.
-
--   Moreover, while this framework is being used in this study to predict lapse in the context of AUD, features which represent transdiagnostic constructs will be engineered from geolocation data that could be applied within the smart DTx space more broadly. <!-- this idea about treatment recommendations is not really set up sufficiently-->
+My first-year project will address a crucial gap in the literature between clinical science subdisciplines by applying feature engineering techniques both from the substance use and affective science literatures, therefore providing a novel, dynamic lens to the use of geolocation data in predicting lapse. Moreover, it will implement a lower burden, finer-grained temporal perspective compared to other techniques like EMA. Taking both of these limitations of previous work into account, my first-year project will develop a sensing system that can predict lapse day-to-day utilizing a broad range of low-burden features which capture facets of both movement and mood.
 
 ### Algorithmic fairness
 
--   Introduce concept of fairness in ML:
+While a great strength of machine learning algorithms is their ability to elucidate latent statistical patterns of data, its greatest weakness lies in the necessary reliance on these data. In the context of health-related data, historical patterns of health care inequities will almost certainly and unavoidably be embedded within data used to train algorithms. These inequities may unintentionally be carried forward in perpetuity by machine learning models if not critically examined. Without examining algorithmic fairness prior to deployment in the real-world, smart DTx run the risk of providing sub-optimal mental health care to individuals who already face disadvantages.
 
-    -   Machine learning algorithms rely on the data they are given –\> in the context of health-related data, historical patterns of health care inequities will be embedded within that data, which may unintentionally be carried forward in perpetuity by machine learning models if not critically examined
+Conversations around machine learning and fairness in healthcare have peppered the literature for several years [@rajkomarEnsuringFairnessMachine2018a; @wawiragichoyaEquityEssenceCall2021], yet no concrete standards of reporting of algorithmic fairness have been delineated. This is of critical importance in considering that the ultimate goal of many of these algorithms is to be implemented in patient contexts. One potential legal marker of algorithmic fairness may be derived from the Equal Employment Opportunity Commission (EEOC) 80% rule, which states that hiring rates of individuals from protected groups (e.g., people of color, women) should be at least 80% that of white men. Applied in the context of algorithmic fairness, this would be something like model performance being at least 80% of the best-performing group.
 
-    -   Without examining algorithmic fairness prior to deployment in the real-world, smart DTx run the risk of providing sub-optimal mental health care to individuals who already face disadvantages.
+Despite the fact that standards of reporting do not exist, there are many established metrics for statistically assessing algorithmic fairness. Common metrics of algorithmic fairness are predicated on the assignment of a "privileged" and "non-privileged" group. Once this has been established, measures such as accuracy can be examined between those two groups [for example metrics, see: @wisniewskiFairmodelsFlexibleTool2022]. This can be repeated over many combinations of privileged and non-privileged groups to assess model performance across various identities.
 
-    -   Topic of discussion in AI and health care literature broadly: [@rajkomarEnsuringFairnessMachine2018a; @wawiragichoyaEquityEssenceCall2021]
-
-    -   Algorithmic fairness not yet thought of as common performance metrics to report
-
-        -   Maybe brief sentence here about Equal Employment Opportunity Commission (EEOC) 80% rule and how there is not a legal definition of fairness for model performance between subgroups?
-
--   How is fairness assessed?
-
-    -   Common metrics of algorithmic fairness are predicated on the assignment of a "privileged" and "non-privileged" group; then things like accuracy can be examined between those two groups [for example metrics: @wisniewski2022]
-
--   Conclusion para:
-
-    -   At broad level, important to consider in context of AUD because risk, access to and engagement with treatment, and negative consequences from drinking vary across socioeconomic status, race, and gender in AUD [@calling2019; @vaeth2017; @witbrodt2014].
-
-    -   Location and fairness:
-
-        -   Location may play an important role in contributing to mental health inequities [@valleeRoleDailyMobility2011] –\> another motivating factor for examining fairness in the context of this study specifically\
+At broad level, algorithmic fairness is paramount to consider in context of AUD because risk, access to and engagement with treatment, and negative consequences from drinking vary across socioeconomic status, race, and gender in AUD [@callingSocioeconomicStatusAlcohol2019; @vaethDrinkingAlcoholUse2017a; @witbrodtRacialEthnicDisparities2014]. Location plays an important role in contributing to mental health inequities in general [@valleeRoleDailyMobility2011], and in the context of substance use, exposure to substances, neighborhood disadvantage, and barriers to treatment stratified by location all contribute to the initiation and maintenance of SUDs [@mennisRiskySubstanceUse2016]. Furthermore, these inequities are not shared equally across the population: for example, alcohol outlet density is greater in predominantly Black census tracts [@scottStructuralRacismBuilt2020].
+        
+My first-year project will address several gaps in the mental health and algorithmic fairness literature. Firstly, it will advocate for the use of fairness metrics alongside other measures of algorithm performance. Secondly, it will apply measures to data which are known to contain these disparities in the context of substance use, geolocation data, in an effort to critically examine my best performing model.
 
 ### Current study
 
-My proposed first-year project applies machine learning to predict lapse in AUD utilizing geolocation data. The first goal (Aims 1 and 2) is to build and evaluate a model to predict oncoming lapse with an almost entirely passive data stream for individuals with a recovery goal of abstinence. The second goal (Aim 3) is to critically examine the fairness of the best performing model across the intersection of various identities.
-
-### Contribution to Theory
-
-If successful, this study will contribute both to our ability to predict, and therefore our understanding of, lapse in AUD as well as how we approach designing equitable machine learning models. First, it will identify the most predictive features from a minimally burdensome and continuously collected data source, geolocation data. Furthermore, this study will also provide a critical evaluation of model performance beyond AUC by including examination of algorithmic fairness. Though many fairness metrics have been used in simulated data or in publicly available data sets (e.g., *COMPAS* recidivism data set; [@dresselAccuracyFairnessLimits2018]), few researchers in applied mental health research have made use of these tools to critically examine their own models [@timmonsCallActionAssessing2023]. Thus, this study will also advocate for transparency in reporting fairness metrics alongside standard measures of model performance.
-
+My proposed first-year project will apply machine learning to predict lapse in AUD utilizing geolocation data. The first goal (**Aims 1 and 2**) is to build and evaluate a model to predict oncoming lapse with an almost entirely passive data stream for individuals with a recovery goal of abstinence. The second goal (**Aim 3**) is to critically examine the fairness of the best performing model.
 
 ## Approach
 
@@ -228,11 +173,7 @@ Feature engineering is the process of creating variables (or "features") from un
 
 We will generate a quantitative feature for age and dummy-coded features for race/ethnicity, marital status, education, and sex. Dummy-coded features indicating time of day (5pm - midnight versus any other time) and day of the week will also be generated. As a comparison to the geolocation model, a baseline model will also be developed utilizing only the time-of-day dummy-coded features to predict lapse. Features from geolocation data will be generated that both utilize contextual information collected from monthly surveys (i.e., location valence and perceived riskiness) as well as features that are independent of further individual input.
 
-Features will be derived using examples from previous literature and will also be generated using contextual features. For example, geo-fencing techniques to identify bars and liquor stores [@gonzalez2015; @gustafson2014] have been used in the AUD literature. More broadly, features such as isolation [@doryab2019; @raugh2020] and seeking of novelty locations [@heller2020] have been used in the affective science literature as mood proxies. In addition to the wide range of possible features from the literature, this data set affords the ability to create unique features using person-specific contextual information in tandem with geolocation data, such as places where an individual has drank in the past and the emotional valence associated with that location.
-
-We will also calculate raw and change rate features based on previous geolocation data.
-
-<!--What is the best way to calculate this? Dividing number of time spent in a given location by 24-hours?Raw lapse rate features will be generated by dividing the total number of previously observed lapses within a scoring epoch by the duration of that epoch. For change rate features, we will subtract the rate of previous lapses for a given participant from their associated raw lapse rate. We will use a similar approach to calculate raw and change rate of location patterns (e.g., amount of time spent in a high-risk location / duration of epoch). -->
+Features will be derived using examples from previous literature and will also be generated using contextual features. For example, geo-fencing techniques to identify bars and liquor stores [@gonzalezComparisonSmartphoneApp2015; @gustafsonSmartphoneApplicationSupport2014a] have been used in the AUD literature. More broadly, features such as isolation [@doryabIdentifyingBehavioralPhenotypes2019a; @raughGeolocationDigitalPhenotyping2020] and seeking of novelty locations [@hellerAssociationRealworldExperiential2020] have been used in the affective science literature as mood proxies. In addition to the wide range of possible features from the literature, this data set affords the ability to create unique features using person-specific contextual information in tandem with geolocation data, such as places where an individual has drank in the past and the emotional valence associated with that location. We will also calculate raw and change features based on previous geolocation data in order to capture individual variation.
 
 Imputation of missing data and removal of zero-variance features are additional general processing steps that will also be undertaken during feature engineering.
 
@@ -244,11 +185,15 @@ The primary performance metric for model selection and evaluation will be area u
 
 SHAP (SHapley Additive exPlanations) values will be computed as our interpretability metric to identify the relative importance of different features in each final algorithm. SHAP values measure the unique contribution of features in an algorithm's predictions [@lundbergUnifiedApproachInterpreting2017]. SHAP values possess several useful properties including: Additivity (SHAP values for each feature can be computed independently and summed); Efficiency (the sum of SHAP values across features must add up to the difference between predicted and observed outcomes for each observation); Symmetry (SHAP values for two features should be equal if the two features contribute equally to all possible coalitions); and Dummy (a feature that does not change the predicted value in any coalition will have a SHAP value of 0). Highly important features represent relevant, actionable potential antecedents to lapse (and therefore points of intervention) that will be relevant in the future development of a smart DTx. However, these will be descriptive analyses because standard errors or other indices of uncertainty for importance scores are not available for SHAP values.
 
-A Bayesian hierarchical generalized linear model will be used to estimate the posterior probability distributions and 95% Bayesian confidence intervals (CIs) for auROC between the baseline (time-of-day) and geolocation models.
+Finally, a Bayesian hierarchical generalized linear model will be used to estimate the posterior probability distributions and 95% Bayesian confidence intervals (CIs) for auROC between the baseline (time-of-day) and geolocation models.
 
 ### Algorithmic fairness
 
-The second aim of my project will be to assess the algorithmic fairness of the best-performing model. Several fairness metrics will be assessed across demographic characteristics implicated in treatment disparities, such as the true positive rate (TPR), true negative rate (TNR), and accuracy. These metrics can be calculated using a number of open source R packages [for example, @wisniewski2022]. Differences in classification are calculated by first splitting the sample by group, where one is the privileged group and the other is the unprivileged group, and then examining assigned outcomes (in this case, *lapse* or *no lapse*). Additionally, I propose to conduct further analyses in order to assess algorithmic fairness taking into account the intersection of multiple identities when examining model performance [e.g., @foulds2020]. A Bayesian hierarchical generalized linear model will be used to estimate the posterior probability distributions and 95% Bayesian confidence intervals (CIs) for auROC across different subgroups.
+The second aim of my project will be to assess the algorithmic fairness of the best-performing model. Several fairness metrics will be assessed across demographic characteristics implicated in treatment disparities, such as the true positive rate (TPR), true negative rate (TNR), and accuracy. These metrics can be calculated using a number of open source R packages [for example, @wisniewskiFairmodelsFlexibleTool2022]. Differences in classification are calculated by first splitting the sample by group, where one is the privileged group and the other is the unprivileged group, and then examining assigned outcomes (in this case, *lapse* or *no lapse*). Additionally, I propose to conduct further analyses in order to assess algorithmic fairness taking into account the intersection of multiple identities when examining model performance [e.g., @fouldsIntersectionalDefinitionFairness2020]. A Bayesian hierarchical generalized linear model will be used to estimate the posterior probability distributions and 95% Bayesian CIs for auROC across different subgroups.
+
+### Contribution to Theory
+
+If successful, this study will contribute both to our ability to predict, and therefore our understanding of, lapse in AUD as well as how we approach designing equitable machine learning models. First, it will identify the most predictive features from a minimally burdensome and continuously collected data source, geolocation data. These features will be created leveraging modeling techniques from both the substance use and affective science subdisciplines, resulting in broadly relevant transdiagnostic constructs. Furthermore, this study will also provide a critical evaluation of model performance beyond AUC by including examination of algorithmic fairness. Though many fairness metrics have been used in simulated data or in publicly available data sets (e.g., *COMPAS* recidivism data set; [@dresselAccuracyFairnessLimits2018]), few researchers in applied mental health research have made use of these tools to critically examine their own models [@timmonsCallActionAssessing2023]. Thus, this study will also advocate for transparency in reporting fairness metrics alongside standard measures of model performance.
 
 ## References
 
