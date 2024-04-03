@@ -1,5 +1,5 @@
 ---
-title: The Feasability and Equity of Geolocation Data for Lapse Prediction in AUD
+title: The Feasibility and Equity of Geolocation Data for Lapse Prediction in AUD
 author:
   - name: Claire Punturieri 
     orcid: 0009-0003-7743-3736
@@ -57,13 +57,17 @@ To accomplish these goals, I have identified the following specific aims:
 
 ## Significance
 
+
 Chronic, recurrent patterns of relapse back to harmful alcohol use are, for many individuals with AUD, a common occurrence during the recovery process [@mckayTreatingAlcoholismChronic2011a; @moosRatesPredictorsRelapse2006]. Lapses, or single instances of goal-inconsistent use that may lead to relapse, are therefore an important intervention target [@witkiewitzRelapsePreventionAlcohol2004a]. However, the factors that may precipitate a lapse change both person-by-person and moment-by-moment, highlighting the potential utility of smart DTx in this space and, at a necessarily earlier step, the need for algorithm development to accurately predict these outcomes. Understanding not only when a lapse may happen, but also why, are both key components to facilitate optimally effective intervention. Because it is dynamic and continuous, measures which seek to quantify risk of lapse need to be able to keep up with appropriate levels of granularity.
+
+<!--this paragraph has a LOT in it and may be hard to follow for others.  I am lost a bit in the dtx vs. smart dtx vs algorithm pieces.  Which are important here?  Or if all, maybe break apart into separate paragraphs-->
 
 ### The role of location in lapse
 
 The importance of location, such as environmental cues or one's perceived riskiness of a setting, has been shown to play an important role in lapse [@janakPotentEffectEnvironmental2010; @waltonIndividualSocialEnvironmental2003;  @waltonSocialSettingsAddiction1995]. This link with lapse risk has translated into the integration of coping skills relating to substance-associated contexts in several treatment strategies like mindfulness-based relapse prevention [@lecocqConsideringDrugAssociatedContexts2020]. These findings underscore the potential wealth of information relating to lapse risk that an individual's location can provide.
 
 Some of the more nuanced facets captured within location are associations with others (or lack thereof, e.g., social isolation), associations with previous drinking behaviors (e.g., whether or not alcohol is present), and associations with affect (i.e., negative versus positive emotions tied to a given location). Moreover, these different factors may play differential roles in lapse risk across individuals. For example, for one person, spending time in locations associated with negative affect may be a strong trigger, whereas for another it may be a lack of contact with others. A key benefit to using location data to predict lapse is its ability to cast a wide net across potential triggers and, therefore, to be applicable to a wide range of people.
+<!--not sure about the highlighting of different patterns for different folks.   How will your model accomodate that?-->
 
 ### Geolocation data for lapse prediction
 
@@ -79,9 +83,9 @@ My first-year project will address a crucial gap in the literature between clini
 
 ### Algorithmic fairness
 
-While a great strength of machine learning algorithms is their ability to elucidate latent statistical patterns of data, its greatest weakness lies in the necessary reliance on these data. In the context of health-related data, historical patterns of health care inequities will almost certainly and unavoidably be embedded within data used to train algorithms. These inequities may unintentionally be carried forward in perpetuity by machine learning models if not critically examined. Without examining algorithmic fairness prior to deployment in the real-world, smart DTx run the risk of providing sub-optimal mental health care to individuals who already face disadvantages.
+While a great strength of machine learning algorithms is their ability to elucidate latent statistical patterns of data, its greatest weakness lies in the necessary reliance on these data. In the context of health-related data, historical patterns of health care inequities will almost certainly and unavoidably be embedded within data used to train algorithms. These <!--is that a problem for your data and are their other sources of inequity-->inequities may unintentionally be carried forward in perpetuity by machine learning models if not critically examined. Without examining algorithmic fairness prior to deployment in the real-world, smart DTx run the risk of providing sub-optimal mental health care to individuals who already face disadvantages.
 
-Conversations around machine learning and fairness in healthcare have peppered the literature for several years [@rajkomarEnsuringFairnessMachine2018a; @wawiragichoyaEquityEssenceCall2021], yet no concrete standards of reporting of algorithmic fairness have been delineated. This is of critical importance in considering that the ultimate goal of many of these algorithms is to be implemented in patient contexts. One potential legal marker of algorithmic fairness may be derived from the Equal Employment Opportunity Commission (EEOC) 80% rule, which states that hiring rates of individuals from protected groups (e.g., people of color, women) should be at least 80% that of white men. Applied in the context of algorithmic fairness, this would be something like model performance being at least 80% of the best-performing group.
+Conversations around machine learning and fairness in healthcare have peppered the literature for several years [@rajkomarEnsuringFairnessMachine2018a; @wawiragichoyaEquityEssenceCall2021], yet no concrete standards of reporting of algorithmic fairness have been delineated. This is of critical importance in considering that the ultimate goal of many of these algorithms is to be implemented in patient contexts. One potential legal marker of algorithmic fairness may be derived from the Equal Employment Opportunity Commission (EEOC) 80% rule, which states that hiring rates of individuals from protected groups (e.g., people of color, women) should be at least 80% that of white men. Applied in the context of algorithmic fairness, this would be something like model performance being at least 80% of the best-performing group <!--interesting idea!-->
 
 Despite the fact that standards of reporting do not exist, there are many established metrics for statistically assessing algorithmic fairness. Common metrics of algorithmic fairness are predicated on the assignment of a "privileged" and "non-privileged" group. Once this has been established, measures such as accuracy can be examined between those two groups [for example metrics, see: @wisniewskiFairmodelsFlexibleTool2022]. This can be repeated over many combinations of privileged and non-privileged groups to assess model performance across various identities.
 
@@ -92,6 +96,8 @@ My first-year project will address several gaps in the mental health and algorit
 ### Current study
 
 My proposed first-year project will apply machine learning to predict lapse in AUD utilizing geolocation data. The first goal (**Aims 1 and 2**) is to build and evaluate a model to predict oncoming lapse with an almost entirely passive data stream for individuals with a recovery goal of abstinence. The second goal (**Aim 3**) is to critically examine the fairness of the best performing model.
+
+<!--any explanatory benefits?-->
 
 ## Approach
 
