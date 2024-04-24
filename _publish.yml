@@ -1,0 +1,8 @@
+- source: slides.qmd
+  quarto-pub:
+    - id: 2c9bce10-0326-4f9b-8388-bda560b4e088
+      url: 'https://c-punturieri.quarto.pub/the-feasibility-and-equity-of-geolocation-data-for-lapse-prediction-in-aud-ba6e'
+- source: project
+  quarto-pub:
+    - id: 4787d695-10ad-4c4b-9465-7d2ab78846db
+      url: 'https://c-punturieri.quarto.pub/study_gps'
