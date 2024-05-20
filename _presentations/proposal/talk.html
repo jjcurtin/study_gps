@@ -1,0 +1,1409 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<script src="talk_files/libs/clipboard/clipboard.min.js"></script>
+<script src="talk_files/libs/quarto-html/tabby.min.js"></script>
+<script src="talk_files/libs/quarto-html/popper.min.js"></script>
+<script src="talk_files/libs/quarto-html/tippy.umd.min.js"></script>
+<link href="talk_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="talk_files/libs/quarto-html/light-border.css" rel="stylesheet">
+<link href="talk_files/libs/quarto-html/quarto-html.min.css" rel="stylesheet" data-mode="light">
+<link href="talk_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles"><meta charset="utf-8">
+  <meta name="generator" content="quarto-1.4.552">
+
+  <meta name="author" content="Claire Punturieri">
+  <title>The Feasibility and Equity of Geolocation Data for Lapse Prediction in AUD</title>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
+  <link rel="stylesheet" href="talk_files/libs/revealjs/dist/reset.css">
+  <link rel="stylesheet" href="talk_files/libs/revealjs/dist/reveal.css">
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    ul.task-list{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+      vertical-align: middle;
+    }
+  </style>
+  <link rel="stylesheet" href="talk_files/libs/revealjs/dist/theme/quarto.css">
+  <link href="talk_files/libs/revealjs/plugin/quarto-line-highlight/line-highlight.css" rel="stylesheet">
+  <link href="talk_files/libs/revealjs/plugin/reveal-menu/menu.css" rel="stylesheet">
+  <link href="talk_files/libs/revealjs/plugin/reveal-menu/quarto-menu.css" rel="stylesheet">
+  <link href="talk_files/libs/revealjs/plugin/reveal-chalkboard/font-awesome/css/all.css" rel="stylesheet">
+  <link href="talk_files/libs/revealjs/plugin/reveal-chalkboard/style.css" rel="stylesheet">
+  <link href="talk_files/libs/revealjs/plugin/quarto-support/footer.css" rel="stylesheet">
+  <style type="text/css">
+
+  .callout {
+    margin-top: 1em;
+    margin-bottom: 1em;  
+    border-radius: .25rem;
+  }
+
+  .callout.callout-style-simple { 
+    padding: 0em 0.5em;
+    border-left: solid #acacac .3rem;
+    border-right: solid 1px silver;
+    border-top: solid 1px silver;
+    border-bottom: solid 1px silver;
+    display: flex;
+  }
+
+  .callout.callout-style-default {
+    border-left: solid #acacac .3rem;
+    border-right: solid 1px silver;
+    border-top: solid 1px silver;
+    border-bottom: solid 1px silver;
+  }
+
+  .callout .callout-body-container {
+    flex-grow: 1;
+  }
+
+  .callout.callout-style-simple .callout-body {
+    font-size: 1rem;
+    font-weight: 400;
+  }
+
+  .callout.callout-style-default .callout-body {
+    font-size: 0.9rem;
+    font-weight: 400;
+  }
+
+  .callout.callout-titled.callout-style-simple .callout-body {
+    margin-top: 0.2em;
+  }
+
+  .callout:not(.callout-titled) .callout-body {
+      display: flex;
+  }
+
+  .callout:not(.no-icon).callout-titled.callout-style-simple .callout-content {
+    padding-left: 1.6em;
+  }
+
+  .callout.callout-titled .callout-header {
+    padding-top: 0.2em;
+    margin-bottom: -0.2em;
+  }
+
+  .callout.callout-titled .callout-title  p {
+    margin-top: 0.5em;
+    margin-bottom: 0.5em;
+  }
+    
+  .callout.callout-titled.callout-style-simple .callout-content  p {
+    margin-top: 0;
+  }
+
+  .callout.callout-titled.callout-style-default .callout-content  p {
+    margin-top: 0.7em;
+  }
+
+  .callout.callout-style-simple div.callout-title {
+    border-bottom: none;
+    font-size: .9rem;
+    font-weight: 600;
+    opacity: 75%;
+  }
+
+  .callout.callout-style-default  div.callout-title {
+    border-bottom: none;
+    font-weight: 600;
+    opacity: 85%;
+    font-size: 0.9rem;
+    padding-left: 0.5em;
+    padding-right: 0.5em;
+  }
+
+  .callout.callout-style-default div.callout-content {
+    padding-left: 0.5em;
+    padding-right: 0.5em;
+  }
+
+  .callout.callout-style-simple .callout-icon::before {
+    height: 1rem;
+    width: 1rem;
+    display: inline-block;
+    content: "";
+    background-repeat: no-repeat;
+    background-size: 1rem 1rem;
+  }
+
+  .callout.callout-style-default .callout-icon::before {
+    height: 0.9rem;
+    width: 0.9rem;
+    display: inline-block;
+    content: "";
+    background-repeat: no-repeat;
+    background-size: 0.9rem 0.9rem;
+  }
+
+  .callout-title {
+    display: flex
+  }
+    
+  .callout-icon::before {
+    margin-top: 1rem;
+    padding-right: .5rem;
+  }
+
+  .callout.no-icon::before {
+    display: none !important;
+  }
+
+  .callout.callout-titled .callout-body > .callout-content > :last-child {
+    padding-bottom: 0.5rem;
+    margin-bottom: 0;
+  }
+
+  .callout.callout-titled .callout-icon::before {
+    margin-top: .5rem;
+    padding-right: .5rem;
+  }
+
+  .callout:not(.callout-titled) .callout-icon::before {
+    margin-top: 1rem;
+    padding-right: .5rem;
+  }
+
+  /* Callout Types */
+
+  div.callout-note {
+    border-left-color: #4582ec !important;
+  }
+
+  div.callout-note .callout-icon::before {
+    background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAAXNSR0IArs4c6QAAAERlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAAIKADAAQAAAABAAAAIAAAAACshmLzAAAEU0lEQVRYCcVXTWhcVRQ+586kSUMMxkyaElstCto2SIhitS5Ek8xUKV2poatCcVHtUlFQk8mbaaziwpWgglJwVaquitBOfhQXFlqlzSJpFSpIYyXNjBNiTCck7x2/8/LeNDOZxDuEkgOXe++553zfefee+/OYLOXFk3+1LLrRdiO81yNqZ6K9cG0P3MeFaMIQjXssE8Z1JzLO9ls20MBZX7oG8w9GxB0goaPrW5aNMp1yOZIa7Wv6o2ykpLtmAPs/vrG14Z+6d4jpbSKuhdcSyq9wGMPXjonwmESXrriLzFGOdDBLB8Y6MNYBu0dRokSygMA/mrun8MGFN3behm6VVAwg4WR3i6FvYK1T7MHo9BK7ydH+1uurECoouk5MPRyVSBrBHMYwVobG2aOXM07sWrn5qgB60rc6mcwIDJtQrnrEr44kmy+UO9r0u9O5/YbkS9juQckLed3DyW2XV/qWBBB3ptvI8EUY3I9p/67OW+g967TNr3Sotn3IuVlfMLVnsBwH4fsnebJvyGm5GeIUA3jljERmrv49SizPYuq+z7c2H/jlGC+Ghhupn/hcapqmcudB9jwJ/3jvnvu6vu5lVzF1fXyZuZZ7U8nRmVzytvT+H3kilYvH09mLWrQdwFSsFEsxFVs5fK7A0g8gMZjbif4ACpKbjv7gNGaD8bUrlk8x+KRflttr22JEMRUbTUwwDQScyzPgedQHZT0xnx7ujw2jfVfExwYHwOsDTjLdJ2ebmeQIlJ7neo41s/DrsL3kl+W2lWvAga0tR3zueGr6GL78M3ifH0rGXrBC2aAR8uYcIA5gwV8zIE8onoh8u0Fca/ciF7j1uOzEnqcIm59sEXoGc0+z6+H45V1CvAvHcD7THztu669cnp+L0okAeIc6zjbM/24LgGM1gZk7jnRu1aQWoU9sfUOuhrmtaPIO3YY1KLLWZaEO5TKUbMY5zx8W9UJ6elpLwKXbsaZ4EFl7B4bMtDv0iRipKoDQT2sNQI9b1utXFdYisi+wzZ/ri/1m7QfDgEuvgUUEIJPq3DhX/5DWNqIXDOweC2wvIR90Oq3lDpdMIgD2r0dXvGdsEW5H6x6HLRJYU7C69VefO1x8Gde1ZFSJLfWS1jbCnhtOPxmpfv2LXOA2Xk2tvnwKKPFuZ/oRmwBwqRQDcKNeVQkYcOjtWVBuM/JuYw5b6isojIkYxyYAFn5K7ZBF10fea52y8QltAg6jnMqNHFBmGkQ1j+U43HMi2xMar1Nv0zGsf1s8nUsmUtPOOrbFIR8bHFDMB5zL13Gmr/kGlCkUzedTzzmzsaJXhYawnA3UmARpiYj5ooJZiUoxFRtK3X6pgNPv+IZVPcnwbOl6f+aBaO1CNvPW9n9LmCp01nuSaTRF2YxHqZ8DYQT6WsXT+RD6eUztwYLZ8rM+rcPxamv1VQzFUkzFXvkiVrySGQgJNvXHJAxiU3/NwiC03rSf05VBaPtu/Z7/B8Yn/w7eguloAAAAAElFTkSuQmCC');
+  }
+
+  div.callout-note.callout-style-default .callout-title {
+    background-color: #dae6fb
+  }
+
+  div.callout-important {
+    border-left-color: #d9534f !important;
+  }
+
+  div.callout-important .callout-icon::before {
+    background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAAXNSR0IArs4c6QAAAERlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAAIKADAAQAAAABAAAAIAAAAACshmLzAAAEKklEQVRYCcVXTWhcVRS+575MJym48A+hSRFr00ySRQhURRfd2HYjk2SSTokuBCkU2o0LoSKKraKIBTcuFCoidGFD08nkBzdREbpQ1EDNIv8qSGMFUboImMSZd4/f9zJv8ibJMC8xJQfO3HPPPef7zrvvvnvviIkpC9nsw0UttFunbUhpFzFtarSd6WJkStVMw5xyVqYTvkwfzuf/5FgtkVoB0729j1rjXwThS7Vio+Mo6DNnvLfahoZ+i/o32lULuJ3NNiz7q6+pyAUkJaFF6JwaM2lUJlV0MlnQn5aTRbEu0SEqHUa0A4AdiGuB1kFXRfVyg5d87+Dg4DL6m2TLAub60ilj7A1Ec4odSAc8X95sHh7+ZRPCFo6Fnp7HfU/fBng/hi10CjCnWnJjsxvDNxWw0NfV6Rv5GgP3I3jGWXumdTD/3cbEOP2ZbOZp69yniG3FQ9z1jD7bnBu9Fc2tKGC2q+uAJOQHBDRiZX1x36o7fWBs7J9ownbtO+n0/qWkvW7UPIfc37WgT6ZGR++EOJyeQDSb9UB+DZ1G6DdLDzyS+b/kBCYGsYgJbSQHuThGKRcw5xdeQf8YdNHsc6ePXrlSYMBuSIAFTGAtQo+VuALo4BX83N190NWZWbynBjhOHsmNfFWLeL6v+ynsA58zDvvAC8j5PkbOcXCMg2PZFk3q8MjI7WAG/Dp9AwP7jdGBOOQkAvlFUB+irtm16I1Zw9YBcpGTGXYmk3kQIC/Cds55l+iMI3jqhjAuaoe+am2Jw5GT3Nbz3CkE12NavmzN5+erJW7046n/CH1RO/RVa8lBLozXk9uqykkGAyRXLWlLv5jyp4RFsG5vGVzpDLnIjTWgnRy2Rr+tDKvRc7Y8AyZq10jj8DqXdnIRNtFZb+t/ZRtXcDiVnzpqx8mPcDWxgARUqx0W1QB9MeUZiNrV4qP+Ehc+BpNgATsTX8ozYKL2NtFYAHc84fG7ndxUPr+AR/iQSns7uSUufAymwDOb2+NjK27lEFocm/EE2WpyIy/Hi66MWuMKJn8RvxIcj87IM5Vh9663ziW36kR0HNenXuxmfaD8JC7tfKbrhFr7LiZCrMjrzTeGx+PmkosrkNzW94ObzwocJ7A1HokLolY+AvkTiD/q1H0cN48c5EL8Crkttsa/AXQVDmutfyku0E7jShx49XqV3MFK8IryDhYVbj7Sj2P2eBxwcXoe8T8idsKKPRcnZw1b+slFTubwUwhktrfnAt7J++jwQtLZcm3sr9LQrjRzz6cfMv9aLvgmnAGvpoaGLxM4mAEaLV7iAzQ3oU0IvD5x9ix3yF2RAAuYAOO2f7PEFWCXZ4C9Pb2UsgDeVnFSpbFK7/IWu7TPTvBqzbGdCHOJQSxiEjt6IyZmxQyEJHv6xyQsYk//moVFsN2zP6fRImjfq7/n/wFDguUQFNEwugAAAABJRU5ErkJggg==');
+  }
+
+  div.callout-important.callout-style-default .callout-title {
+    background-color: #f7dddc
+  }
+
+  div.callout-warning {
+    border-left-color: #f0ad4e !important;
+  }
+
+  div.callout-warning .callout-icon::before {
+    background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAAXNSR0IArs4c6QAAAERlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAAIKADAAQAAAABAAAAIAAAAACshmLzAAAETklEQVRYCeVWW2gcVRg+58yaTUnizqbipZeX4uWhBEniBaoUX1Ioze52t7sRq6APio9V9MEaoWlVsFasRq0gltaAPuxms8lu0gcviE/FFOstVbSIxgcv6SU7EZqmdc7v9+9mJtNks51NTUH84ed889/PP+cmxP+d5FIbMJmNbpREu4WUkiTtCicKny0l1pIKmBzovF2S+hIJHX8iEu3hZJ5lNZGqyRrGSIQpq15AzF28jgpeY6yk6GVdrfFqdrD6Iw+QlB8g0YS2g7dyQmXM/IDhBhT0UCiRf59lfqmmDvzRt6kByV/m4JjtzuaujMUM2c5Z2d6JdKrRb3K2q6mA+oYVz8JnDdKPmmNthzkAk/lN63sYPgevrguc72aZX/L9C6x09GYyxBgCX4NlvyGUHOKELlm5rXeR1kchuChJt4SSwyddZRXgvwMGvYo4QSlk3/zkHD8UHxwVJA6zjZZqP8v8kK8OWLnIZtLyCAJagYC4rTGW/9Pqj92N/c+LUaAj27movwbi19tk/whRCIE7Q9vyI6yvRpftAKVTdUjOW40X3h5OXsKCdmFcx0xlLJoSuQngnrJe7Kcjm4OMq9FlC7CMmScQANuNvjfP3PjGXDBaUQmbp296S5L4DrpbrHN1T87ZVEZVCzg1FF0Ft+dKrlLukI+/c9ENo+TvlTDbYFvuKPtQ9+l052rXrgKoWkDAFnvh0wTOmYn8R5f4k/jN/fZiCM1tQx9jQQ4ANhqG4hiL0qIFTGViG9DKB7GYzgubnpofgYRwO+DFjh0Zin2m4b/97EDkXkc+f6xYAPX0KK2I/7fUQuwzuwo/L3AkcjugPNixC8cHf0FyPjWlItmLxWw4Ou9YsQCr5fijMGoD/zpdRy95HRysyXA74MWOnscpO4j2y3HAVisw85hX5+AFBRSHt4ShfLFkIMXTqyKFc46xdzQM6XbAi702a7sy04J0+feReMFKp5q9esYLCqAZYw/k14E/xcLLsFElaornTuJB0svMuJINy8xkIYuL+xPAlWRceH6+HX7THJ0djLUom46zREu7tTkxwmf/FdOZ/sh6Q8qvEAiHpm4PJ4a/doJe0gH1t+aHRgCzOvBvJedEK5OFE5jpm4AGP2a8Dxe3gGJ/pAutug9Gp6he92CsSsWBaEcxGx0FHytmIpuqGkOpldqNYQK8cSoXvd+xLxXADw0kf6UkJNFtdo5MOgaLjiQOQHcn+A6h5NuL2s0qsC2LOM75PcF3yr5STuBSAcGG+meA14K/CI21HcS4LBT6tv0QAh8Dr5l93AhZzG5ZJ4VxAqdZUEl9z7WJ4aN+svMvwHHL21UKTd1mqvChH7/Za5xzXBBKrUcB0TQ+Ulgkfbi/H/YT5EptrGzsEK7tR1B7ln9BBwckYfMiuSqklSznIuoIIOM42MQO+QnduCoFCI0bpkzjCjddHPN/F+2Yu+sd9bKNpVwHhbS3LluK/0zgfwD0xYI5dXuzlQAAAABJRU5ErkJggg==');
+  }
+
+  div.callout-warning.callout-style-default .callout-title {
+    background-color: #fcefdc
+  }
+
+  div.callout-tip {
+    border-left-color: #02b875 !important;
+  }
+
+  div.callout-tip .callout-icon::before {
+    background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAAXNSR0IArs4c6QAAAERlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAAIKADAAQAAAABAAAAIAAAAACshmLzAAADr0lEQVRYCe1XTWgTQRj9ZjZV8a9SPIkKgj8I1bMHsUWrqYLVg4Ue6v9BwZOxSYsIerFao7UiUryIqJcqgtpimhbBXoSCVxUFe9CTiogUrUp2Pt+3aUI2u5vdNh4dmMzOzHvvezuz8xNFM0mjnbXaNu1MvFWRXkXEyE6aYOYJpdW4IXuA4r0fo8qqSMDBU0v1HJUgVieAXxzCsdE/YJTdFcVIZQNMyhruOMJKXYFoLfIfIvVIMWdsrd+Rpd86ZmyzzjJmLStqRn0v8lzkb4rVIXvnpScOJuAn2ACC65FkPzEdEy4TPWRLJ2h7z4cArXzzaOdKlbOvKKX25Wl00jSnrwVxAg3o4dRxhO13RBSdNvH0xSARv3adTXbBdTf64IWO2vH0LT+cv4GR1DJt+DUItaQogeBX/chhbTBxEiZ6gftlDNXTrvT7co4ub5A6gp9HIcHvzTa46OS5fBeP87Qm0fQkr4FsYgVQ7Qg+ZayaDg9jhg1GkWj8RG6lkeSacrrHgDaxdoBiZPg+NXV/KifMuB6//JmYH4CntVEHy/keA6x4h4CU5oFy8GzrBS18cLJMXcljAKB6INjWsRcuZBWVaS3GDrqB7rdapVIeA+isQ57Eev9eCqzqOa81CY05VLd6SamW2wA2H3SiTbnbSxmzfp7WtKZkqy4mdyAlGx7ennghYf8voqp9cLSgKdqNfa6RdRsAAkPwRuJZNbpByn+RrJi1RXTwdi8RQF6ymDwGMAtZ6TVE+4uoKh+MYkcLsT0Hk8eAienbiGdjJHZTpmNjlbFJNKDVAp2fJlYju6IreQxQ08UJDNYdoLSl6AadO+fFuCQqVMB1NJwPm69T04Wv5WhfcWyfXQB+wXRs1pt+nCknRa0LVzSA/2B+a9+zQJadb7IyyV24YAxKp2Jqs3emZTuNnKxsah+uabKbMk7CbTgJx/zIgQYErIeTKRQ9yD9wxVof5YolPHqaWo7TD6tJlh7jQnK5z2n3+fGdggIOx2kaa2YI9QWarc5Ce1ipNWMKeSG4DysFF52KBmTNMmn5HqCFkwy34rDg05gDwgH3bBi+sgFhN/e8QvRn8kbamCOhgrZ9GJhFDgfcMHzFb6BAtjKpFhzTjwv1KCVuxHvCbsSiEz4CANnj84cwHdFXAbAOJ4LTSAawGWFn5tDhLMYz6nWeU2wJfIhmIJBefcd/A5FWQWGgrWzyORZ3Q6HuV+Jf0Bj+BTX69fm1zWgK7By1YTXchFDORywnfQ7GpzOo6S+qECrsx2ifVQAAAABJRU5ErkJggg==');
+  }
+
+  div.callout-tip.callout-style-default .callout-title {
+    background-color: #ccf1e3
+  }
+
+  div.callout-caution {
+    border-left-color: #fd7e14 !important;
+  }
+
+  div.callout-caution .callout-icon::before {
+    background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAAXNSR0IArs4c6QAAAERlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAAIKADAAQAAAABAAAAIAAAAACshmLzAAACV0lEQVRYCdVWzWoUQRCuqp2ICBLJXgITZL1EfQDBW/bkzUMUD7klD+ATSHBEfAIfQO+iXsWDxJsHL96EHAwhgzlkg8nBg25XWb0zIb0zs9muYYWkoKeru+vn664fBqElyZNuyh167NXJ8Ut8McjbmEraKHkd7uAnAFku+VWdb3reSmRV8PKSLfZ0Gjn3a6Xlcq9YGb6tADjn+lUfTXtVmaZ1KwBIvFI11rRXlWlatwIAAv2asaa9mlB9wwygiDX26qaw1yYPzFXg2N1GgG0FMF8Oj+VIx7E/03lHx8UhvYyNZLN7BwSPgekXXLribw7w5/c8EF+DBK5idvDVYtEEwMeYefjjLAdEyQ3M9nfOkgnPTEkYU+sxMq0BxNR6jExrAI31H1rzvLEfRIdgcv1XEdj6QTQAS2wtstEALLG1yEZ3QhH6oDX7ExBSFEkFINXH98NTrme5IOaaA7kIfiu2L8A3qhH9zRbukdCqdsA98TdElyeMe5BI8Rs2xHRIsoTSSVFfCFCWGPn9XHb4cdobRIWABNf0add9jakDjQJpJ1bTXOJXnnRXHRf+dNL1ZV1MBRCXhMbaHqGI1JkKIL7+i8uffuP6wVQAzO7+qVEbF6NbS0LJureYcWXUUhH66nLR5rYmva+2tjRFtojkM2aD76HEGAD3tPtKM309FJg5j/K682ywcWJ3PASCcycH/22u+Bh7Aa0ehM2Fu4z0SAE81HF9RkB21c5bEn4Dzw+/qNOyXr3DCTQDMBOdhi4nAgiFDGCinIa2owCEChUwD8qzd03PG+qdW/4fDzjUMcE1ZpIAAAAASUVORK5CYII=');
+  }
+
+  div.callout-caution.callout-style-default .callout-title {
+    background-color: #ffe5d0
+  }
+
+  </style>
+  <style type="text/css">
+    .reveal div.sourceCode {
+      margin: 0;
+      overflow: auto;
+    }
+    .reveal div.hanging-indent {
+      margin-left: 1em;
+      text-indent: -1em;
+    }
+    .reveal .slide:not(.center) {
+      height: 100%;
+    }
+    .reveal .slide.scrollable {
+      overflow-y: auto;
+    }
+    .reveal .footnotes {
+      height: 100%;
+      overflow-y: auto;
+    }
+    .reveal .slide .absolute {
+      position: absolute;
+      display: block;
+    }
+    .reveal .footnotes ol {
+      counter-reset: ol;
+      list-style-type: none; 
+      margin-left: 0;
+    }
+    .reveal .footnotes ol li:before {
+      counter-increment: ol;
+      content: counter(ol) ". "; 
+    }
+    .reveal .footnotes ol li > p:first-child {
+      display: inline-block;
+    }
+    .reveal .slide ul,
+    .reveal .slide ol {
+      margin-bottom: 0.5em;
+    }
+    .reveal .slide ul li,
+    .reveal .slide ol li {
+      margin-top: 0.4em;
+      margin-bottom: 0.2em;
+    }
+    .reveal .slide ul[role="tablist"] li {
+      margin-bottom: 0;
+    }
+    .reveal .slide ul li > *:first-child,
+    .reveal .slide ol li > *:first-child {
+      margin-block-start: 0;
+    }
+    .reveal .slide ul li > *:last-child,
+    .reveal .slide ol li > *:last-child {
+      margin-block-end: 0;
+    }
+    .reveal .slide .columns:nth-child(3) {
+      margin-block-start: 0.8em;
+    }
+    .reveal blockquote {
+      box-shadow: none;
+    }
+    .reveal .tippy-content>* {
+      margin-top: 0.2em;
+      margin-bottom: 0.7em;
+    }
+    .reveal .tippy-content>*:last-child {
+      margin-bottom: 0.2em;
+    }
+    .reveal .slide > img.stretch.quarto-figure-center,
+    .reveal .slide > img.r-stretch.quarto-figure-center {
+      display: block;
+      margin-left: auto;
+      margin-right: auto; 
+    }
+    .reveal .slide > img.stretch.quarto-figure-left,
+    .reveal .slide > img.r-stretch.quarto-figure-left  {
+      display: block;
+      margin-left: 0;
+      margin-right: auto; 
+    }
+    .reveal .slide > img.stretch.quarto-figure-right,
+    .reveal .slide > img.r-stretch.quarto-figure-right  {
+      display: block;
+      margin-left: auto;
+      margin-right: 0; 
+    }
+  </style>
+  <style>
+  #title-slide .title {
+    font-size: 2em;
+    color: #b22222;
+  }
+  </style>
+</head>
+<body class="quarto-light">
+  <div class="reveal">
+    <div class="slides">
+
+<section id="title-slide" data-background-image="madison.jpeg" data-background-opacity="0.15" data-background-position="left 10% bottom 10%" data-background-repeat="no" data-background-transition="fade" class="quarto-title-block center">
+  <h1 class="title">The Feasibility and Equity of Geolocation Data for Lapse Prediction in AUD</h1>
+
+<div class="quarto-title-authors">
+<div class="quarto-title-author">
+<div class="quarto-title-author-name">
+Claire Punturieri 
+</div>
+        <p class="quarto-title-affiliation">
+            University of Wisconsin-Madison
+          </p>
+    </div>
+</div>
+
+</section>
+<section id="roadmap" class="slide level2">
+<h2>Roadmap</h2>
+<div>
+<ul>
+<li class="fragment">Specific Aims</li>
+<li class="fragment">Significance</li>
+<li class="fragment">Approach</li>
+<li class="fragment">Summary</li>
+</ul>
+</div>
+</section>
+<section>
+<section id="specific-aims" class="title-slide slide level1 center" data-background-image="madison.jpeg" data-background-opacity="0.15" data-background-transition="fade">
+<h1><span style="color:#b22222;">Specific Aims</span></h1>
+
+</section>
+<section id="what-are-smart-digital-therapeutics-smart-dtx" class="slide level2">
+<h2>What are “smart” digital therapeutics (smart DTx)?</h2>
+<div>
+<ul>
+<li class="fragment"><span style="color:#b22222; font-weight:bold">Treatments</span> delivered using <span style="color:#b22222; font-weight:bold">technology (e.g., smartphones)</span> that use <span style="color:#b22222; font-weight:bold">machine learning algorithms</span> to <span style="color:#b22222; font-weight:bold">recommend engagement</span> with particular in-app modules at the <span style="color:#b22222; font-weight:bold">optimal time</span></li>
+</ul>
+</div>
+<div class="footer">
+<p>Specific Aims</p>
+</div>
+</section>
+<section id="how-can-smart-dtx-help-manage-alcohol-use" class="slide level2 smaller">
+<h2>How can smart DTx help manage alcohol use?</h2>
+<div>
+<ul>
+<li class="fragment">Algorithms could be developed:
+<ol type="1">
+<li class="fragment">…to <span style="color:#b22222; font-weight:bold">predict</span> an oncoming lapse (<em>single instance of use</em>)</li>
+<li class="fragment">…to encourage use of specific tools to <span style="color:#b22222; font-weight:bold">minimize risk</span> of that lapse occurring based on factors <em>specifically relevant to that individual</em></li>
+</ol></li>
+<li class="fragment">In other words, these algorithms have the potential to predict both <span style="color:#b22222; font-weight:bold">when</span> and <span style="color:#b22222; font-weight:bold">why</span> a lapse may occur.</li>
+</ul>
+</div>
+<div class="footer">
+<p>Specific Aims</p>
+</div>
+</section>
+<section id="how-can-we-move-towards-smart-dtx-for-aud" class="slide level2 smaller">
+<h2>How can we move towards smart DTx for AUD?</h2>
+<div>
+<ul>
+<li class="fragment">Algorithms must be <span style="color:#b22222; font-weight:bold">developed</span> outright…
+<ul>
+<li class="fragment">Need to perform well (i.e., pinpoint lapses accurately)</li>
+<li class="fragment">Identify meaningful, actionable lapse precursors.</li>
+</ul></li>
+<li class="fragment">…with the goal of <span style="color:#b22222; font-weight:bold">equity</span> in mind
+<ul>
+<li class="fragment">Demonstrate similar performance across sub-groups</li>
+<li class="fragment">Provide a sustainable method of data collection for users</li>
+</ul></li>
+</ul>
+</div>
+<div class="footer">
+<p>Specific Aims</p>
+</div>
+</section>
+<section id="aims" class="slide level2">
+<h2>Aims</h2>
+<style>
+.add-space{
+padding-right: 3%;
+}
+</style>
+<div class="column add-space fragment" data-fragment-index="1" style="width:30%;">
+<div class="fragment semi-fade-out" data-fragment-index="2">
+<p><span style="color:#b22222; font-size:0.48em; font-weight:bold">Aim 1: Train several machine learning algorithms to predict alcohol lapse from geolocation data.</span></p>
+<p><span style="font-size:0.35em;">• Features will be derived from continuous geolocation data in combination with contextual information about frequently visited (&gt;2 per one month period) locations</span></p>
+<p><span style="font-size:0.35em;">• Several candidate classification algorithms will be trained and evaluated to predict next-day lapse</span></p>
+</div>
+</div>
+<div class="column add-space fragment" data-fragment-index="3" style="width:30%;">
+<div class="fragment semi-fade-out" data-fragment-index="4">
+<p><span style="color:#b22222; font-size:0.48em; font-weight:bold">Aim 2: Evaluate the best-performing algorithm.</span></p>
+<p><span style="font-size:0.35em;">• Area under the Receiver Operating Characteristic Curve (auROC) as primary performance metric to select and evaluate algorithm configurations</span></p>
+<p><span style="font-size:0.35em;">• Secondary performance metrics (e.g., sensitivity, specificity) and interpretability metrics (i.e., SHAP values)</span></p>
+</div>
+</div>
+<div class="column fragment" data-fragment-index="5" style="width:30%;">
+<p><span style="color:#b22222; font-size:0.48em; font-weight:bold">Aim 3: Evaluate the algorithmic fairness of the top performing algorithm across subgroups who experience known treatment disparities in the context of AUD.</span></p>
+<p><span style="font-size:0.35em;">• Algorithmic fairness will be examined across race/ethnicity, socioeconomic status, and sex</span></p>
+<p><span style="font-size:0.35em;">• Fairness will be evaluated using metrics calculated across discrete subgroups which compare disadvantaged groups to the corresponding privileged group</span></p>
+</div>
+<div class="footer">
+<p>Specific Aims</p>
+</div>
+</section></section>
+<section>
+<section id="significance" class="title-slide slide level1 center" data-background-image="madison.jpeg" data-background-opacity="0.15" data-background-transition="fade">
+<h1><span style="color:#b22222;">Significance</span></h1>
+
+</section>
+<section id="lapse-as-intervention-target" class="slide level2 smaller">
+<h2>Lapse as intervention target</h2>
+<div>
+<ul>
+<li class="fragment">Chronic, recurrent patterns of relapse back to harmful alcohol use are a common occurrence during the recovery process</li>
+<li class="fragment"><span style="color:#b22222; font-weight:bold">Relapse</span> as an intervention target?
+<ul>
+<li class="fragment">However, term is inconsistently defined in literature</li>
+</ul></li>
+<li class="fragment"><span style="color:#b22222; font-weight:bold">Lapse:</span> a single instance of goal-inconsistent use that may lead to relapse
+<ul>
+<li class="fragment">Clearly defined</li>
+<li class="fragment">Easy to observe</li>
+<li class="fragment">Always precede relapse</li>
+<li class="fragment">Can be tied to clinically meaningful events (e.g., abstinence violation effect)</li>
+</ul></li>
+</ul>
+</div>
+<div class="footer">
+<p>Significance</p>
+</div>
+</section>
+<section id="lapse-as-intervention-target-1" class="slide level2 smaller">
+<h2>Lapse as intervention target</h2>
+<div>
+<ul>
+<li class="fragment">Despite clear definition, factors which precipitate lapse change both <span style="color:#b22222; font-weight:bold">person-by-person</span> and <span style="color:#b22222; font-weight:bold">moment-by-moment</span>
+<ul>
+<li class="fragment">Importance of understanding not only <span style="color:#b22222; font-weight:bold">when</span> a lapse may happen, but also <span style="color:#b22222; font-weight:bold">why</span>, to facilitate optimally effective intervention</li>
+</ul></li>
+<li class="fragment">Measures which seek to quantify risk of lapse must provide the <span style="color:#b22222; font-weight:bold">appropriate level of granularity</span></li>
+</ul>
+</div>
+<div class="footer">
+<p>Significance</p>
+</div>
+</section>
+<section id="the-role-of-location-in-lapse" class="slide level2">
+<h2>The role of location in lapse</h2>
+<div>
+<ul>
+<li class="fragment">Location important in lapse (e.g., environmental cues, perceived riskiness of a setting)</li>
+<li class="fragment">Coping skills that target substance-associated contexts integrated within several treatment strategies like mindfulness-based relapse prevention</li>
+</ul>
+</div>
+<div class="footer">
+<p>Significance</p>
+</div>
+</section>
+<section id="the-role-of-location-in-lapse-1" class="slide level2 smaller">
+<h2>The role of location in lapse</h2>
+<div>
+<p>Examples of facets captured within location:</p>
+<ul>
+<li class="fragment"><span style="color:#b22222; font-weight:bold">Associations with others</span> (or lack thereof, e.g., social isolation)</li>
+<li class="fragment"><span style="color:#b22222; font-weight:bold">Associations with previous drinking behaviors</span> (e.g., whether or not alcohol is present)</li>
+<li class="fragment"><span style="color:#b22222; font-weight:bold">Associations with affect</span> (i.e., negative versus positive emotions tied to a given location)
+<ul>
+<li class="fragment">May play different roles in lapse risk both within and across individuals.</li>
+</ul></li>
+</ul>
+</div>
+<div class="footer">
+<p>Significance</p>
+</div>
+</section>
+<section id="geolocation-data-for-lapse-prediction" class="slide level2 smaller">
+<h2>Geolocation data for lapse prediction</h2>
+<div>
+<ul>
+<li class="fragment">Location information can be encoded using <span style="color:#b22222; font-weight:bold">geolocation data</span>
+<ul>
+<li class="fragment">Quantify spatial positioning and movement across time</li>
+</ul></li>
+<li class="fragment">Smartphones, smartwatches automatically and continually collect these data.
+<ul>
+<li class="fragment">Paired with increasing rates of smartphone ownership, suggests that there is <span style="color:#b22222; font-weight:bold">high potential for mental health applications</span></li>
+</ul></li>
+<li class="fragment">Geolocation data identified as useful for both understanding the <span style="color:#b22222; font-weight:bold">precipitants</span> to harmful substance use and its <span style="color:#b22222; font-weight:bold">effective treatment</span></li>
+</ul>
+</div>
+<div class="footer">
+<p>Significance</p>
+</div>
+</section>
+<section id="geolocation-data-for-lapse-prediction-1" class="slide level2 smaller">
+<h2>Geolocation data for lapse prediction</h2>
+<div class="column fragment" data-fragment-index="1" style="align-items: center;">
+<p>Within the <span style="color:#b22222; font-weight:bold">substance use</span> literature:</p>
+<ul>
+<li><p>Examine <span style="color:#b22222; font-weight:bold">risky locations</span></p>
+<ul>
+<li><p>Influence of neighborhood characteristics on use</p></li>
+<li><p>Physical proximity to locations of past harmful use (e.g., bars)</p></li>
+</ul></li>
+<li><p>Enable real-time notifications about locations to their users</p></li>
+</ul>
+</div>
+<div class="column fragment" data-fragment-index="2" style="width:40%;">
+<p>Within the <span style="color:#b22222; font-weight:bold">affective science</span> literature:</p>
+<ul>
+<li><p>Focus on <span style="color:#b22222; font-weight:bold">mood and behavior</span> and emergence of mood states</p>
+<ul>
+<li><p>Loneliness and isolation</p></li>
+<li><p>Associations of positive affect and seeking out novel environments</p></li>
+<li><p>Quantifying depressive symptoms</p></li>
+</ul></li>
+</ul>
+</div>
+<div class="footer">
+<p>Significance</p>
+</div>
+</section>
+<section id="algorithmic-fairness" class="slide level2" style="font-size:0.6em;">
+<h2>Algorithmic fairness</h2>
+<div class="column fragment" data-fragment-index="1" style="align-items: center;">
+<p><span style="color:#b22222; font-weight:bold">While the data set for this study has a range of age and sex representation (21-72 years of age, 49% women), it is primarily white (86.8%) and non-Hispanic (97.4%).</span></p>
+<ul>
+<li>Our models will not have as wide a range of individuals to learn from for making predictions of lapse as compared to white, non-Hispanic participants</li>
+<li>Performance of these models for racialized minority individuals may therefore be less accurate as a result</li>
+</ul>
+</div>
+<div class="column fragment" data-fragment-index="2" style="width:40%;">
+<p><span style="color:#b22222; font-weight:bold">The AUD literature has historically been built upon research developed with male, predominantly white, participants.</span></p>
+<ul>
+<li>AUD research and its theory have been developed from a particular perspective using a particular group of individuals
+<ul>
+<li>Variables that we decide are important to measure and input into our models in this study are informed by our knowledge of this AUD theory</li>
+</ul></li>
+<li>Models will have equivalent representation across sex, but cannot assume this will compensate for broader societal context</li>
+</ul>
+</div>
+<div class="footer">
+<p>Significance</p>
+</div>
+</section>
+<section id="how-to-evaluate-fairness" class="slide level2 smaller">
+<h2>How to evaluate fairness?</h2>
+<div>
+<ul>
+<li class="fragment">No concrete standards of reporting of algorithmic fairness have been delineated
+<ul>
+<li class="fragment">Critically important: ultimate goal of these algorithms is to be implemented in patient contexts</li>
+</ul></li>
+<li class="fragment"><span style="color:#b22222; font-weight:bold">Equal Employment Opportunity Commission (EEOC) 80% rule:</span> which states that hiring rates of individuals from protected groups (e.g., people of color, women) should be at least 80% that of white men
+<ul>
+<li class="fragment">Applied in the context of algorithmic fairness, this would be something like model performance being at least 80% of the best-performing group</li>
+</ul></li>
+</ul>
+</div>
+<div class="footer">
+<p>Significance</p>
+</div>
+</section>
+<section id="how-to-evaluate-fairness-1" class="slide level2 smaller">
+<h2>How to evaluate fairness?</h2>
+<div>
+<ul>
+<li class="fragment">Many established metrics for statistically assessing algorithmic fairness</li>
+<li class="fragment">Predicated on the assignment of a <span style="color:#b22222; font-weight:bold">“privileged”</span> and <span style="color:#b22222; font-weight:bold">“non-privileged”</span> group
+<ul>
+<li class="fragment">Measures such as accuracy can be examined between those two groups</li>
+<li class="fragment">Can be repeated over many combinations of privileged and non-privileged groups to assess model performance across various identities</li>
+</ul></li>
+</ul>
+</div>
+<div class="footer">
+<p>Significance</p>
+</div>
+</section>
+<section id="fairness-and-aud" class="slide level2 smaller">
+<h2>Fairness and AUD</h2>
+<div>
+<ul>
+<li class="fragment">Risk, access to and engagement with treatment, and negative consequences from drinking vary across <span style="color:#b22222; font-weight:bold">socioeconomic status, race, and sex</span> in AUD</li>
+<li class="fragment">Location plays an important role in contributing to mental health inequities in general
+<ul>
+<li class="fragment">In the context of substance use, exposure to substances, neighborhood disadvantage, and barriers to treatment stratified by location all contribute to the initiation and maintenance of substance use disorders</li>
+</ul></li>
+<li class="fragment"><span style="color:#b22222; font-weight:bold">Inequities are not shared equally across the population</span></li>
+</ul>
+</div>
+<div class="footer">
+<p>Significance</p>
+</div>
+</section></section>
+<section>
+<section id="approach" class="title-slide slide level1 center" data-background-image="madison.jpeg" data-background-opacity="0.15" data-background-transition="fade">
+<h1><span style="color:#b22222;">Approach</span></h1>
+
+</section>
+<section id="participants" class="slide level2 smaller">
+<h2>Participants</h2>
+<ul>
+<li>151 participants (21-72 years of age, 49% women) in early-recovery with a recovery goal of abstinence recruited from Madison area to take part in a three-month study on how mobile health technology can provide recovery support (R01 AA024391)</li>
+</ul>
+<table>
+<colgroup>
+<col style="width: 100%">
+</colgroup>
+<thead>
+<tr class="header">
+<th><span style="color:#b22222;">Eligibility Criteria</span></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>&gt;= 18 years of age</td>
+</tr>
+<tr class="even">
+<td>Ability to read and write in English</td>
+</tr>
+<tr class="odd">
+<td>Diagnosis of moderate AUD (&gt;= 4 self-reported DSM-5 symptoms)</td>
+</tr>
+<tr class="even">
+<td>Abstinent from alcohol for 1-8 weeks</td>
+</tr>
+<tr class="odd">
+<td>Willing to use only one smartphone while on study</td>
+</tr>
+</tbody>
+</table>
+<div class="footer">
+<p>Approach</p>
+</div>
+</section>
+<section id="procedure" class="slide level2 smaller">
+<h2>Procedure</h2>
+<div>
+<ul>
+<li class="fragment">Five in-person visits, daily surveys, and continuous passive monitoring of geolocation data</li>
+<li class="fragment">Screening and enrollment visits:
+<ul>
+<li class="fragment">Participants consented, learned how to manage location sharing (i.e., turn off location sharing when desired), and reported frequently visited locations</li>
+</ul></li>
+<li class="fragment">Three follow-up visits one month apart
+<ul>
+<li class="fragment">Asked questions about frequently visited (&gt;2 times during the course of the previous month) locations</li>
+</ul></li>
+<li class="fragment">Debriefed at the third and final follow-up visit</li>
+</ul>
+</div>
+<!--maybe turn this into a figure to break up the text-->
+<div class="footer">
+<p>Approach</p>
+</div>
+</section>
+<section id="measures---participant-characteristics" class="slide level2" style="font-size:0.65em;">
+<h2>Measures - Participant characteristics</h2>
+<table>
+<colgroup>
+<col style="width: 36%">
+<col style="width: 63%">
+</colgroup>
+<thead>
+<tr class="header">
+<th><span style="color:#b22222;">Variable</span></th>
+<th><span style="color:#b22222;">Measure</span></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Demographics</td>
+<td>Age</td>
+</tr>
+<tr class="even">
+<td></td>
+<td>Sex</td>
+</tr>
+<tr class="odd">
+<td></td>
+<td>Race</td>
+</tr>
+<tr class="even">
+<td></td>
+<td>Ethnicity</td>
+</tr>
+<tr class="odd">
+<td></td>
+<td>Employment</td>
+</tr>
+<tr class="even">
+<td></td>
+<td>Income</td>
+</tr>
+<tr class="odd">
+<td></td>
+<td>Marital Status</td>
+</tr>
+<tr class="even">
+<td>Alcohol</td>
+<td>Alcohol Use History</td>
+</tr>
+<tr class="odd">
+<td></td>
+<td>DSM-5 Checklist for AUD</td>
+</tr>
+<tr class="even">
+<td></td>
+<td>Young Adult Alcohol Problems Test</td>
+</tr>
+<tr class="odd">
+<td></td>
+<td>WHO-The Alcohol, Smoking and Substance Involvement Screening Test</td>
+</tr>
+</tbody>
+</table>
+<div class="footer">
+<p>Approach</p>
+</div>
+</section>
+<section id="measures---lapses" class="slide level2 smaller">
+<h2>Measures - Lapses</h2>
+<div>
+<ul>
+<li class="fragment">Next-day lapse occurrence will be predicted in 24-hour rolling windows</li>
+<li class="fragment"><span style="color:#b22222; font-weight:bold">Lapse</span> and <span style="color:#b22222; font-weight:bold">no lapse</span> occurrences will be identified from the daily survey question, <span style="color:#b22222; font-weight:bold">“Have you drank any alcohol that you have not yet reported?”</span>
+<ul>
+<li class="fragment">Participants who responded <span style="color:#b22222; font-weight:bold">yes</span> to this question were then asked to report the date and hour of the start and the end of the drinking episode</li>
+</ul></li>
+<li class="fragment">Windows will be excluded if no alcohol use occurred within the window but did occur within six hours of the start or end of the window for label fidelity</li>
+</ul>
+</div>
+<!--add window schematic here?-->
+<div class="footer">
+<p>Approach</p>
+</div>
+</section>
+<section id="measures---geolocation-data" class="slide level2 smaller">
+<h2>Measures - Geolocation data</h2>
+<div>
+<ul>
+<li class="fragment">Participants downloaded either the Moves app or the FollowMee app during the intake visit
+<ul>
+<li class="fragment">Moves was bought-out and subsequently deprecated while the study was ongoing (July 2018) and data collection continued using FollowMee until the end of the study</li>
+</ul></li>
+<li class="fragment">Both apps continuously tracked location via GPS and WiFi positioning technology</li>
+<li class="fragment">Participants did not have to consent to location tracking and were instructed on how to turn off location sharing at-will</li>
+</ul>
+</div>
+<div class="footer">
+<p>Approach</p>
+</div>
+</section>
+<section id="measures---contextual-information" class="slide level2" style="font-size:0.5em;">
+<h2>Measures - Contextual information</h2>
+<table>
+<colgroup>
+<col style="width: 31%">
+<col style="width: 68%">
+</colgroup>
+<thead>
+<tr class="header">
+<th><span style="color:#b22222;">Question</span></th>
+<th><span style="color:#b22222;">Responses</span></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Address</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>Type of place</td>
+<td>Work, School, Volunteer, Health care, Home of a friend, Home of a family member, Liquor store, Errands (e.g., grocery store, post office), Coffee shop or cafe, Restaurant, Park, Bar, Gym or fitness center, AA or recovery meeting, Religious location (e.g., church, mosque, temple), Other</td>
+</tr>
+<tr class="odd">
+<td>Have you drank alcohol here before?</td>
+<td>No, Yes</td>
+</tr>
+<tr class="even">
+<td>Is alcohol available here?</td>
+<td>No, Yes</td>
+</tr>
+<tr class="odd">
+<td>How would you describe your experiences here?</td>
+<td>Pleasant, Unpleasant, Mixed, Neutral</td>
+</tr>
+<tr class="even">
+<td>Does being at this location put you at any risk to begin drinking?</td>
+<td>No risk, Low risk, Medium risk, High risk</td>
+</tr>
+<tr class="odd">
+<td>Did the participant identify this place as a risky location they are trying to avoid now that they are sober?</td>
+<td>No, Yes</td>
+</tr>
+</tbody>
+</table>
+<div class="footer">
+<p>Approach</p>
+</div>
+</section>
+<section id="measures---fairness-subgrouping" class="slide level2">
+<h2>Measures - Fairness subgrouping</h2>
+<div>
+<ul>
+<li class="fragment">Defined on the basis of personal individual characteristics that are specifically associated with treatment disparities in AUD</li>
+<li class="fragment">Characteristics will be assessed using this method to ensure the development of a model that does not further exacerbate existing treatment disparities.</li>
+</ul>
+</div>
+<!--not sure if I need this slide-->
+<div class="footer">
+<p>Approach</p>
+</div>
+</section>
+<section id="feature-engineering---sources" class="slide level2">
+<h2>Feature engineering - sources</h2>
+<p>Three raw data sources:</p>
+<div>
+<ol type="1">
+<li class="fragment">Demographic characteristics relevant to treatment disparities in AUD collected at intake</li>
+<li class="fragment">Day at prediction window onset</li>
+<li class="fragment">Geolocation data collected the prior day</li>
+</ol>
+</div>
+<div class="footer">
+<p>Approach</p>
+</div>
+</section>
+<section id="feature-engineering---coding" class="slide level2">
+<h2>Feature engineering - coding</h2>
+<div>
+<ul>
+<li class="fragment">Quantitative feature for age</li>
+<li class="fragment">Dummy-coded features for race/ethnicity, marital status, education, and sex</li>
+<li class="fragment">Dummy-coded features indicating time of day (5pm - midnight versus any other time) and day of the week
+<ul>
+<li class="fragment">As a comparison to the geolocation model, a baseline model will also be developed utilizing only the time-of-day dummy-coded features to predict lapse</li>
+</ul></li>
+</ul>
+</div>
+<div class="footer">
+<p>Approach</p>
+</div>
+</section>
+<section id="feature-engineering---geolocation" class="slide level2">
+<h2>Feature engineering - geolocation</h2>
+<div>
+<ul>
+<li class="fragment">Features from geolocation data will be generated that both do and do not utilize contextual information</li>
+<li class="fragment">Examples of potential features generated with contextual data:
+<ul>
+<li class="fragment">Isolation (extended time spent at home)</li>
+<li class="fragment">Risky locations (self-identified past places of use and high perceived riskiness)</li>
+<li class="fragment">High emotionality locations (self-identified positive or negative valence of place)</li>
+</ul></li>
+</ul>
+</div>
+<div class="footer">
+<p>Approach</p>
+</div>
+</section>
+<section id="algorithm-development-performance" class="slide level2">
+<h2>Algorithm development &amp; performance</h2>
+<ul>
+<li>Several classification candidate machine learning algorithms will be considered and will be trained and assessed using participant-grouped, nested <em>k</em>-fold cross-validation</li>
+</ul>
+<!--put in nested kfold cross val figure!-->
+<div class="footer">
+<p>Approach</p>
+</div>
+</section>
+<section id="algorithm-development-performance-1" class="slide level2 smaller">
+<h2>Algorithm development &amp; performance</h2>
+<div>
+<ul>
+<li class="fragment">Primary performance metric for model selection and evaluation will be area under the Receiver Operating Characteristic Curve (auROC)
+<ul>
+<li class="fragment">Indexes the probability that the model will predict a higher score for a randomly selected positive case (lapse) relative to a randomly selected negative case (no lapse)</li>
+</ul></li>
+<li class="fragment">Best model configuration will be selected using median auROC across all validation sets</li>
+<li class="fragment">Secondary performance metrics: sensitivity, specificity, balanced accuracy, positive predictive value (PPV), and negative predictive value (NPV)</li>
+</ul>
+</div>
+<div class="footer">
+<p>Approach</p>
+</div>
+</section>
+<section id="algorithm-development-performance-2" class="slide level2 smaller">
+<h2>Algorithm development &amp; performance</h2>
+<div>
+<ul>
+<li class="fragment">SHAP (SHapley Additive exPlanations) values will be computed as our interpretability metric to identify the relative importance of different features in each final algorithm
+<ul>
+<li class="fragment">Measure the unique contribution of features in an algorithm’s predictions</li>
+</ul></li>
+<li class="fragment">Highly important features represent relevant, actionable potential antecedents to lapse (and therefore points of intervention) that will be relevant in the future development of a smart DTx</li>
+<li class="fragment">Descriptive analyses: standard errors or other indices of uncertainty for importance scores not available for SHAP values</li>
+</ul>
+</div>
+<div class="footer">
+<p>Approach</p>
+</div>
+</section>
+<section id="algorithm-development-performance-3" class="slide level2">
+<h2>Algorithm development &amp; performance</h2>
+<div>
+<ul>
+<li class="fragment">Finally, the best-performing geolocation model will be compared to the baseline model
+<ul>
+<li class="fragment"><span style="color:#b22222; font-weight:bold">Baseline model:</span> will use only the time-of-day dummy-coded features to predict lapse</li>
+</ul></li>
+<li class="fragment">Bayesian hierarchical generalized linear model will be used to estimate the posterior probability distributions and 95% Bayesian credible intervals (CIs) for auROC between the baseline (time-of-day) and geolocation models</li>
+</ul>
+</div>
+<div class="footer">
+<p>Approach</p>
+</div>
+</section>
+<section id="algorithmic-fairness-1" class="slide level2 smaller">
+<h2>Algorithmic fairness</h2>
+<div>
+<ul>
+<li class="fragment">Several fairness metrics will be assessed across demographic characteristics implicated in treatment disparities, such as the true positive rate (TPR), true negative rate (TNR), and accuracy
+<ul>
+<li class="fragment">Can be calculated using open source R packages</li>
+</ul></li>
+<li class="fragment">Differences in classification are calculated by first splitting the sample by group, where one is the <span style="color:#b22222; font-weight:bold">privileged group</span> and the other is the <span style="color:#b22222; font-weight:bold">unprivileged group</span>, and then examining assigned outcomes (<span style="color:#b22222; font-weight:bold">lapse</span> or <span style="color:#b22222; font-weight:bold">no lapse</span>)</li>
+<li class="fragment">Bayesian hierarchical generalized linear model will be used to estimate the posterior probability distributions and 95% Bayesian CIs for auROC across different subgroups</li>
+</ul>
+</div>
+<div class="footer">
+<p>Approach</p>
+</div>
+</section></section>
+<section>
+<section id="summary" class="title-slide slide level1 center" data-background-image="madison.jpeg" data-background-opacity="0.15" data-background-transition="fade">
+<h1><span style="color:#b22222;">Summary</span></h1>
+
+</section>
+<section id="proposed-study" class="slide level2 smaller">
+<h2>Proposed study</h2>
+<p>My proposed first-year project will apply machine learning to <span style="color:#b22222; font-weight:bold">predict lapse</span> in AUD <span style="color:#b22222; font-weight:bold">utilizing geolocation data</span> with the aim of advancing both <span style="color:#b22222; font-weight:bold">prediction</span> and <span style="color:#b22222; font-weight:bold">explanatory</span> efforts in AUD.</p>
+<div>
+<ul>
+<li class="fragment">I will build a model to predict oncoming lapse with an almost entirely passive data stream for individuals with a recovery goal of abstinence <span style="color:#b22222; font-weight:bold">(Aim 1)</span></li>
+<li class="fragment">I will evaluate the best-performing model and examine what geolocation features are most predictive of an oncoming lapse <span style="color:#b22222; font-weight:bold">(Aim 2)</span></li>
+<li class="fragment">I will critically examine the fairness of the best performing model <span style="color:#b22222; font-weight:bold">(Aim 3)</span></li>
+</ul>
+</div>
+<div class="footer">
+<p>Summary</p>
+</div>
+</section>
+<section id="contribution-to-theory" class="slide level2 smaller">
+<h2>Contribution to theory</h2>
+<div>
+<ul>
+<li class="fragment">Identify the most <span style="color:#b22222; font-weight:bold">predictive</span> features which contribute to lapse from a minimally burdensome and continuously collected data source, geolocation data</li>
+<li class="fragment">Utilize features created by leveraging modeling techniques from both the substance use and affective science subdisciplines, resulting in broadly relevant <span style="color:#b22222; font-weight:bold">transdiagnostic</span> constructs</li>
+<li class="fragment">Provide a critical evaluation of model performance beyond AUC by including examination of algorithmic fairness.
+<ul>
+<li class="fragment">Advocate for <span style="color:#b22222; font-weight:bold">transparency</span> in reporting fairness metrics alongside standard measures of model performance</li>
+</ul></li>
+</ul>
+</div>
+<div class="footer">
+<p>Summary</p>
+</div>
+</section></section>
+<section id="thank-you" class="title-slide slide level1 center" data-background-image="madison.jpeg" data-background-opacity="0.15" data-background-transition="fade">
+<h1><span style="color:#b22222;">Thank you!</span></h1>
+<p>Feedback welcomed!</p>
+<div class="quarto-auto-generated-content">
+<div class="footer footer-default">
+
+</div>
+</div>
+</section>
+    </div>
+  </div>
+
+  <script>window.backupDefine = window.define; window.define = undefined;</script>
+  <script src="talk_files/libs/revealjs/dist/reveal.js"></script>
+  <!-- reveal.js plugins -->
+  <script src="talk_files/libs/revealjs/plugin/quarto-line-highlight/line-highlight.js"></script>
+  <script src="talk_files/libs/revealjs/plugin/pdf-export/pdfexport.js"></script>
+  <script src="talk_files/libs/revealjs/plugin/reveal-menu/menu.js"></script>
+  <script src="talk_files/libs/revealjs/plugin/reveal-menu/quarto-menu.js"></script>
+  <script src="talk_files/libs/revealjs/plugin/reveal-chalkboard/plugin.js"></script>
+  <script src="talk_files/libs/revealjs/plugin/quarto-support/support.js"></script>
+  
+
+  <script src="talk_files/libs/revealjs/plugin/notes/notes.js"></script>
+  <script src="talk_files/libs/revealjs/plugin/search/search.js"></script>
+  <script src="talk_files/libs/revealjs/plugin/zoom/zoom.js"></script>
+  <script src="talk_files/libs/revealjs/plugin/math/math.js"></script>
+  <script>window.define = window.backupDefine; window.backupDefine = undefined;</script>
+
+  <script>
+
+      // Full list of configuration options available at:
+      // https://revealjs.com/config/
+      Reveal.initialize({
+'controlsAuto': true,
+'previewLinksAuto': false,
+'pdfSeparateFragments': false,
+'autoAnimateEasing': "ease-in-out",
+'autoAnimateDuration': 1,
+'autoAnimateUnmatched': true,
+'menu': {"side":"left","useTextContentForMissingTitles":true,"markers":false,"loadIcons":false,"custom":[{"title":"Tools","icon":"<i class=\"fas fa-gear\"></i>","content":"<ul class=\"slide-menu-items\">\n<li class=\"slide-tool-item active\" data-item=\"0\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.fullscreen(event)\"><kbd>f</kbd> Fullscreen</a></li>\n<li class=\"slide-tool-item\" data-item=\"1\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.speakerMode(event)\"><kbd>s</kbd> Speaker View</a></li>\n<li class=\"slide-tool-item\" data-item=\"2\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.overview(event)\"><kbd>o</kbd> Slide Overview</a></li>\n<li class=\"slide-tool-item\" data-item=\"3\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.togglePdfExport(event)\"><kbd>e</kbd> PDF Export Mode</a></li>\n<li class=\"slide-tool-item\" data-item=\"4\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.toggleChalkboard(event)\"><kbd>b</kbd> Toggle Chalkboard</a></li>\n<li class=\"slide-tool-item\" data-item=\"5\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.toggleNotesCanvas(event)\"><kbd>c</kbd> Toggle Notes Canvas</a></li>\n<li class=\"slide-tool-item\" data-item=\"6\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.downloadDrawings(event)\"><kbd>d</kbd> Download Drawings</a></li>\n<li class=\"slide-tool-item\" data-item=\"7\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.keyboardHelp(event)\"><kbd>?</kbd> Keyboard Help</a></li>\n</ul>"}],"openButton":true},
+'chalkboard': {"buttons":true},
+'smaller': false,
+ 
+        // Display controls in the bottom right corner
+        controls: false,
+
+        // Help the user learn the controls by providing hints, for example by
+        // bouncing the down arrow when they first encounter a vertical slide
+        controlsTutorial: false,
+
+        // Determines where controls appear, "edges" or "bottom-right"
+        controlsLayout: 'edges',
+
+        // Visibility rule for backwards navigation arrows; "faded", "hidden"
+        // or "visible"
+        controlsBackArrows: 'faded',
+
+        // Display a presentation progress bar
+        progress: true,
+
+        // Display the page number of the current slide
+        slideNumber: 'c/t',
+
+        // 'all', 'print', or 'speaker'
+        showSlideNumber: 'all',
+
+        // Add the current slide number to the URL hash so that reloading the
+        // page/copying the URL will return you to the same slide
+        hash: true,
+
+        // Start with 1 for the hash rather than 0
+        hashOneBasedIndex: false,
+
+        // Flags if we should monitor the hash and change slides accordingly
+        respondToHashChanges: true,
+
+        // Push each slide change to the browser history
+        history: true,
+
+        // Enable keyboard shortcuts for navigation
+        keyboard: true,
+
+        // Enable the slide overview mode
+        overview: true,
+
+        // Disables the default reveal.js slide layout (scaling and centering)
+        // so that you can use custom CSS layout
+        disableLayout: false,
+
+        // Vertical centering of slides
+        center: false,
+
+        // Enables touch navigation on devices with touch input
+        touch: true,
+
+        // Loop the presentation
+        loop: false,
+
+        // Change the presentation direction to be RTL
+        rtl: false,
+
+        // see https://revealjs.com/vertical-slides/#navigation-mode
+        navigationMode: 'linear',
+
+        // Randomizes the order of slides each time the presentation loads
+        shuffle: false,
+
+        // Turns fragments on and off globally
+        fragments: true,
+
+        // Flags whether to include the current fragment in the URL,
+        // so that reloading brings you to the same fragment position
+        fragmentInURL: false,
+
+        // Flags if the presentation is running in an embedded mode,
+        // i.e. contained within a limited portion of the screen
+        embedded: false,
+
+        // Flags if we should show a help overlay when the questionmark
+        // key is pressed
+        help: true,
+
+        // Flags if it should be possible to pause the presentation (blackout)
+        pause: true,
+
+        // Flags if speaker notes should be visible to all viewers
+        showNotes: false,
+
+        // Global override for autoplaying embedded media (null/true/false)
+        autoPlayMedia: null,
+
+        // Global override for preloading lazy-loaded iframes (null/true/false)
+        preloadIframes: null,
+
+        // Number of milliseconds between automatically proceeding to the
+        // next slide, disabled when set to 0, this value can be overwritten
+        // by using a data-autoslide attribute on your slides
+        autoSlide: 0,
+
+        // Stop auto-sliding after user input
+        autoSlideStoppable: true,
+
+        // Use this method for navigation when auto-sliding
+        autoSlideMethod: null,
+
+        // Specify the average time in seconds that you think you will spend
+        // presenting each slide. This is used to show a pacing timer in the
+        // speaker view
+        defaultTiming: null,
+
+        // Enable slide navigation via mouse wheel
+        mouseWheel: false,
+
+        // The display mode that will be used to show slides
+        display: 'block',
+
+        // Hide cursor if inactive
+        hideInactiveCursor: true,
+
+        // Time before the cursor is hidden (in ms)
+        hideCursorTime: 5000,
+
+        // Opens links in an iframe preview overlay
+        previewLinks: false,
+
+        // Transition style (none/fade/slide/convex/concave/zoom)
+        transition: 'fade',
+
+        // Transition speed (default/fast/slow)
+        transitionSpeed: 'slow',
+
+        // Transition style for full page slide backgrounds
+        // (none/fade/slide/convex/concave/zoom)
+        backgroundTransition: 'none',
+
+        // Number of slides away from the current that are visible
+        viewDistance: 3,
+
+        // Number of slides away from the current that are visible on mobile
+        // devices. It is advisable to set this to a lower number than
+        // viewDistance in order to save resources.
+        mobileViewDistance: 2,
+
+        // The "normal" size of the presentation, aspect ratio will be preserved
+        // when the presentation is scaled to fit different resolutions. Can be
+        // specified using percentage units.
+        width: 1050,
+
+        height: 700,
+
+        // Factor of the display size that should remain empty around the content
+        margin: 0.1,
+
+        math: {
+          mathjax: 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js',
+          config: 'TeX-AMS_HTML-full',
+          tex2jax: {
+            inlineMath: [['\\(','\\)']],
+            displayMath: [['\\[','\\]']],
+            balanceBraces: true,
+            processEscapes: false,
+            processRefs: true,
+            processEnvironments: true,
+            preview: 'TeX',
+            skipTags: ['script','noscript','style','textarea','pre','code'],
+            ignoreClass: 'tex2jax_ignore',
+            processClass: 'tex2jax_process'
+          },
+        },
+
+        // reveal.js plugins
+        plugins: [QuartoLineHighlight, PdfExport, RevealMenu, RevealChalkboard, QuartoSupport,
+
+          RevealMath,
+          RevealNotes,
+          RevealSearch,
+          RevealZoom
+        ]
+      });
+    </script>
+    <script id="quarto-html-after-body" type="application/javascript">
+    window.document.addEventListener("DOMContentLoaded", function (event) {
+      const toggleBodyColorMode = (bsSheetEl) => {
+        const mode = bsSheetEl.getAttribute("data-mode");
+        const bodyEl = window.document.querySelector("body");
+        if (mode === "dark") {
+          bodyEl.classList.add("quarto-dark");
+          bodyEl.classList.remove("quarto-light");
+        } else {
+          bodyEl.classList.add("quarto-light");
+          bodyEl.classList.remove("quarto-dark");
+        }
+      }
+      const toggleBodyColorPrimary = () => {
+        const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+        if (bsSheetEl) {
+          toggleBodyColorMode(bsSheetEl);
+        }
+      }
+      toggleBodyColorPrimary();  
+      const tabsets =  window.document.querySelectorAll(".panel-tabset-tabby")
+      tabsets.forEach(function(tabset) {
+        const tabby = new Tabby('#' + tabset.id);
+      });
+      const isCodeAnnotation = (el) => {
+        for (const clz of el.classList) {
+          if (clz.startsWith('code-annotation-')) {                     
+            return true;
+          }
+        }
+        return false;
+      }
+      const clipboard = new window.ClipboardJS('.code-copy-button', {
+        text: function(trigger) {
+          const codeEl = trigger.previousElementSibling.cloneNode(true);
+          for (const childEl of codeEl.children) {
+            if (isCodeAnnotation(childEl)) {
+              childEl.remove();
+            }
+          }
+          return codeEl.innerText;
+        }
+      });
+      clipboard.on('success', function(e) {
+        // button target
+        const button = e.trigger;
+        // don't keep focus
+        button.blur();
+        // flash "checked"
+        button.classList.add('code-copy-button-checked');
+        var currentTitle = button.getAttribute("title");
+        button.setAttribute("title", "Copied!");
+        let tooltip;
+        if (window.bootstrap) {
+          button.setAttribute("data-bs-toggle", "tooltip");
+          button.setAttribute("data-bs-placement", "left");
+          button.setAttribute("data-bs-title", "Copied!");
+          tooltip = new bootstrap.Tooltip(button, 
+            { trigger: "manual", 
+              customClass: "code-copy-button-tooltip",
+              offset: [0, -8]});
+          tooltip.show();    
+        }
+        setTimeout(function() {
+          if (tooltip) {
+            tooltip.hide();
+            button.removeAttribute("data-bs-title");
+            button.removeAttribute("data-bs-toggle");
+            button.removeAttribute("data-bs-placement");
+          }
+          button.setAttribute("title", currentTitle);
+          button.classList.remove('code-copy-button-checked');
+        }, 1000);
+        // clear code selection
+        e.clearSelection();
+      });
+        var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+        var mailtoRegex = new RegExp(/^mailto:/);
+          var filterRegex = new RegExp('/' + window.location.host + '/');
+        var isInternal = (href) => {
+            return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+        }
+        // Inspect non-navigation links and adorn them if external
+     	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool)');
+        for (var i=0; i<links.length; i++) {
+          const link = links[i];
+          if (!isInternal(link.href)) {
+            // undo the damage that might have been done by quarto-nav.js in the case of
+            // links that we want to consider external
+            if (link.dataset.originalHref !== undefined) {
+              link.href = link.dataset.originalHref;
+            }
+          }
+        }
+      function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+        const config = {
+          allowHTML: true,
+          maxWidth: 500,
+          delay: 100,
+          arrow: false,
+          appendTo: function(el) {
+              return el.closest('section.slide') || el.parentElement;
+          },
+          interactive: true,
+          interactiveBorder: 10,
+          theme: 'light-border',
+          placement: 'bottom-start',
+        };
+        if (contentFn) {
+          config.content = contentFn;
+        }
+        if (onTriggerFn) {
+          config.onTrigger = onTriggerFn;
+        }
+        if (onUntriggerFn) {
+          config.onUntrigger = onUntriggerFn;
+        }
+          config['offset'] = [0,0];
+          config['maxWidth'] = 700;
+        window.tippy(el, config); 
+      }
+      const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+      for (var i=0; i<noterefs.length; i++) {
+        const ref = noterefs[i];
+        tippyHover(ref, function() {
+          // use id or data attribute instead here
+          let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+          try { href = new URL(href).hash; } catch {}
+          const id = href.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note) {
+            return note.innerHTML;
+          } else {
+            return "";
+          }
+        });
+      }
+      const findCites = (el) => {
+        const parentEl = el.parentElement;
+        if (parentEl) {
+          const cites = parentEl.dataset.cites;
+          if (cites) {
+            return {
+              el,
+              cites: cites.split(' ')
+            };
+          } else {
+            return findCites(el.parentElement)
+          }
+        } else {
+          return undefined;
+        }
+      };
+      var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+      for (var i=0; i<bibliorefs.length; i++) {
+        const ref = bibliorefs[i];
+        const citeInfo = findCites(ref);
+        if (citeInfo) {
+          tippyHover(citeInfo.el, function() {
+            var popup = window.document.createElement('div');
+            citeInfo.cites.forEach(function(cite) {
+              var citeDiv = window.document.createElement('div');
+              citeDiv.classList.add('hanging-indent');
+              citeDiv.classList.add('csl-entry');
+              var biblioDiv = window.document.getElementById('ref-' + cite);
+              if (biblioDiv) {
+                citeDiv.innerHTML = biblioDiv.innerHTML;
+              }
+              popup.appendChild(citeDiv);
+            });
+            return popup.innerHTML;
+          });
+        }
+      }
+    });
+    </script>
+    
+
+</body></html>
