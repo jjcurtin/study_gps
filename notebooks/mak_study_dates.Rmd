@@ -1,0 +1,200 @@
+---
+title: "Make Study Dates for EMA"
+author: "John Curtin"
+date: "`r lubridate::today()`"
+output: 
+  html_document:
+    toc: true 
+    toc_depth: 4
+knit: (function(input, ...) {
+    rmarkdown::render(
+      input,
+      output_dir = dplyr::if_else(Sys.info()[["sysname"]] == "Windows",
+      "P:/studydata/risk/knits/ema", 
+      "/Volumes/private/studydata/risk/knits/ema")
+    )
+  })
+---
+
+### Code Status
+
+Complete
+
+This script creates an EMA study-level dates file that includes the study start date, which is also called data_start (see below).  It also includes study end and ema_end for use in mak_labels.  
+
+This script is essentially the same as Kendra'  meta script because the EMA study currently includes
+the same sample as the meta study.  The only change is how we handle 74 (who had communications file issue).  They are retained in the EMA study.
+
+
+### Conclusions   
+
+- John and Kendra have decided to drop subid 104's data for the following reasons:   
+  - They had lapses every day on study except one day.    
+  - Only had 75 surveys where a lapse was not reported.   
+  - Viewing their lapse times it appears they were drinking constantly (morning and 
+  night).   
+  - They consistently report being uncertain that their goal is to be abstinent 
+  (uncertain on 125 of 137 lapses. They also report they are uncertain in this goal 
+  at followup 1 and 2.    
+  - They are ultimately discontinued since they were struggling to gain sobriety.   
+  - Unfortunately this drops 109 valid lapses.    
+
+
+- John and Kendra have decided to drop subid 269's data for the following reasons:       
+  - They completed 10-15 surveys on many days on study (avg number of surveys per 
+  day is 6.76).  
+  - Their responses indicate careless responding - they were filling 2-4 surveys out 
+  within an hour of each other and the responses to the questions were completely different.     
+  - They have questionable no lapse labels - they reported no lapses while on study but 
+  according to notes left two messages for study staff where they admitted to drinking 
+  over the weekend.   
+  
+
+- John and Kendra have decided to drop subid 204's data for the following reasons:    
+  - Subid 204 had extremely poor compliance. 33 out of 89 study days had an EMA completed. 
+  They only did a total of 5 surveys between followup 2 and 3.    
+  - We don't trust their lapse labels - They report several lapses during their interviews 
+  but times appear questionable (same time every night). They only report 1 lapse with EMA.
+  - From notes - "Participant did not do many surveys during their second month of participation. 
+  At their Follow-up 2 visit they reported several lapses that were not documented in their 
+  EMAs - estimated lapse days/times in subid's raw data log."  
+  - JC note: "There are issues with 204. They are missing lapses reported by interview. But they  
+  also stopped doing any ema by 5/17 even though their study end date was 6/13. Probably need to 
+  drop them for lapse analyses for anything after 5/17.  Probably also need to add in their 
+  reported lapses at follow-up 2. OR we drop them at the end of follow-up 1 or wherever their 
+  ema gets sketchy"    
+
+
+- John and Kendra have decided to decided to retain 128's data even though they have over 100 lapses for 
+the following reasons:   
+  - Compliance is good (averaged over 3 surveys per day, no days without an EMA).       
+  - completed the study for the full 90 days.    
+  - appeared to still want abstinence as they reported they were uncertain to ema_1_5 
+  on only 3 surveys. They reported they were uncertain that their goal was to remain 
+  abstinent at followup 1 and confirmed their goal was to remain abstinent at followup 2.    
+  - Has more non-lapse surveys than lapse surveys.   
+  
+
+- All final timezones are in America/Chicago timezone.    
+
+
+### Set Up Environment
+
+Chunk Defaults
+```{r defaults, include=FALSE}
+knitr::opts_chunk$set(attr.output='style="max-height: 500px;"')
+
+options(tibble.width = Inf)
+options(tibble.print_max = Inf)
+```
+
+Absolute paths
+```{r, absolute paths}
+switch (Sys.info()[['sysname']],
+        # PC paths
+        Windows = {
+          path_processed <- "P:/studydata/risk/data_processed/shared"
+          path_ema <- "P:/studydata/risk/data_processed/ema"},
+
+        # IOS paths
+        Darwin = {
+          path_processed <- "/Volumes/private/studydata/risk/data_processed/shared"
+          path_ema <- "/Volumes/private/studydata/risk/data_processed/ema"}
+        )
+```
+
+Packages for lab workflow 
+```{r, packages_workflow, message=FALSE, warning=FALSE}
+library(conflicted)
+  conflict_prefer("filter", "dplyr")
+  conflict_prefer("select", "dplyr")
+
+library(here) 
+```
+
+
+Packages for script
+```{r, packages_script, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(vroom)
+library(janitor)
+library(lubridate)
+```
+
+
+### Visit/EMA Dates
+
+visit dates
+```{r}
+dates <- vroom(here(path_processed, "visit_dates.csv"), col_types = vroom::cols()) %>%
+  select(subid, study_start = start_study, study_end = end_study, followup_1) %>% 
+  mutate(study_start = force_tz(study_start, tzone = "America/Chicago"),
+         study_end = force_tz(study_end, tzone = "America/Chicago")) %>% 
+  glimpse()
+```
+
+Filter out subids who did not make it to followup_1
+```{r}
+dates <- dates %>% 
+  filter(!is.na(followup_1)) %>% 
+  select(-followup_1) %>% 
+  glimpse()
+```
+
+Filter out excluded subids for lapse reporting issues
+```{r}
+dates <- dates %>% 
+  filter(!subid %in% c(104, 269, 204)) %>% 
+  glimpse()
+```
+
+
+### Data Start Date
+
+Add column for data_start - will be = study start for EMA b/c everyone started EMA
+with study start.   Keeping this new column because we use data_start for other studies
+and some study generic code may expect it.
+```{r}
+dates <- dates %>% 
+  mutate(data_start = study_start) %>% 
+  glimpse()
+```
+
+
+### EMA End Date
+
+Get last ema data for EMA end
+```{r}
+ema <- vroom(here(path_processed, "ema_morning.csv"), col_types = vroom::cols()) %>% 
+    select(subid, start_date) %>%  
+  bind_rows(vroom(here(path_processed, "ema_later.csv"), col_types = vroom::cols()) %>% 
+    select(subid, start_date)) %>% 
+  mutate(subid = as.numeric(subid),
+         start_date = with_tz(start_date, tzone = "America/Chicago")) %>% 
+  rename(ema_end = start_date) %>% 
+  arrange(subid, desc(ema_end)) %>% 
+  group_by(subid) %>% 
+  slice(1) %>% 
+  glimpse
+```
+
+
+Add ema_end date
+```{r}
+dates <- dates %>% 
+  left_join(ema, by = "subid") %>% 
+  relocate(subid, study_start, data_start) %>% 
+  glimpse
+```
+
+
+
+### Save
+
+save dates
+```{r}
+dates %>% 
+  vroom_write(here(path_ema, "study_dates.csv"), delim = ",") %>% 
+  glimpse()
+```
+

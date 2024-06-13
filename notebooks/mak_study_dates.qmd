@@ -1,0 +1,206 @@
+---
+title: "Make Study Dates for GPS"
+author: "John Curtin for EMA, updated for GPS by Claire Punturieri"
+date: "`r lubridate::today()`""
+format: 
+  html:
+    toc: true
+    toc_depth: 4
+    embed-resources: true
+editor_options: 
+  chunk_output_type: console
+---
+
+# Housekeeping
+
+## Code Status
+
+Complete
+
+This script creates a GPS study-level dates file that includes the study start date, which is also called data_start (see below).  It also includes study end and ema_end for use in mak_labels.  
+
+This script is essentially the same as Kendra's meta script and the EMA study-level script because the GPS study currently includes the same sample as the meta study (further exclusion of subjects based on completeness of GPS data is done elsewhere). 
+
+
+## Conclusions   
+
+- John and Kendra have decided to drop subid 104's data for the following reasons:   
+  - They had lapses every day on study except one day.    
+  - Only had 75 surveys where a lapse was not reported.   
+  - Viewing their lapse times it appears they were drinking constantly (morning and 
+  night).   
+  - They consistently report being uncertain that their goal is to be abstinent 
+  (uncertain on 125 of 137 lapses. They also report they are uncertain in this goal 
+  at followup 1 and 2.    
+  - They are ultimately discontinued since they were struggling to gain sobriety.   
+  - Unfortunately this drops 109 valid lapses.    
+
+
+- John and Kendra have decided to drop subid 269's data for the following reasons:       
+  - They completed 10-15 surveys on many days on study (avg number of surveys per 
+  day is 6.76).  
+  - Their responses indicate careless responding - they were filling 2-4 surveys out 
+  within an hour of each other and the responses to the questions were completely different.     
+  - They have questionable no lapse labels - they reported no lapses while on study but 
+  according to notes left two messages for study staff where they admitted to drinking 
+  over the weekend.   
+  
+
+- John and Kendra have decided to drop subid 204's data for the following reasons:    
+  - Subid 204 had extremely poor compliance. 33 out of 89 study days had an EMA completed. 
+  They only did a total of 5 surveys between followup 2 and 3.    
+  - We don't trust their lapse labels - They report several lapses during their interviews 
+  but times appear questionable (same time every night). They only report 1 lapse with EMA.
+  - From notes - "Participant did not do many surveys during their second month of participation. 
+  At their Follow-up 2 visit they reported several lapses that were not documented in their 
+  EMAs - estimated lapse days/times in subid's raw data log."  
+  - JC note: "There are issues with 204. They are missing lapses reported by interview. But they  
+  also stopped doing any ema by 5/17 even though their study end date was 6/13. Probably need to 
+  drop them for lapse analyses for anything after 5/17.  Probably also need to add in their 
+  reported lapses at follow-up 2. OR we drop them at the end of follow-up 1 or wherever their 
+  ema gets sketchy"    
+
+
+- John and Kendra have decided to decided to retain 128's data even though they have over 100 lapses for 
+the following reasons:   
+  - Compliance is good (averaged over 3 surveys per day, no days without an EMA).       
+  - completed the study for the full 90 days.    
+  - appeared to still want abstinence as they reported they were uncertain to ema_1_5 
+  on only 3 surveys. They reported they were uncertain that their goal was to remain 
+  abstinent at followup 1 and confirmed their goal was to remain abstinent at followup 2.    
+  - Has more non-lapse surveys than lapse surveys.   
+  
+
+- All final timezones are in America/Chicago timezone.    
+
+
+## Set up
+
+## Environment
+```{r}
+#| message: false
+#| warning: false
+
+options(conflicts.policy = "depends.ok")
+devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true", 
+                      sha1 = "a58e57da996d1b70bb9a5b58241325d6fd78890f")
+```
+
+### Paths
+```{r}
+path_processed <- format_path("studydata/risk/data_processed/shared")
+path_ema <- format_path("studydata/risk/data_processed/ema")
+path_gps <- format_path("studydata/risk/data_processed/gps")
+```
+
+## Packages and plot settings
+```{r}
+#| message: false
+#| warning: false
+
+library(tidyverse)
+library(lubridate)
+
+# adjust plot visuals
+theme_set(theme_classic())
+options(tibble.width = Inf, dplyr.print_max = Inf)
+```
+
+## Cross-reference study visit dates with EMA
+
+### Visit/EMA Dates
+
+Read in visit dates file for all subjects, but filter to only include start date, follow-up 1 date, and end date.
+```{r}
+dates <- read_csv(here::here(path_processed, "visit_dates.csv"), show_col_types = FALSE) |> 
+  select(subid, study_start = start_study, study_end = end_study, followup_1) |>  
+  mutate(study_start = force_tz(study_start, tzone = "America/Chicago"),
+         study_end = force_tz(study_end, tzone = "America/Chicago")) |>  
+  glimpse()
+```
+
+Filter out subids who did not make it to follow-up 1.
+```{r}
+dates <- dates |>  
+  filter(!is.na(followup_1)) |>  
+  select(-followup_1) |>  
+  glimpse()
+```
+
+Filter out excluded subids for lapse reporting issues.
+```{r}
+dates <- dates |>  
+  filter(!subid %in% c(104, 269, 204)) |> 
+  glimpse()
+```
+
+
+### Data Start Date
+
+Add column for data_start - will be = study start for EMA b/c everyone started EMA
+with study start. Keeping this new column because we use data_start for other studies
+and some study generic code may expect it.
+```{r}
+dates <- dates |>  
+  mutate(data_start = study_start) |> 
+  glimpse()
+```
+
+
+### EMA end date
+
+Get last EMA data for EMA end.
+```{r}
+ema <- read_csv(here::here(path_processed, "ema_morning.csv"), show_col_types = FALSE) |>  
+    select(subid, start_date)  |>   
+  bind_rows(read_csv(here::here(path_processed, "ema_later.csv"), show_col_types = FALSE) |>  
+    select(subid, start_date)) |> 
+  mutate(subid = as.numeric(subid),
+         start_date = with_tz(start_date, tzone = "America/Chicago")) |>  
+  rename(ema_end = start_date) |> 
+  arrange(subid, desc(ema_end)) |> 
+  group_by(subid) |>  
+  slice(1) |>  
+  glimpse()
+```
+
+
+Add `ema_end` date.
+```{r}
+dates <- dates |>  
+  left_join(ema, by = "subid") |>  
+  relocate(subid, study_start, data_start) |>  
+  glimpse()
+```
+
+### GPS start and end dates
+
+Get first and last GPS date for GPS start and end.
+```{r}
+gps <- read_csv(here::here(path_processed, "gps.csv"), show_col_types = FALSE) |>  
+  group_by(subid) |> 
+  arrange(time) |> 
+  slice(1, n()) |>
+  mutate(start_gps = first(time),
+         end_gps = last(time)) |> 
+  select(subid, start_gps, end_gps) |> 
+  distinct()
+```
+
+Add `gps_start` and `gps_end` date.
+```{r}
+dates <- dates |>  
+  left_join(gps, by = "subid") |>  
+  relocate(subid, study_start, data_start) |>  
+  glimpse()
+```
+
+## Save
+
+Save dates.
+```{r}
+dates  |>  
+  write_csv(here::here(path_gps, "study_dates.csv")) |>  
+  glimpse()
+```
+

@@ -1,0 +1,280 @@
+---
+title: "Processed GPS EDA"
+author: "Claire Punturieri"
+date: "`r lubridate::today()`"
+format: 
+  html:
+    toc: true
+    toc_depth: 4
+    embed-resources: true
+editor_options: 
+  chunk_output_type: console
+---
+
+## Examine individual participant data
+
+### Number of observations per person
+
+Display histogram of # observations per subject.
+```{r}
+gps |>  
+  group_by(subid) |>  
+  summarise(n_obs = n()) |>  
+  ggplot(aes(x = n_obs)) +
+  geom_histogram(bins = 10, color = "black", fill = "white") +
+  xlab("# of GPS observations")
+```
+
+### Number of observations per non-missing day
+
+Subset data frame to display average observations per day, SD, minimum observation, and maximum observation per subject.
+```{r}
+obs_per_day <- gps |>  
+  mutate(date_central = date(time)) |>  
+  group_by(subid, date_central) |>  
+  summarise(n_obs = n()) |>  
+  group_by(subid) |>  
+  summarise(avg_obs_per_day = mean(n_obs),
+            sd = sd(n_obs),
+            min = min(n_obs),
+            max = max(n_obs))
+```
+
+Display minimum average observation per day and maximum average observation per day across subjects.
+```{r}
+min(obs_per_day$avg_obs_per_day)
+max(obs_per_day$avg_obs_per_day)
+```
+
+Display minimum observations per day and maximum observations per day across subjects.
+```{r}
+min(obs_per_day$min)
+max(obs_per_day$max)
+```
+
+Display average observations per day across all subjects (average of average observations per day).
+```{r}
+mean(obs_per_day$avg_obs_per_day)
+```
+
+Plot number of observations per non-missing day. Dashed line represents mean number of observations across all subjects.
+```{r}
+gps |> 
+  mutate(date_central = date(time)) |>  
+  group_by(subid, date_central) |>  
+  summarise(n_obs = n()) |>  
+  group_by(subid) |> 
+  summarise(tot_obs = sum(n_obs)) |> 
+  ggplot(aes(x = subid, y = tot_obs)) +
+  geom_bar(stat = "identity", color="black", fill="white") +
+  geom_hline(aes(yintercept = mean(tot_obs), color = "red"), linetype = 2)
+```
+
+### Display number of observations by day per subject
+```{r}
+gps |> 
+  mutate(date_central = date(time)) |>  
+  group_by(subid, date_central) |>  
+  summarise(n_obs = n()) |>  
+  group_by(subid) |> 
+  print_kbl() |> 
+  scroll_box(width = "300px", height = "200px")
+```
+
+### Plot number of observations by day per subject
+
+Create timeseries plotting function.
+```{r}
+plot_bump <- function(x, y, z) {
+    gps_obs <- gps_obs |> filter(subid == z)
+    
+    graph_title <- paste0("Subject ID", z, sep = " ")
+  
+    print(ggplot(data = gps_obs, aes(x = .data[[x]], y = .data[[y]], color = z)) +
+          ggbump::geom_bump(color = "darkblue")) +
+      labs(title = graph_title) +
+      geom_hline(aes(yintercept = mean(n_obs), color = "red"), linetype = 2, show.legend = FALSE)
+}
+```
+
+Subset dataframe to display observations per day per subject.
+```{r}
+gps_obs <- gps |> 
+  mutate(date_central = date(time)) |>  
+  group_by(subid, date_central) |>  
+  summarise(n_obs = n()) |>  
+  group_by(subid)
+```
+
+Get list of subjects.
+```{r}
+subid_all <- list(gps$subid) |> unlist() |> unique()
+```
+
+If pdf output file does not already exist, create and save out plots in /data_processed/gps/subject-maps.
+
+> CP 6/10: Maybe want to change where we save this file out? I have this as a pdf now for easier viewing, but could consider printing plots in rendered file (but it is 167 plots).
+
+```{r}
+if(file.exists(here::here(path_gps, "per-subj-timeseries.pdf"))){
+
+  message("PDF file already exist -- delete to recreate!")
+
+} else{
+  timeseries_plots <- subid_all |> 
+    map(\(subid) plot_bump("date_central", "n_obs", subid))
+  
+  output_file <- paste0(path_gps, "/per-subj-timeseries.pdf", sep = "")
+
+  multi.page <- ggpubr::ggarrange(plotlist = timeseries_plots,
+                                  nrow = 3, ncol = 1)
+  ggpubr::ggexport(multi.page, filename = output_file)
+}
+```
+
+### Compare start and end dates
+
+Extract first and last dates in GPS data per subject.
+```{r}
+gps_dates <- gps_obs |>
+  group_by(subid) |> 
+  arrange(date_central) |> 
+  slice(1, n()) |>
+  mutate(start_study_gps = first(date_central),
+         end_study_gps = last(date_central)) |> 
+  select(-date_central, -n_obs) |> 
+  distinct()
+```
+
+Extract start and end study dates from visit_dates.
+```{r}
+visit_dates <- visit_dates |>
+  select(subid, start_study, end_study) |> 
+  mutate(start_study_record = start_study,
+         end_study_record = end_study) |> 
+  select(-start_study, -end_study)
+```
+
+Combine data frames.
+```{r}
+merge_dates <- left_join(gps_dates, visit_dates)
+
+merge_dates <- merge_dates[, c("subid", "start_study_record", "start_study_gps", "end_study_record", "end_study_gps")]
+```
+
+Display comparison table of start and end dates.
+```{r}
+merge_dates |>
+  kable(caption = "Comparison of start and end study dates based on staff records and GPS data collection") |>
+  kable_styling("striped") |> 
+  scroll_box(width = "700px", height = "200px")
+```
+
+
+Display subjects who **do not** have the same dates.
+```{r}
+merge_dates |>
+  filter(!(start_study_record == start_study_gps & end_study_record == end_study_gps)) |> 
+  kable(caption = "Comparison of start and end study dates based on staff records and GPS data collection") |>
+  kable_styling("striped") |> 
+  scroll_box(width = "700px", height = "200px")
+```
+
+
+Display subjects who have a recorded start date later than GPS collection began, or a recorded end date earlier than GPS collection finished.
+
+> CP 6/11: what should the policy be for subjects who do not have the same start/end dates? I am mostly wondering if it is an issue to use data collected after their staff-listed termination data.
+
+```{r}
+merge_dates |>
+  filter(start_study_record > start_study_gps | end_study_record < end_study_gps) |> 
+  kable(caption = "Comparison of start and end study dates based on staff records and GPS data collection") |>
+  kable_styling("striped") |> 
+  scroll_box(width = "700px", height = "200px")
+```
+
+## GPS maps
+
+Other map options we might be interested in generating for QC are interactive ones where you can move around (see Figure 1: https://journals.sagepub.com/doi/full/10.1177/25152459221082680).
+
+### Static
+
+Create function to generate static map per subject.
+```{r}
+plot_geo <- function(z) {
+    gps <- gps |> filter(subid == z)
+    
+    graph_title <- paste0("Subject ID", z, sep = " ")
+   
+    cbbox <- make_bbox(lon = gps$lon, lat = gps$lat, f = .1)
+    sq_map <- get_map(location = cbbox, maptype = "stamen_toner_lite")
+    
+    ggmap(sq_map) + 
+      geom_path(data = gps, aes(x = gps$lon, y = gps$lat), 
+                size = 1, lineend = "round", color="darkred") +
+      labs(x = " ", y = " ", title = graph_title) +
+      theme_minimal() +
+      theme(legend.position = "none")
+}
+```
+
+Generate subject ID list.
+```{r}
+subid_all <- list(gps$subid) |> unlist() |> unique()
+```
+
+Generate individual GPS map per subject and save out in /shared/gps/subject-maps if compiled file does already not exist.
+```{r}
+#| label: Static subject maps
+
+if(file.exists(here::here(path_gps, "per-subj-geo.pdf"))){
+
+  message("PDF file already exist -- delete to recreate!")
+
+} else{
+  geo_plots <- subid_all |> 
+    map(\(subid) plot_geo(subid))
+  
+  output_file <- paste0(path_gps, "/per-subj-geo.pdf", sep = "")
+
+  multi.page <- ggpubr::ggarrange(plotlist = geo_plots,
+                                    nrow = 1, ncol = 1)
+
+  ggpubr::ggexport(multi.page, filename = output_file)
+}
+```
+
+### Dynamic
+
+Create gifs displaying participant movement during study duration. Note: this takes a *long* time to run -- recommend subsetting data for a particular subject as opposed to generating map for entire duration on study.
+
+```{r}
+#| eval: false
+#| label: Dynamic subject maps
+
+gps_mini <- gps |> filter(subid == "1" & time < "2017-03-02 16:07:24")
+
+gps_mini <- gps_mini[!duplicated(gps_mini$time),]
+
+gps_mini_moves <- df2move(gps_mini,
+        proj = "+init=epsg:4326 +proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0", 
+        x = "lon", y = "lat", time = "time", track_id = "subid")
+
+# align move_data to a uniform time scale
+m <- align_move(gps_mini_moves, res = 4, unit = "mins")
+
+
+frames <- frames_spatial(m, path_colours = c("darkred"),
+                         map_service = "osm", map_type = "streets",
+                         alpha = 0.5) |>  
+  add_labels(x = "Longitude", y = "Latitude") |>
+  add_northarrow() |>  
+  add_scalebar() |> 
+  add_timestamps(type = "label") |>  
+  add_progress()
+
+frames[[10]] # preview frame
+
+# animate frames
+animate_frames(frames, out_file = "moveVis.gif")
+```
