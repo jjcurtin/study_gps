@@ -11,7 +11,86 @@ editor_options:
   chunk_output_type: console
 ---
 
+# Housekeeping
+
+## Code Status
+
+Complete to lab workflow standards as of 6/2024.
+
+
+## Conclusions   
+
+EDA is conducted here using subjects with credible lapse reporting and at least one month of data (generated using mak_study_dates.qmd)
+
+
+## Set up
+
+## Environment
+```{r}
+#| message: false
+#| warning: false
+
+options(conflicts.policy = "depends.ok")
+devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true", 
+                      sha1 = "a58e57da996d1b70bb9a5b58241325d6fd78890f")
+```
+
+### Paths
+```{r}
+path_shared <- format_path("studydata/risk/data_processed/shared")
+path_gps <- format_path("studydata/risk/data_processed/gps")
+path_maps <- format_path("studydata/risk/data_processed/gps/subject-maps")
+path_notes <- format_path("analysis_risk/shared/notes")
+```
+
+## Packages and plot settings
+```{r}
+#| message: false
+#| warning: false
+
+library(tidyverse)
+library(readxl)
+library(geosphere)
+library(lubridate)
+library(XML)
+library(kableExtra, exclude = c("group_rows"))
+# for maps
+## static maps
+library(ggmap)
+register_stadiamaps("d4bd71d7-556a-4627-9515-ef6e96823ce3")
+## dynamic maps
+#library(moveVis) this package might have deprecated, look into if making more animated maps
+library(raster, exclude = c("select"))
+library(move)
+
+# adjust plot visuals
+theme_set(theme_classic())
+options(tibble.width = Inf, dplyr.print_max = Inf)
+```
+
+
 ## Examine individual participant data
+
+### Load in data
+```{r}
+gps <- read_csv(here::here(path_shared, "gps.csv"), show_col_types = FALSE) |>
+  glimpse()
+
+# staff notes on subject gps quality
+#notes <- read_csv(here::here(path_notes, "notes_raw.csv"), show_col_types = FALSE)
+
+# dates of screening, intake, and follow-up visits
+visit_dates <- read_csv(here::here(path_gps, "study_dates.csv"), show_col_types = FALSE) |> 
+  glimpse()
+
+```
+
+### Fill in missing days
+
+If there is no GPS data collected on a particular day, that date (i.e., row) will not exist.
+```{r}
+
+```
 
 ### Number of observations per person
 
@@ -85,13 +164,13 @@ gps |>
 
 Create timeseries plotting function.
 ```{r}
-plot_bump <- function(x, y, z) {
+plot_timeseries <- function(x, y, z) {
     gps_obs <- gps_obs |> filter(subid == z)
     
     graph_title <- paste0("Subject ID", z, sep = " ")
   
     print(ggplot(data = gps_obs, aes(x = .data[[x]], y = .data[[y]], color = z)) +
-          ggbump::geom_bump(color = "darkblue")) +
+          geom_line(color = "darkblue")) +
       labs(title = graph_title) +
       geom_hline(aes(yintercept = mean(n_obs), color = "red"), linetype = 2, show.legend = FALSE)
 }
@@ -113,8 +192,6 @@ subid_all <- list(gps$subid) |> unlist() |> unique()
 
 If pdf output file does not already exist, create and save out plots in /data_processed/gps/subject-maps.
 
-> CP 6/10: Maybe want to change where we save this file out? I have this as a pdf now for easier viewing, but could consider printing plots in rendered file (but it is 167 plots).
-
 ```{r}
 if(file.exists(here::here(path_gps, "per-subj-timeseries.pdf"))){
 
@@ -122,7 +199,7 @@ if(file.exists(here::here(path_gps, "per-subj-timeseries.pdf"))){
 
 } else{
   timeseries_plots <- subid_all |> 
-    map(\(subid) plot_bump("date_central", "n_obs", subid))
+    map(\(subid) plot_timeseries("date_central", "n_obs", subid))
   
   output_file <- paste0(path_gps, "/per-subj-timeseries.pdf", sep = "")
 
@@ -225,6 +302,7 @@ subid_all <- list(gps$subid) |> unlist() |> unique()
 
 Generate individual GPS map per subject and save out in /shared/gps/subject-maps if compiled file does already not exist.
 ```{r}
+#| eval: false
 #| label: Static subject maps
 
 if(file.exists(here::here(path_gps, "per-subj-geo.pdf"))){
