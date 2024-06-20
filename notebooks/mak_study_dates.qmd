@@ -1,7 +1,7 @@
 ---
 title: "Make Study Dates for GPS"
 author: "John Curtin for EMA, updated for GPS by Claire Punturieri"
-date: "`r lubridate::today()`""
+date: "`r lubridate::today()`"
 format: 
   html:
     toc: true

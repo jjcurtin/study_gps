@@ -17,11 +17,9 @@ editor_options:
 
 Complete to lab workflow standards as of 6/2024.
 
-
 ## Conclusions   
 
-EDA is conducted here using subjects with credible lapse reporting and at least one month of data (generated using mak_study_dates.qmd)
-
+EDA is conducted here using subjects with credible lapse reporting and at least one month of data (generated using mak_study_dates.qmd).
 
 ## Set up
 
@@ -40,7 +38,7 @@ devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/format_p
 path_shared <- format_path("studydata/risk/data_processed/shared")
 path_gps <- format_path("studydata/risk/data_processed/gps")
 path_maps <- format_path("studydata/risk/data_processed/gps/subject-maps")
-path_notes <- format_path("analysis_risk/shared/notes")
+#path_notes <- format_path("GitHub/analysis_risk/shared/notes")
 ```
 
 ## Packages and plot settings
@@ -63,6 +61,14 @@ register_stadiamaps("d4bd71d7-556a-4627-9515-ef6e96823ce3")
 library(raster, exclude = c("select"))
 library(move)
 
+# load in helpful lab functions
+devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/fun_plots.R?raw=true",
+  sha1 = "def6ce26ed7b2493931fde811adff9287ee8d874"
+)
+devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/fun_eda.R?raw=true",
+ sha1 = "c045eee2655a18dc85e715b78182f176327358a7"
+)
+
 # adjust plot visuals
 theme_set(theme_classic())
 options(tibble.width = Inf, dplyr.print_max = Inf)
@@ -74,49 +80,114 @@ options(tibble.width = Inf, dplyr.print_max = Inf)
 ### Load in data
 ```{r}
 gps <- read_csv(here::here(path_shared, "gps.csv"), show_col_types = FALSE) |>
+  relocate(subid)  |>
+  mutate(date_central = date(time)) |> 
   glimpse()
 
+# having trouble loading this in
 # staff notes on subject gps quality
 #notes <- read_csv(here::here(path_notes, "notes_raw.csv"), show_col_types = FALSE)
 
 # dates of screening, intake, and follow-up visits
-visit_dates <- read_csv(here::here(path_gps, "study_dates.csv"), show_col_types = FALSE) |> 
+study_dates <- read_csv(here::here(path_gps, "study_dates.csv"), show_col_types = FALSE) |> 
   glimpse()
-
 ```
 
-### Fill in missing days
+### Filter subjects with minimum amount of data
 
-If there is no GPS data collected on a particular day, that date (i.e., row) will not exist.
+Pull list of subject IDs with at least one month data and credible lapse reporting.
 ```{r}
-
+subids_dates <- study_dates |>  
+  pull(subid) |>  
+  unique()
 ```
+
+Filter out subjects not included in study_dates.
+```{r}
+gps <-  gps |>  
+  filter(subid %in% subids_dates)
+```
+
+### Count number of observations, including missing days
+
+Count n_obs per day by subject -- this will only count days for which participants have at least one data point.
+```{r}
+gps_obs <- gps |>
+  mutate(date_central = date(time)) |> 
+  group_by(subid, date_central) |>  
+  summarise(n_obs = n())
+```
+
+Create data frame listing out all dates each subject was on study and should have had data.
+```{r}
+dates_long <- study_dates |> 
+  select(subid, study_start, study_end) |> 
+  pivot_longer(cols = starts_with("study"), names_to = "point", values_to = "time") |> 
+  mutate(date_central = date(time)) |> 
+  group_by(subid) |>
+  complete(date_central=full_seq(date_central,1),fill=list(dummy=0)) |> 
+  select(-time)
+```
+
+Merge with gps_obs. This will create "blank" days for days when subjects were on study but no data points were collected, which we can then fill in with 0s.
+
+> Here I think we want to left_join because we only care about data points that are in the study_dates start and end range (sometimes GPS data was collected pre- and post-study, but that's not relevant to us).
+
+```{r}
+gps_obs <- left_join(dates_long |> select(-point), gps_obs, by = c("subid", "date_central")) |> 
+  mutate(n_obs = if_else(is.na(n_obs), 0, n_obs))
+```
+
+### Add in missing observations into raw GPS dataframe.
+
+> Leaving this blank for now because I'm not sure if we need to do this for EDA? Would we want to do this for the raw GPS dataframe?
 
 ### Number of observations per person
 
 Display histogram of # observations per subject.
 ```{r}
-gps |>  
+gps_obs |>  
   group_by(subid) |>  
-  summarise(n_obs = n()) |>  
   ggplot(aes(x = n_obs)) +
-  geom_histogram(bins = 10, color = "black", fill = "white") +
+  geom_histogram(bins = 50, color = "black", fill = "white") +
   xlab("# of GPS observations")
 ```
 
-### Number of observations per non-missing day
+Create std_obs, a scaled version of n_obs based on total number of observations and days on study per subject.
+```{r}
+gps_obs <- gps_obs |>
+  mutate(total_obs = sum(n_obs),
+         total_days = as.numeric(last(date_central) - first(date_central)),
+         std_obs = total_obs/total_days)
+```
+
+Display histogram of # observations per subject on same scale.
+```{r}
+gps_obs |>  
+  group_by(subid) |>  
+  ggplot(aes(x = std_obs)) +
+  geom_histogram(bins = 10, color = "black", fill = "white") +
+  xlab("# of GPS observations (scaled)")
+
+# check out our subject with the highest scaled # of obs
+gps_obs |> 
+  filter(std_obs > 350) |>
+  select(subid, total_obs, total_days, std_obs) |> 
+  unique()
+```
+
+### Number of observations per day
+
+**Calculated with missing days included.**
 
 Subset data frame to display average observations per day, SD, minimum observation, and maximum observation per subject.
 ```{r}
-obs_per_day <- gps |>  
-  mutate(date_central = date(time)) |>  
-  group_by(subid, date_central) |>  
-  summarise(n_obs = n()) |>  
+obs_per_day <- gps_obs |>
   group_by(subid) |>  
   summarise(avg_obs_per_day = mean(n_obs),
             sd = sd(n_obs),
             min = min(n_obs),
-            max = max(n_obs))
+            max = max(n_obs)) 
 ```
 
 Display minimum average observation per day and maximum average observation per day across subjects.
@@ -136,28 +207,29 @@ Display average observations per day across all subjects (average of average obs
 mean(obs_per_day$avg_obs_per_day)
 ```
 
-Plot number of observations per non-missing day. Dashed line represents mean number of observations across all subjects.
+Histogram of standard deviations (to look at high and low variance subjects).
+
+> Consider filtering out data points that are a certain # of SDs above a participant's average number of points? Alternatively, could we think of using this as a feature?
+
 ```{r}
-gps |> 
-  mutate(date_central = date(time)) |>  
-  group_by(subid, date_central) |>  
-  summarise(n_obs = n()) |>  
-  group_by(subid) |> 
-  summarise(tot_obs = sum(n_obs)) |> 
-  ggplot(aes(x = subid, y = tot_obs)) +
-  geom_bar(stat = "identity", color="black", fill="white") +
-  geom_hline(aes(yintercept = mean(tot_obs), color = "red"), linetype = 2)
+obs_per_day |>  
+  ggplot(aes(x = sd)) +
+  geom_histogram(bins = 10, color = "black", fill = "white") +
+  xlab("Standard deviation of number of observations per day, by subject")
+
+# check out our subject with the highest standard deviation
+obs_per_day |> 
+  filter(sd > 300) |>
+  select(subid, avg_obs_per_day, sd) |> 
+  unique()
 ```
 
 ### Display number of observations by day per subject
 ```{r}
-gps |> 
-  mutate(date_central = date(time)) |>  
-  group_by(subid, date_central) |>  
-  summarise(n_obs = n()) |>  
-  group_by(subid) |> 
+gps_obs |> 
+  group_by(subid) |>
   print_kbl() |> 
-  scroll_box(width = "300px", height = "200px")
+  scroll_box(width = "700px", height = "200px")
 ```
 
 ### Plot number of observations by day per subject
@@ -165,10 +237,12 @@ gps |>
 Create timeseries plotting function.
 ```{r}
 plot_timeseries <- function(x, y, z) {
+    #gps_obs <- gps_obs |> filter(subid == z)
     gps_obs <- gps_obs |> filter(subid == z)
     
     graph_title <- paste0("Subject ID", z, sep = " ")
   
+    #ggplot(data = gps_obs, aes(x = .data[[x]], y = .data[[y]], color = z)
     print(ggplot(data = gps_obs, aes(x = .data[[x]], y = .data[[y]], color = z)) +
           geom_line(color = "darkblue")) +
       labs(title = graph_title) +
@@ -176,32 +250,23 @@ plot_timeseries <- function(x, y, z) {
 }
 ```
 
-Subset dataframe to display observations per day per subject.
-```{r}
-gps_obs <- gps |> 
-  mutate(date_central = date(time)) |>  
-  group_by(subid, date_central) |>  
-  summarise(n_obs = n()) |>  
-  group_by(subid)
-```
-
 Get list of subjects.
 ```{r}
-subid_all <- list(gps$subid) |> unlist() |> unique()
+subid_all <- list(gps_obs$subid) |> unlist() |> unique()
 ```
 
 If pdf output file does not already exist, create and save out plots in /data_processed/gps/subject-maps.
-
 ```{r}
-if(file.exists(here::here(path_gps, "per-subj-timeseries.pdf"))){
+if(file.exists(here::here(path_maps, "per-subj-timeseries.pdf"))){
 
   message("PDF file already exist -- delete to recreate!")
 
 } else{
-  timeseries_plots <- subid_all |> 
+  timeseries_plots <- subid_all |>
     map(\(subid) plot_timeseries("date_central", "n_obs", subid))
+    #map(\(subid) plot_timeseries("date_central", "n_obs", subid))
   
-  output_file <- paste0(path_gps, "/per-subj-timeseries.pdf", sep = "")
+  output_file <- paste0(path_maps, "/per-subj-timeseries.pdf", sep = "")
 
   multi.page <- ggpubr::ggarrange(plotlist = timeseries_plots,
                                   nrow = 3, ncol = 1)
@@ -209,32 +274,46 @@ if(file.exists(here::here(path_gps, "per-subj-timeseries.pdf"))){
 }
 ```
 
+### Examine 1-observation days
+
+Filter on days that have only one observation, sorting ascending on time to ensure that the individual points on these days are not all occurring around midnight (which would suggest spurious bursts of activity not actually related to the participant).
+```{r}
+full_join(gps, gps_obs, by=c("subid", "date_central")) |> 
+  select(subid, lat, lon, time, n_obs) |> 
+  filter(n_obs == 1) |>
+  separate_wider_delim(time, delim = " ", names = c("date", "time")) |> 
+  arrange(time) |> 
+  kable(caption = "1-observation days") |>
+  kable_styling("striped") |> 
+  scroll_box(width = "700px", height = "400px")
+```
+
 ### Compare start and end dates
 
 Extract first and last dates in GPS data per subject.
 ```{r}
-gps_dates <- gps_obs |>
+gps_dates <- gps |>
   group_by(subid) |> 
   arrange(date_central) |> 
   slice(1, n()) |>
   mutate(start_study_gps = first(date_central),
          end_study_gps = last(date_central)) |> 
-  select(-date_central, -n_obs) |> 
+  select(subid, start_study_gps, end_study_gps) |> 
   distinct()
 ```
 
 Extract start and end study dates from visit_dates.
 ```{r}
-visit_dates <- visit_dates |>
-  select(subid, start_study, end_study) |> 
-  mutate(start_study_record = start_study,
-         end_study_record = end_study) |> 
-  select(-start_study, -end_study)
+study_dates <- study_dates |>
+  select(subid, study_start, study_end) |> 
+  mutate(start_study_record = date(study_start),
+         end_study_record = date(study_end)) |> 
+  select(-study_start, -study_end)
 ```
 
 Combine data frames.
 ```{r}
-merge_dates <- left_join(gps_dates, visit_dates)
+merge_dates <- left_join(gps_dates, study_dates)
 
 merge_dates <- merge_dates[, c("subid", "start_study_record", "start_study_gps", "end_study_record", "end_study_gps")]
 ```
@@ -244,30 +323,46 @@ Display comparison table of start and end dates.
 merge_dates |>
   kable(caption = "Comparison of start and end study dates based on staff records and GPS data collection") |>
   kable_styling("striped") |> 
-  scroll_box(width = "700px", height = "200px")
+  scroll_box(width = "700px", height = "400px")
 ```
 
-
-Display subjects who **do not** have the same dates.
+Calculate differences between date start and GPS start.
 ```{r}
 merge_dates |>
-  filter(!(start_study_record == start_study_gps & end_study_record == end_study_gps)) |> 
-  kable(caption = "Comparison of start and end study dates based on staff records and GPS data collection") |>
+  mutate(diff = start_study_record - start_study_gps) |>
+  select(-end_study_record, -end_study_gps) |> 
+  arrange(desc(diff)) |> 
+  kable(caption = "Differences between study start and GPS start") |>
   kable_styling("striped") |> 
-  scroll_box(width = "700px", height = "200px")
+  scroll_box(width = "700px", height = "400px")
 ```
 
+Calculate differences between date end and GPS end.
 
-Display subjects who have a recorded start date later than GPS collection began, or a recorded end date earlier than GPS collection finished.
-
-> CP 6/11: what should the policy be for subjects who do not have the same start/end dates? I am mostly wondering if it is an issue to use data collected after their staff-listed termination data.
+> GPS collection ending after the end of study doesn't matter because we won't be using that data in any case.
 
 ```{r}
 merge_dates |>
-  filter(start_study_record > start_study_gps | end_study_record < end_study_gps) |> 
-  kable(caption = "Comparison of start and end study dates based on staff records and GPS data collection") |>
+  mutate(diff = end_study_record - end_study_gps) |>
+  select(-start_study_record, -start_study_gps) |> 
+  arrange(diff) |> 
+  kable(caption = "Differences between study end and GPS end") |>
   kable_styling("striped") |> 
-  scroll_box(width = "700px", height = "200px")
+  scroll_box(width = "700px", height = "400px")
+```
+
+Calculate number of days on study.
+
+> Already calculated above to standardize our # of GPS observations, but maybe useful to look at in a table?
+
+```{r}
+merge_dates |>
+  mutate(diff = end_study_record - start_study_record) |>
+  select(-start_study_gps, -end_study_gps) |> 
+  arrange(diff) |> 
+  kable(caption = "Number of days on study") |>
+  kable_styling("striped") |> 
+  scroll_box(width = "700px", height = "400px")
 ```
 
 ## GPS maps
