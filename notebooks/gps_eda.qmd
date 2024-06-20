@@ -54,12 +54,12 @@ library(XML)
 library(kableExtra, exclude = c("group_rows"))
 # for maps
 ## static maps
-library(ggmap)
-register_stadiamaps("d4bd71d7-556a-4627-9515-ef6e96823ce3")
+#library(ggmap)
+#register_stadiamaps("d4bd71d7-556a-4627-9515-ef6e96823ce3")
 ## dynamic maps
 #library(moveVis) this package might have deprecated, look into if making more animated maps
-library(raster, exclude = c("select"))
-library(move)
+#library(raster, exclude = c("select"))
+#library(move)
 
 # load in helpful lab functions
 devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/fun_plots.R?raw=true",
@@ -106,6 +106,8 @@ Filter out subjects not included in study_dates.
 ```{r}
 gps <-  gps |>  
   filter(subid %in% subids_dates)
+
+gps |> pull(subid) |> unique() |> length()
 ```
 
 ### Count number of observations, including missing days
@@ -122,10 +124,11 @@ Create data frame listing out all dates each subject was on study and should hav
 ```{r}
 dates_long <- study_dates |> 
   select(subid, study_start, study_end) |> 
-  pivot_longer(cols = starts_with("study"), names_to = "point", values_to = "time") |> 
+  pivot_longer(cols = starts_with("study"), names_to = "point",
+               values_to = "time") |> 
   mutate(date_central = date(time)) |> 
   group_by(subid) |>
-  complete(date_central=full_seq(date_central,1),fill=list(dummy=0)) |> 
+  complete(date_central = full_seq(date_central, 1), fill = list(dummy = 0)) |> 
   select(-time)
 ```
 
@@ -134,21 +137,42 @@ Merge with gps_obs. This will create "blank" days for days when subjects were on
 > Here I think we want to left_join because we only care about data points that are in the study_dates start and end range (sometimes GPS data was collected pre- and post-study, but that's not relevant to us).
 
 ```{r}
-gps_obs <- left_join(dates_long |> select(-point), gps_obs, by = c("subid", "date_central")) |> 
+gps_obs <- dates_long |> 
+  select(-point) |> 
+  left_join(gps_obs, by = c("subid", "date_central")) |> 
   mutate(n_obs = if_else(is.na(n_obs), 0, n_obs))
 ```
 
-### Add in missing observations into raw GPS dataframe.
-
-> Leaving this blank for now because I'm not sure if we need to do this for EDA? Would we want to do this for the raw GPS dataframe?
-
 ### Number of observations per person
+
+```{r}
+n_obs <- gps_obs |> 
+  group_by(subid) |> 
+  summarize(mean_nobs = mean(n_obs), median_nobs = median(n_obs), 
+            n_days = n(), n_missing = sum(n_obs == 0), 
+            per_missing = n_missing / n_days)
+```
+
+
 
 Display histogram of # observations per subject.
 ```{r}
-gps_obs |>  
-  group_by(subid) |>  
-  ggplot(aes(x = n_obs)) +
+n_obs |>  
+  ggplot(aes(x = median_nobs)) +
+  geom_histogram(bins = 50, color = "black", fill = "white") +
+  xlab("# of GPS observations")
+```
+
+```{r}
+n_obs |>  
+  ggplot(aes(x = mean_nobs)) +
+  geom_histogram(bins = 50, color = "black", fill = "white") +
+  xlab("# of GPS observations")
+```
+
+```{r}
+n_obs |>  
+  ggplot(aes(x = per_missing)) +
   geom_histogram(bins = 50, color = "black", fill = "white") +
   xlab("# of GPS observations")
 ```
@@ -156,19 +180,20 @@ gps_obs |>
 Create std_obs, a scaled version of n_obs based on total number of observations and days on study per subject.
 ```{r}
 gps_obs <- gps_obs |>
-  mutate(total_obs = sum(n_obs),
-         total_days = as.numeric(last(date_central) - first(date_central)),
+  group_by(subid) |> 
+  summarize(total_obs = sum(n_obs),
+         total_days = n(),
          std_obs = total_obs/total_days)
 ```
 
 Display histogram of # observations per subject on same scale.
 ```{r}
 gps_obs |>  
-  group_by(subid) |>  
   ggplot(aes(x = std_obs)) +
   geom_histogram(bins = 10, color = "black", fill = "white") +
   xlab("# of GPS observations (scaled)")
 
+gps_obs |> mutate(std_obs = round(std_obs)) |> tab(std_obs)
 # check out our subject with the highest scaled # of obs
 gps_obs |> 
   filter(std_obs > 350) |>
