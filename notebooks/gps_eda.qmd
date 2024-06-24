@@ -38,7 +38,7 @@ devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/format_p
 path_shared <- format_path("studydata/risk/data_processed/shared")
 path_gps <- format_path("studydata/risk/data_processed/gps")
 path_maps <- format_path("studydata/risk/data_processed/gps/subject-maps")
-#path_notes <- format_path("GitHub/analysis_risk/shared/notes")
+path_notes <- format_path("GitHub/analysis_risk/shared/notes")
 ```
 
 ## Packages and plot settings
@@ -52,14 +52,6 @@ library(geosphere)
 library(lubridate)
 library(XML)
 library(kableExtra, exclude = c("group_rows"))
-# for maps
-## static maps
-#library(ggmap)
-#register_stadiamaps("d4bd71d7-556a-4627-9515-ef6e96823ce3")
-## dynamic maps
-#library(moveVis) this package might have deprecated, look into if making more animated maps
-#library(raster, exclude = c("select"))
-#library(move)
 
 # load in helpful lab functions
 devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/fun_plots.R?raw=true",
@@ -81,15 +73,16 @@ options(tibble.width = Inf, dplyr.print_max = Inf)
 ```{r}
 gps <- read_csv(here::here(path_shared, "gps.csv"), show_col_types = FALSE) |>
   relocate(subid)  |>
-  mutate(date_central = date(time)) |> 
+  mutate(date = date(time)) |> 
   glimpse()
 
-# having trouble loading this in
 # staff notes on subject gps quality
-#notes <- read_csv(here::here(path_notes, "notes_raw.csv"), show_col_types = FALSE)
+notes <- read_csv("../analysis_risk/shared/notes/notes_raw.csv",
+                  show_col_types = FALSE)
 
 # dates of screening, intake, and follow-up visits
-study_dates <- read_csv(here::here(path_gps, "study_dates.csv"), show_col_types = FALSE) |> 
+study_dates <- read_csv(here::here(path_gps, "study_dates.csv"),
+                        show_col_types = FALSE) |> 
   glimpse()
 ```
 
@@ -112,39 +105,42 @@ gps |> pull(subid) |> unique() |> length()
 
 ### Count number of observations, including missing days
 
-Count n_obs per day by subject -- this will only count days for which participants have at least one data point.
+Count n_obs per day by subject -- this will only count days for which participants
+have at least one data point.
 ```{r}
 gps_obs <- gps |>
-  mutate(date_central = date(time)) |> 
-  group_by(subid, date_central) |>  
+  mutate(date = date(time)) |> 
+  group_by(subid, date) |>  
   summarise(n_obs = n())
 ```
 
-Create data frame listing out all dates each subject was on study and should have had data.
+Create data frame listing out all dates each subject was on study and should have
+had data.
 ```{r}
 dates_long <- study_dates |> 
   select(subid, study_start, study_end) |> 
   pivot_longer(cols = starts_with("study"), names_to = "point",
                values_to = "time") |> 
-  mutate(date_central = date(time)) |> 
+  mutate(date = date(time)) |> 
   group_by(subid) |>
-  complete(date_central = full_seq(date_central, 1), fill = list(dummy = 0)) |> 
+  complete(date = full_seq(date, 1), fill = list(dummy = 0)) |> 
   select(-time)
 ```
 
-Merge with gps_obs. This will create "blank" days for days when subjects were on study but no data points were collected, which we can then fill in with 0s.
-
-> Here I think we want to left_join because we only care about data points that are in the study_dates start and end range (sometimes GPS data was collected pre- and post-study, but that's not relevant to us).
-
+Merge with gps_obs. This will create "blank" days for days when subjects were on
+study but no data points were collected, which we can then fill in with 0s.
 ```{r}
 gps_obs <- dates_long |> 
   select(-point) |> 
-  left_join(gps_obs, by = c("subid", "date_central")) |> 
+  left_join(gps_obs, by = c("subid", "date")) |> 
   mutate(n_obs = if_else(is.na(n_obs), 0, n_obs))
 ```
 
 ### Number of observations per person
 
+Calculate mean number of observations, median number of observations, number of
+days on study, number of days with 0 observations (AKA missing days), and the
+percentage of missing data -- all **per subject**.
 ```{r}
 n_obs <- gps_obs |> 
   group_by(subid) |> 
@@ -153,33 +149,37 @@ n_obs <- gps_obs |>
             per_missing = n_missing / n_days)
 ```
 
-
-
-Display histogram of # observations per subject.
+Display histogram of median # observations per subject.
 ```{r}
 n_obs |>  
   ggplot(aes(x = median_nobs)) +
   geom_histogram(bins = 50, color = "black", fill = "white") +
-  xlab("# of GPS observations")
+  xlab("Median # of GPS observations")
 ```
 
+Display histogram of mean # observations per subject.
 ```{r}
 n_obs |>  
   ggplot(aes(x = mean_nobs)) +
   geom_histogram(bins = 50, color = "black", fill = "white") +
-  xlab("# of GPS observations")
+  xlab("Mean # of GPS observations")
 ```
 
+Display histogram of percentage of missing observations per subject. Vertical red
+line indicates missing 25% of data. All subjects with > 25% of missing data will
+be individually examined.
 ```{r}
 n_obs |>  
   ggplot(aes(x = per_missing)) +
   geom_histogram(bins = 50, color = "black", fill = "white") +
-  xlab("# of GPS observations")
+  annotate("rect", xmin = 0.25, xmax = 1.0, ymin = 0, ymax = Inf, alpha = 0.4, fill = "red") +
+  xlab("% of missing GPS observations")
 ```
 
-Create std_obs, a scaled version of n_obs based on total number of observations and days on study per subject.
+Create std_obs, a scaled version of n_obs based on total number of observations
+and days on study per subject.
 ```{r}
-gps_obs <- gps_obs |>
+std_obs <- gps_obs |>
   group_by(subid) |> 
   summarize(total_obs = sum(n_obs),
          total_days = n(),
@@ -188,17 +188,10 @@ gps_obs <- gps_obs |>
 
 Display histogram of # observations per subject on same scale.
 ```{r}
-gps_obs |>  
+std_obs |>  
   ggplot(aes(x = std_obs)) +
   geom_histogram(bins = 10, color = "black", fill = "white") +
   xlab("# of GPS observations (scaled)")
-
-gps_obs |> mutate(std_obs = round(std_obs)) |> tab(std_obs)
-# check out our subject with the highest scaled # of obs
-gps_obs |> 
-  filter(std_obs > 350) |>
-  select(subid, total_obs, total_days, std_obs) |> 
-  unique()
 ```
 
 ### Number of observations per day
@@ -233,20 +226,11 @@ mean(obs_per_day$avg_obs_per_day)
 ```
 
 Histogram of standard deviations (to look at high and low variance subjects).
-
-> Consider filtering out data points that are a certain # of SDs above a participant's average number of points? Alternatively, could we think of using this as a feature?
-
 ```{r}
 obs_per_day |>  
   ggplot(aes(x = sd)) +
   geom_histogram(bins = 10, color = "black", fill = "white") +
   xlab("Standard deviation of number of observations per day, by subject")
-
-# check out our subject with the highest standard deviation
-obs_per_day |> 
-  filter(sd > 300) |>
-  select(subid, avg_obs_per_day, sd) |> 
-  unique()
 ```
 
 ### Display number of observations by day per subject
@@ -259,19 +243,18 @@ gps_obs |>
 
 ### Plot number of observations by day per subject
 
-Create timeseries plotting function.
+Create timeseries plotting function, including mean n_obs of non-missing days.
 ```{r}
 plot_timeseries <- function(x, y, z) {
-    #gps_obs <- gps_obs |> filter(subid == z)
     gps_obs <- gps_obs |> filter(subid == z)
     
     graph_title <- paste0("Subject ID", z, sep = " ")
   
-    #ggplot(data = gps_obs, aes(x = .data[[x]], y = .data[[y]], color = z)
     print(ggplot(data = gps_obs, aes(x = .data[[x]], y = .data[[y]], color = z)) +
           geom_line(color = "darkblue")) +
       labs(title = graph_title) +
-      geom_hline(aes(yintercept = mean(n_obs), color = "red"), linetype = 2, show.legend = FALSE)
+      geom_hline(aes(yintercept = mean(n_obs[n_obs > 0]), color = "red"), linetype = 2, show.legend = FALSE) +
+      coord_cartesian(ylim=c(0, 200))
 }
 ```
 
@@ -288,8 +271,7 @@ if(file.exists(here::here(path_maps, "per-subj-timeseries.pdf"))){
 
 } else{
   timeseries_plots <- subid_all |>
-    map(\(subid) plot_timeseries("date_central", "n_obs", subid))
-    #map(\(subid) plot_timeseries("date_central", "n_obs", subid))
+    map(\(subid) plot_timeseries("date", "n_obs", subid))
   
   output_file <- paste0(path_maps, "/per-subj-timeseries.pdf", sep = "")
 
@@ -303,11 +285,12 @@ if(file.exists(here::here(path_maps, "per-subj-timeseries.pdf"))){
 
 Filter on days that have only one observation, sorting ascending on time to ensure that the individual points on these days are not all occurring around midnight (which would suggest spurious bursts of activity not actually related to the participant).
 ```{r}
-full_join(gps, gps_obs, by=c("subid", "date_central")) |> 
+full_join(gps, gps_obs, by=c("subid", "date")) |> 
   select(subid, lat, lon, time, n_obs) |> 
   filter(n_obs == 1) |>
-  separate_wider_delim(time, delim = " ", names = c("date", "time")) |> 
-  arrange(time) |> 
+  separate_wider_delim(time, delim = " ", names = c("date_tmp", "time")) |> 
+  arrange(time) |>
+  select(-date_tmp) |> 
   kable(caption = "1-observation days") |>
   kable_styling("striped") |> 
   scroll_box(width = "700px", height = "400px")
@@ -319,10 +302,10 @@ Extract first and last dates in GPS data per subject.
 ```{r}
 gps_dates <- gps |>
   group_by(subid) |> 
-  arrange(date_central) |> 
+  arrange(date) |> 
   slice(1, n()) |>
-  mutate(start_study_gps = first(date_central),
-         end_study_gps = last(date_central)) |> 
+  mutate(start_study_gps = first(date),
+         end_study_gps = last(date)) |> 
   select(subid, start_study_gps, end_study_gps) |> 
   distinct()
 ```
@@ -382,97 +365,10 @@ Calculate number of days on study.
 
 ```{r}
 merge_dates |>
-  mutate(diff = end_study_record - start_study_record) |>
+  mutate(difference = end_study_record - start_study_record) |>
   select(-start_study_gps, -end_study_gps) |> 
-  arrange(diff) |> 
+  arrange(difference) |> 
   kable(caption = "Number of days on study") |>
   kable_styling("striped") |> 
   scroll_box(width = "700px", height = "400px")
-```
-
-## GPS maps
-
-Other map options we might be interested in generating for QC are interactive ones where you can move around (see Figure 1: https://journals.sagepub.com/doi/full/10.1177/25152459221082680).
-
-### Static
-
-Create function to generate static map per subject.
-```{r}
-plot_geo <- function(z) {
-    gps <- gps |> filter(subid == z)
-    
-    graph_title <- paste0("Subject ID", z, sep = " ")
-   
-    cbbox <- make_bbox(lon = gps$lon, lat = gps$lat, f = .1)
-    sq_map <- get_map(location = cbbox, maptype = "stamen_toner_lite")
-    
-    ggmap(sq_map) + 
-      geom_path(data = gps, aes(x = gps$lon, y = gps$lat), 
-                size = 1, lineend = "round", color="darkred") +
-      labs(x = " ", y = " ", title = graph_title) +
-      theme_minimal() +
-      theme(legend.position = "none")
-}
-```
-
-Generate subject ID list.
-```{r}
-subid_all <- list(gps$subid) |> unlist() |> unique()
-```
-
-Generate individual GPS map per subject and save out in /shared/gps/subject-maps if compiled file does already not exist.
-```{r}
-#| eval: false
-#| label: Static subject maps
-
-if(file.exists(here::here(path_gps, "per-subj-geo.pdf"))){
-
-  message("PDF file already exist -- delete to recreate!")
-
-} else{
-  geo_plots <- subid_all |> 
-    map(\(subid) plot_geo(subid))
-  
-  output_file <- paste0(path_gps, "/per-subj-geo.pdf", sep = "")
-
-  multi.page <- ggpubr::ggarrange(plotlist = geo_plots,
-                                    nrow = 1, ncol = 1)
-
-  ggpubr::ggexport(multi.page, filename = output_file)
-}
-```
-
-### Dynamic
-
-Create gifs displaying participant movement during study duration. Note: this takes a *long* time to run -- recommend subsetting data for a particular subject as opposed to generating map for entire duration on study.
-
-```{r}
-#| eval: false
-#| label: Dynamic subject maps
-
-gps_mini <- gps |> filter(subid == "1" & time < "2017-03-02 16:07:24")
-
-gps_mini <- gps_mini[!duplicated(gps_mini$time),]
-
-gps_mini_moves <- df2move(gps_mini,
-        proj = "+init=epsg:4326 +proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0", 
-        x = "lon", y = "lat", time = "time", track_id = "subid")
-
-# align move_data to a uniform time scale
-m <- align_move(gps_mini_moves, res = 4, unit = "mins")
-
-
-frames <- frames_spatial(m, path_colours = c("darkred"),
-                         map_service = "osm", map_type = "streets",
-                         alpha = 0.5) |>  
-  add_labels(x = "Longitude", y = "Latitude") |>
-  add_northarrow() |>  
-  add_scalebar() |> 
-  add_timestamps(type = "label") |>  
-  add_progress()
-
-frames[[10]] # preview frame
-
-# animate frames
-animate_frames(frames, out_file = "moveVis.gif")
 ```
