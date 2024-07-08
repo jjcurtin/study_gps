@@ -176,6 +176,15 @@ n_obs |>
   xlab("% of missing GPS observations")
 ```
 
+Table listing subjects with high missing data (above > 25%).
+```{r}
+n_obs |> 
+  filter(per_missing > .25) |> 
+  arrange(desc(per_missing)) |> 
+  print_kbl() |> 
+  scroll_box(width = "700px", height = "200px")
+```
+
 Create std_obs, a scaled version of n_obs based on total number of observations
 and days on study per subject.
 ```{r}
@@ -241,6 +250,42 @@ gps_obs |>
   scroll_box(width = "700px", height = "200px")
 ```
 
+### Examine longest consecutive period of data per subject.
+
+Create function to count number of consecutive observations using rle() (run length encoding).
+Credit to: https://stackoverflow.com/questions/53712962/r-count-maximum-number-of-consecutive-dates
+```{r}
+gl <- function(x) {
+  y <- c(unclass(diff(x)))  # this part makes x into a vector
+  r <- rle(y) # rle computes lengths of runs (sequences) in a vector
+  with(r, max(lengths[values==1])) # pull out the longest consecutive period of data collection per subject
+}
+```
+
+Print table showing subjects with the fewest number of consecutive days of data collection, ascending.
+```{r}
+gps_obs |> 
+  filter(n_obs > 0) |>
+  group_by(subid) |>
+  summarise(max.consecutive = gl(date)) |>
+  filter(max.consecutive < 35) |> # looking for ~30 days of data collection
+  arrange(max.consecutive) |> 
+  print_kbl() |> 
+  scroll_box(width = "200px", height = "400px")
+```
+
+Print table showing subjects with the highest number of consecutive days of 0 data collection, descending.
+```{r}
+gps_obs |> 
+  filter(n_obs == 0) |>
+  group_by(subid) |>
+  summarise(max.consecutive.zeros = gl(date)) |>
+  arrange(desc(max.consecutive.zeros)) |>
+  filter(!is.infinite(max.consecutive.zeros)) |> 
+  print_kbl() |> 
+  scroll_box(width = "250px", height = "400px")
+```
+
 ### Plot number of observations by day per subject
 
 Create timeseries plotting function, including mean n_obs of non-missing days.
@@ -265,6 +310,7 @@ subid_all <- list(gps_obs$subid) |> unlist() |> unique()
 
 If pdf output file does not already exist, create and save out plots in /data_processed/gps/subject-maps.
 ```{r}
+#| eval: false
 if(file.exists(here::here(path_maps, "per-subj-timeseries.pdf"))){
 
   message("PDF file already exist -- delete to recreate!")

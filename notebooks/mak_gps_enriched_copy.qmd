@@ -151,7 +151,7 @@ doParallel::registerDoParallel(cl)
 Open study dates b/c it contains all the subids with context and valid lapses and 
 start and end dates for good GPS (determined iteratively in this script).
 
-> CP 6/12: what is the same/different between the study_dates and the visit_dates file?
+> CP 6/12: what is the same/different between the study_dates and the visit_dates file? update vroom
 
 ```{r}
 study_dates <- vroom::vroom(here::here(path_gps, "study_dates.csv"), col_types = "dTTT",
@@ -249,7 +249,7 @@ future_map over subids
 #plan(multisession, workers = n_core)
 
 enriched <- subids_gps  |>  
-  future_map_dfr(enrich_subid, gps = gps, locs = locs)  |>  
+  future_map_dfr(enrich_subid, gps = gps, locs = locs)  |>  # check if up to date
   left_join(locs, by = c("subid", "context_id"))  |>  
   select(-lat.y, -lon.y, -accuracy, -speed_kmh, -altitude_meters, -direction,
          -data_type)  |>  
