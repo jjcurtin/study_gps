@@ -134,45 +134,99 @@ dates <- dates |>
   glimpse()
 ```
 
-Filter out excluded subids for problems with GPS
+Filter out excluded subids for problems with GPS.
 ```{r}
-dates <- dates %>% 
-  filter(!subid %in% c(2, 21, 51, 56, 190)) %>% 
+dates <- dates |>  
+  filter(!subid %in% c(2, 21, 51, 56, 190)) |>  
   glimpse()
 ```
 
-Adjust start start and end dates for missing GPS.  Notes in mak_gps_enriched.rds
-
-> tidymodels efficient way?
-
+Adjust start start and end dates for missing GPS.  Notes in mak_gps_enriched.qmd
 ```{r}
-dates$study_end[dates$subid == 80] = as_datetime("2018-07-31", tz = "America/Chicago")
-dates$study_start[dates$subid == 74] = as_datetime("2018-07-19", tz = "America/Chicago")
-dates$study_end[dates$subid == 84] = as_datetime("2018-08-06", tz = "America/Chicago")
-dates$study_start[dates$subid == 65] = as_datetime("2018-07-18", tz = "America/Chicago")
-dates$study_start[dates$subid == 117] = as_datetime("2018-10-14", tz = "America/Chicago")
 dates$study_start[dates$subid == 19] = as_datetime("2017-11-26", tz = "America/Chicago")
 dates$study_end[dates$subid == 19] = as_datetime("2018-01-17", tz = "America/Chicago")
-dates$study_start[dates$subid == 42] = as_datetime("2018-04-11", tz = "America/Chicago")
-dates$study_start[dates$subid == 167] = as_datetime("2019-02-06", tz = "America/Chicago")
-dates$study_end[dates$subid == 207] = as_datetime("2019-05-19", tz = "America/Chicago")
+
 dates$study_start[dates$subid == 28] = as_datetime("2017-12-18", tz = "America/Chicago")
-dates$study_end[dates$subid == 218] = as_datetime("2019-06-04", tz = "America/Chicago")
-dates$study_end[dates$subid == 39] = as_datetime("2018-05-11", tz = "America/Chicago")
-dates$study_start[dates$subid == 214] = as_datetime("2019-04-17", tz = "America/Chicago")
-dates$study_end[dates$subid == 47] = as_datetime("2018-04-16", tz = "America/Chicago")
-dates$study_end[dates$subid == 203] = as_datetime("2019-05-19", tz = "America/Chicago")
-dates$study_end[dates$subid == 40] = as_datetime("2018-04-28", tz = "America/Chicago")
-dates$study_end[dates$subid == 76] = as_datetime("2018-08-28", tz = "America/Chicago")
-dates$study_end[dates$subid == 78] = as_datetime("2018-08-28", tz = "America/Chicago")
-dates$study_start[dates$subid == 161] = as_datetime("2018-12-20", tz = "America/Chicago")
-dates$study_start[dates$subid == 180] = as_datetime("2019-03-02", tz = "America/Chicago")
-dates$study_start[dates$subid == 169] = as_datetime("2019-02-19", tz = "America/Chicago")
-dates$study_end[dates$subid == 34] = as_datetime("2018-03-01", tz = "America/Chicago")
-dates$study_end[dates$subid == 265] = as_datetime("2019-10-07", tz = "America/Chicago")
+
 dates$study_end[dates$subid == 30] = as_datetime("2017-12-24", tz = "America/Chicago")
+
+dates$study_end[dates$subid == 34] = as_datetime("2018-03-01", tz = "America/Chicago")
+
+#dates$study_end[dates$subid == 39] = as_datetime("2018-05-11", tz = "America/Chicago")
+dates$study_start[dates$subid == 39] = as_datetime("2018-03-02", tz = "America/Chicago")
+
+#dates$study_end[dates$subid == 40] = as_datetime("2018-04-28", tz = "America/Chicago")
+dates$study_end[dates$subid == 40] = as_datetime("2018-04-29", tz = "America/Chicago")
+
+dates$study_start[dates$subid == 42] = as_datetime("2018-04-11", tz = "America/Chicago")
+
+dates$study_end[dates$subid == 47] = as_datetime("2018-04-16", tz = "America/Chicago")
+
 dates$study_end[dates$subid == 63] = as_datetime("2018-06-07", tz = "America/Chicago")
+
+dates$study_start[dates$subid == 65] = as_datetime("2018-07-18", tz = "America/Chicago")
+
+## 66 has a period of 8 missing days - to discuss
+# added by cp
+dates$study_start[dates$subid == 66] = as_datetime("2018-07-03", tz = "America/Chicago")
+
+dates$study_start[dates$subid == 74] = as_datetime("2018-07-19", tz = "America/Chicago")
+
+#dates$study_end[dates$subid == 76] = as_datetime("2018-08-28", tz = "America/Chicago")
+dates$study_end[dates$subid == 76] = as_datetime("2018-08-20", tz = "America/Chicago")
+
+dates$study_end[dates$subid == 78] = as_datetime("2018-08-28", tz = "America/Chicago")
+
+dates$study_end[dates$subid == 80] = as_datetime("2018-07-31", tz = "America/Chicago")
+
+dates$study_end[dates$subid == 84] = as_datetime("2018-08-06", tz = "America/Chicago")
+
+dates$study_start[dates$subid == 117] = as_datetime("2018-10-14", tz = "America/Chicago")
+
+# added by cp
+dates$study_start[dates$subid == 134] = as_datetime("2018-09-28", tz = "America/Chicago")
+
+# added by cp
+dates$study_end[dates$subid == 137] = as_datetime("2018-12-13", tz = "America/Chicago")
+
+# 139 has period of 11 missing days - to discuss
+# added by cp
+dates$study_start[dates$subid == 139] = as_datetime("2018-11-19", tz = "America/Chicago")
+
+
+# removed by cp - not sure if we should be removing any of this person's data
+#dates$study_start[dates$subid == 161] = as_datetime("2018-12-20", tz = "America/Chicago")
+
+dates$study_start[dates$subid == 167] = as_datetime("2019-02-06", tz = "America/Chicago")
+
+# removed by cp - not sure if we should be removing any of this person's data
+#dates$study_start[dates$subid == 169] = as_datetime("2019-02-19", tz = "America/Chicago")
+
+# 171 has 1 observation per day for last ~month of study - to discuss
+
 dates$study_start[dates$subid == 178] = as_datetime("2019-02-25", tz = "America/Chicago")
+
+# removed by cp - not sure if we should be removing any of this person's data
+#dates$study_start[dates$subid == 180] = as_datetime("2019-03-02", tz = "America/Chicago")
+
+# 185 has many 1 observation days - to discuss
+
+dates$study_end[dates$subid == 203] = as_datetime("2019-05-19", tz = "America/Chicago")
+
+dates$study_end[dates$subid == 207] = as_datetime("2019-05-19", tz = "America/Chicago")
+
+dates$study_start[dates$subid == 214] = as_datetime("2019-04-17", tz = "America/Chicago")
+
+dates$study_end[dates$subid == 218] = as_datetime("2019-06-04", tz = "America/Chicago")
+
+# 241 missing 1 week of data
+dates$study_start[dates$subid == 241] = as_datetime("2019-09-12", tz = "America/Chicago")
+
+# cp note: even within this salvaged gap there is a 6 day period of missing data - to discuss
+dates$study_end[dates$subid == 265] = as_datetime("2019-10-07", tz = "America/Chicago")
+
+# added by cp
+dates$study_start[dates$subid == 270] = as_datetime("2019-09-19", tz = "America/Chicago")
 ```
 
 
