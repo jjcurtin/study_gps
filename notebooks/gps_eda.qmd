@@ -19,7 +19,7 @@ Complete to lab workflow standards as of 6/2024.
 
 ## Conclusions   
 
-EDA is conducted here using subjects with credible lapse reporting and at least one month of data (generated using mak_study_dates.qmd).
+EDA is conducted here using subjects with credible lapse reporting and at least one month of data as defined in EMA paper. Five subjects are removed for lacking sufficient data and several subjects here have truncated data if their GPS signal was not consistent while on study. All of these decisions are tracked in and are generated using mak_study_dates.qmd
 
 ## Set up
 
@@ -37,7 +37,7 @@ devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/format_p
 ```{r}
 path_shared <- format_path("studydata/risk/data_processed/shared")
 path_gps <- format_path("studydata/risk/data_processed/gps")
-path_maps <- format_path("studydata/risk/data_processed/gps/subject-maps")
+path_maps <- format_path("studydata/risk/data_processed/gps/figures")
 path_notes <- format_path("GitHub/analysis_risk/shared/notes")
 ```
 
@@ -52,6 +52,9 @@ library(geosphere)
 library(lubridate)
 library(XML)
 library(kableExtra, exclude = c("group_rows"))
+## static maps
+library(ggmap)
+register_stadiamaps("d4bd71d7-556a-4627-9515-ef6e96823ce3")
 
 # load in helpful lab functions
 devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/fun_plots.R?raw=true",
@@ -73,6 +76,7 @@ options(tibble.width = Inf, dplyr.print_max = Inf)
 ```{r}
 gps <- read_csv(here::here(path_shared, "gps.csv"), show_col_types = FALSE) |>
   relocate(subid)  |>
+  mutate(time = with_tz(time, tzone = "America/Chicago")) |>
   mutate(date = date(time)) |> 
   glimpse()
 
@@ -109,7 +113,6 @@ Count n_obs per day by subject -- this will only count days for which participan
 have at least one data point.
 ```{r}
 gps_obs <- gps |>
-  mutate(date = date(time)) |> 
   group_by(subid, date) |>  
   summarise(n_obs = n())
 ```
@@ -120,7 +123,8 @@ had data.
 dates_long <- study_dates |> 
   select(subid, study_start, study_end) |> 
   pivot_longer(cols = starts_with("study"), names_to = "point",
-               values_to = "time") |> 
+               values_to = "time") |>
+  mutate(time = with_tz(time, tzone = "America/Chicago")) |>
   mutate(date = date(time)) |> 
   group_by(subid) |>
   complete(date = full_seq(date, 1), fill = list(dummy = 0)) |> 
@@ -316,7 +320,9 @@ plot_timeseries <- function(x, y, z) {
           geom_line(color = "darkblue")) +
       labs(title = graph_title) +
       geom_hline(aes(yintercept = mean(n_obs[n_obs > 0]), color = "red"), linetype = 2, show.legend = FALSE) +
-      coord_cartesian(ylim=c(0, 200))
+      # include option below to scale figures
+      #coord_cartesian(ylim=c(0, 200))
+      coord_cartesian(ylim=c(0, 500))
 }
 ```
 
@@ -325,9 +331,8 @@ Get list of subjects.
 subid_all <- list(gps_obs$subid) |> unlist() |> unique()
 ```
 
-If pdf output file does not already exist, create and save out plots in /data_processed/gps/subject-maps.
+If pdf output file does not already exist, create and save out plots in /data_processed/gps/figures.
 ```{r}
-#| eval: false
 if(file.exists(here::here(path_maps, "per-subj-timeseries.pdf"))){
 
   message("PDF file already exist -- delete to recreate!")
@@ -344,6 +349,60 @@ if(file.exists(here::here(path_maps, "per-subj-timeseries.pdf"))){
 }
 ```
 
+### Create map plots for subjects with few obs per day
+
+List subjects who have mean nobs below ~20.
+```{r}
+low_nobs_ids <- gps_obs |>
+  mutate(mean_nobs = mean(n_obs[n_obs > 0])) |> 
+  filter(mean_nobs < 20) |>
+  select(subid) |>
+  unlist() |> 
+  unique()
+```
+
+Create function to generate static map per subject.
+```{r}
+plot_geo <- function(z) {
+    gps <- gps |> filter(subid == z)
+    
+    graph_title <- paste0("Subject ID", z, sep = " ")
+   
+    cbbox <- make_bbox(lon = gps$lon, lat = gps$lat, f = .1)
+    sq_map <- get_map(location = cbbox, maptype = "stamen_toner_lite")
+    
+    ggmap(sq_map) + 
+      geom_point(data = gps, aes(x = gps$lon, y = gps$lat), 
+                size = 1, lineend = "round", color="darkred") +
+      labs(x = " ", y = " ", title = graph_title) +
+      theme_minimal() +
+      ggforce::facet_grid_paginate(~date, ncol = 2, nrow = 2, page = 10) +
+      theme(legend.position = "none")
+}
+```
+
+Generate individual GPS map per subject and save out in /shared/gps/figures if compiled file does already not exist.
+```{r}
+#| eval: false
+#| label: Static subject maps
+
+if(file.exists(here::here(path_gps, "per-subj-geo.pdf"))){
+
+  message("PDF file already exist -- delete to recreate!")
+
+} else{
+  geo_plots <- low_nobs_ids |> 
+    map(\(subid) plot_geo(subid))
+  
+  output_file <- paste0(path_gps, "/per-subj-geo.pdf", sep = "")
+
+  multi.page <- ggpubr::ggarrange(plotlist = geo_plots,
+                                    nrow = 1, ncol = 1)
+
+  ggpubr::ggexport(multi.page, filename = output_file)
+}
+```
+
 ### Examine 1-observation days
 
 Filter on days that have only one observation, sorting ascending on time to ensure that the individual points on these days are not all occurring around midnight (which would suggest spurious bursts of activity not actually related to the participant).
@@ -355,83 +414,6 @@ full_join(gps, gps_obs, by=c("subid", "date")) |>
   arrange(time) |>
   select(-date_tmp) |> 
   kable(caption = "1-observation days") |>
-  kable_styling("striped") |> 
-  scroll_box(width = "700px", height = "400px")
-```
-
-### Compare start and end dates
-
-Extract first and last dates in GPS data per subject.
-```{r}
-gps_dates <- gps |>
-  group_by(subid) |> 
-  arrange(date) |> 
-  slice(1, n()) |>
-  mutate(start_study_gps = first(date),
-         end_study_gps = last(date)) |> 
-  select(subid, start_study_gps, end_study_gps) |> 
-  distinct()
-```
-
-Extract start and end study dates from study_dates.
-```{r}
-study_dates <- study_dates |>
-  select(subid, study_start, study_end) |> 
-  mutate(start_study_record = date(study_start),
-         end_study_record = date(study_end)) |> 
-  select(-study_start, -study_end)
-```
-
-Combine data frames.
-```{r}
-merge_dates <- left_join(gps_dates, study_dates)
-
-merge_dates <- merge_dates[, c("subid", "start_study_record", "start_study_gps", "end_study_record", "end_study_gps")]
-```
-
-Display comparison table of start and end dates.
-```{r}
-merge_dates |>
-  kable(caption = "Comparison of start and end study dates based on staff records and GPS data collection") |>
-  kable_styling("striped") |> 
-  scroll_box(width = "700px", height = "400px")
-```
-
-Calculate differences between date start and GPS start.
-```{r}
-merge_dates |>
-  mutate(diff = start_study_record - start_study_gps) |>
-  select(-end_study_record, -end_study_gps) |> 
-  arrange(desc(diff)) |> 
-  kable(caption = "Differences between study start and GPS start") |>
-  kable_styling("striped") |> 
-  scroll_box(width = "700px", height = "400px")
-```
-
-Calculate differences between date end and GPS end.
-
-> GPS collection ending after the end of study doesn't matter because we won't be using that data in any case.
-
-```{r}
-merge_dates |>
-  mutate(diff = end_study_record - end_study_gps) |>
-  select(-start_study_record, -start_study_gps) |> 
-  arrange(diff) |> 
-  kable(caption = "Differences between study end and GPS end") |>
-  kable_styling("striped") |> 
-  scroll_box(width = "700px", height = "400px")
-```
-
-Calculate number of days on study.
-
-> Already calculated above to standardize our # of GPS observations, but maybe useful to look at in a table?
-
-```{r}
-merge_dates |>
-  mutate(difference = end_study_record - start_study_record) |>
-  select(-start_study_gps, -end_study_gps) |> 
-  arrange(difference) |> 
-  kable(caption = "Number of days on study") |>
   kable_styling("striped") |> 
   scroll_box(width = "700px", height = "400px")
 ```

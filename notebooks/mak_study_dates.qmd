@@ -22,7 +22,9 @@ This script creates a GPS study-level dates file that includes the study start d
 This script is essentially the same as Kendra's meta script and the EMA study-level script because the GPS study currently includes the same sample as the meta study (further exclusion of subjects based on completeness of GPS data is done elsewhere). 
 
 
-## Conclusions   
+## Conclusions
+
+### EMA
 
 - John and Kendra have decided to drop subid 104's data for the following reasons:   
   - They had lapses every day on study except one day.    
@@ -69,10 +71,85 @@ the following reasons:
   on only 3 surveys. They reported they were uncertain that their goal was to remain 
   abstinent at followup 1 and confirmed their goal was to remain abstinent at followup 2.    
   - Has more non-lapse surveys than lapse surveys.   
-  
+
+### GPS
+
+*Removal*
+
+- John and Claire have decided to drop 2, 21, 51, 56, 190 due to insufficient GPS data.
+  - 2 had technical issues (likely related to Samsung phone) and is missing 94% of data [5 lapses]
+  - 21 had technical issues (likely related to Samsung phone) and is missing 56% of data with large gaps [no lapses]
+  - 51 had technical issues (likely related to Samsung phone) is missing 74% of data [14 lapses]
+  - 56 missing 92% of data [26 lapses]
+  - 190 had technical issues throughout study; despite troubleshooting, only a few days of data were
+  able to be collected [no lapses]
+
+*GPS problems that require adjustment of study dates*
+
+- 19 had tech issues (samsung) with many gaps in gps.  Mostly continuous block between
+11/26 - 1/17.  Adjust study start to 11/26 and study end to 1/17 [ lost no lapses and retained 2 lapses]
+- 28 missing data for most of the first month.   Data are present afterward.  Adjust study start to 12/18
+- 30 has good data through 12-24.   set study end to 12/24
+- 34 is missing data right near end.  Set study end to 3/1.  [Lost one valid lapse but retained MANY]
+- 39 has good data though 5/11.  End study on that day.
+- 40 has big gap start  on 4/29.  Set study end to 4/28
+- 42 had many big gaps throughout their data. Mostly continous block started at 4/11 to end of study
+- 47 has almost no data after 4/16.  Set study end to 4/16 [lost two lapses but have many more]
+- 63 has some big gaps Also stays home a lot.  Has a good. mostly continuous
+block from study start until 6/7.  Set study end to 6/7/  [Lost 1 lapse, retained zero]
+- 65 had tech (samsung) issues with many gaps in gps.  Has completed data starting at 7/18.
+Set study start to 7/18 [lost two lapses]
+- 74 had problems with Moves.  Gaps in data using Moves.  Switched to FollowMee on 7/19 and seemed
+- 76 has last date of GPS on 8/20.  Set study end to 8/20
+- 78 has last day of GPS on 8/28.  Set study end to 8/28
+- 80 has good data for about first month (through 7/31).  No data after that b/c app not on phone.  
+set study end to 7/31 (lost 6 valid lapses but retains 1 lapse)
+to resolve issue.   Set study start to 7/19
+- 84 had many phone issues (lost phone, missing data, out of country wiht GPS off).  But had good data through 8/6.
+Set study end to 8/6 [lost 1 lapse and retained none].
+- 117 turned off location services repeatedly b/c of data plan issues. Many gaps. There is a somewhat gap free
+period started at 10/14 - end of study.  Set study start to 10/14 [loses 3 but retains 7 lapses]
+Set study start to 4/11.  [lost 4 but retained 14 lapses]
+- 161 has big gap from 12/10 - 12/19.  Set study start to 12/20
+- 167 had gps problems in first month.  Resolved at FU1.  Recode study start to 2/6 (data of FU1 when GPS starts working)
+- 169 has five day gap at study start.  Set study start to 2/19 [lost one lapse but retained MANY more]
+- 178 has one big gap in middle of study 2/11 - 2/25.  Data is continuous from 2/25 through 
+end of study.  Set study start to 2/25.  [lost 5 but retained 2 lapses]
+- 180 traveled out of country for most of first month.  Set start date to 3/2 
+[lost many invalid and a couple of valid lapses. Many remain]
+- 203 missing large gap starting on 5/20.  Set study end to 5/19 
+- 207 had issues with broken phone, missing days, and out of country travel. Despite this, data were ok (some gaps but not really big ones) through 5/19.   
+End study on 5/19 (lost two lapses)
+- 214 missing big gap (4/5 - 4/16) near start of study because of tech issue.   
+Set study start to 4/17 [lost 4 lapses but has many more]
+- 218 has last day GPS on 6/4.  End study on that day [lost 3 lapses]
+- 265 has OK data from start through 10/7.  But there is one 6 day gap. Set study end to 10/7
+
+
+*Data OK despite missing; No adjustments*
+
+- 3 has missing days but these appear to result from not leaving home for long periods do to a fractured leg.  Retain all data
+- 26 has some gaps.  One due to being housebound and others but data seem sufficient 
+once gaps are handled.
+- 27 has some missing days but OK
+- 32 has some gaps but OK
+- 53 has some gaps but data appear usable as is
+- 66 has a few gaps but OK
+- 79 has some missing days but OK
+- 134 OK.  Missing days likely due to not leaving home much.
+- 137 missing one five day gap but OK
+- 139 has gaps but rarely left home.  Likely OK
+- 185 OK.  Missing days likely due to not leaving home much.
+- 191 has few day gap but OK
+- 231 has some missing days but OK
+- 238 has one four day gap but OK
+- 241 has one big gap - Missing: 9/05-9/11/19.   Lapses before, during and after gap.
+- 270 has some missing days but OK
+
+
+### General
 
 - All final timezones are in America/Chicago timezone.    
-
 
 ## Set up
 
@@ -143,6 +220,8 @@ dates <- dates |>
 
 Adjust start start and end dates for missing GPS.  Notes in mak_gps_enriched.qmd
 ```{r}
+## 3 has many scattered 0s
+
 dates$study_start[dates$subid == 19] = as_datetime("2017-11-26", tz = "America/Chicago")
 dates$study_end[dates$subid == 19] = as_datetime("2018-01-17", tz = "America/Chicago")
 

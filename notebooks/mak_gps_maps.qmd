@@ -101,7 +101,7 @@ Generate subject ID list.
 subid_all <- list(gps$subid) |> unlist() |> unique()
 ```
 
-Generate individual GPS map per subject and save out in /shared/gps/subject-maps if compiled file does already not exist.
+Generate individual GPS map per subject and save out in /shared/gps/figures if compiled file does already not exist.
 ```{r}
 #| eval: false
 #| label: Static subject maps
