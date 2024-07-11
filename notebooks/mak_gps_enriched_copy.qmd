@@ -62,6 +62,11 @@ library(tidyverse)
 library(lubridate)
 
 source(here::here("../lab_support/fun_gps.R"))
+
+# helpful lab functions
+devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/fun_eda.R?raw=true",
+ sha1 = "c045eee2655a18dc85e715b78182f176327358a7"
+)
 ```
 
 ### Initialize parallel processing
@@ -119,21 +124,90 @@ if(any(!(subids_dates %in% subids_locs))) stop("Missing location for some subids
 ### GPS
 
 Load in GPS data, only for verified subjects (those in study_dates file).
-
-> CP 7/9: think we should also filter on study_dates here?
-
 ```{r}
-gps <-  read_csv(here::here(path_shared, "gps.csv"), col_types = "ddTdccccdddd",
+gps <-  read_csv(here::here(path_shared, "gps.csv"),
               show_col_types = FALSE)  |>  
   filter(subid %in% subids_dates)  |>    # limit to sample in study_dates
   mutate(time = with_tz(time, tz = "America/Chicago")) |>  
   group_by(subid)  |>  
-  mutate(dist = distGeo(as.matrix(tibble(lon, lat))),
+  mutate(date = date(time),
+         dist = distGeo(as.matrix(tibble(lon, lat))),
          duration = difftime(lead(time), time, units = "mins"),
          duration = as.numeric(duration),
          duration = if_else(duration > 5 & dist > 500, NA_real_, duration)) |>  # set suspect gaps to NA if high duration AND moved
   ungroup()  |>  
   glimpse()
+```
+
+Create function to filter data based on study_dates. This is important for
+subjects for whom we only want to use some of their data.
+
+> 7/11 CP: this works yay! confirm with john before applying to dataset.
+
+```{r}
+date_filter <- function(gps, study_dates, id) {
+  gps_filtered <- gps |> 
+    filter(subid == id)
+    
+  study_dates_filtered <- study_dates |> 
+    filter(subid == id)
+    
+  sd <- study_dates_filtered |> 
+    pull(study_start) |> 
+    as.Date()
+    
+  ed <- study_dates_filtered |> 
+    pull(study_end) |> 
+    as.Date()
+    
+  cleaned_data <- gps_filtered |> 
+    filter(date >= sd)
+  
+  cleaned_data <- cleaned_data |> 
+    filter(date <= ed)
+    
+  cleaned_data$subid <- id
+
+  
+  return(cleaned_data)
+}
+```
+
+```{r}
+# can see original dataset still includes data we want to exclude
+gps |> filter(subid == 19) |> arrange(time) |> select(subid, time) |>
+  filter(row_number() == 1 | row_number() == n())
+
+# test out manual filtering
+gps_mini <- gps |> filter(subid == 19)
+study_dates_mini <- study_dates |> filter(subid == 19)
+
+sd <- study_dates_mini |> pull(study_start)
+ed <- study_dates_mini |> pull(study_end)
+
+test <- gps_mini |> filter(date >= sd)
+test <- test |> filter(date <= ed)
+
+test |> arrange(time) |> select(subid, time) |> filter(row_number() == 1 | row_number() == n())
+
+# function works with one subject
+id <- c(19)
+filtered_data <- date_filter(gps, study_dates, id)
+```
+
+```{r}
+# try to map function
+ids <- c(19, 265)
+
+#tester <- map(\(ids) date_filter(gps, study_dates, id))
+filtered_data <- map(ids, ~ date_filter(gps, study_dates, .x))
+combined_data <- bind_rows(filtered_data)
+
+combined_data |> filter(subid == 19) |> arrange(time) |> select(subid, time) |>
+  filter(row_number() == 1 | row_number() == n())
+
+combined_data |> filter(subid == 265) |> arrange(time) |> select(subid, time) |>
+  filter(row_number() == 1 | row_number() == n())
 ```
 
 Extract subids from GPS file.
@@ -169,96 +243,93 @@ enrich_subid <- function(a_subid, gps, locs) {
 
 future_map over subids
 ```{r}
-enriched <- subids_gps  |>  
-  future_map_dfr(enrich_subid, gps = gps, locs = locs)  |>  # check if up to date
+enriched <- subids_gps  |>
+  map(\(subid) enrich_subid(subid, gps, locs)) |> 
+  #furrr::future_map_dfr(enrich_subid, gps = gps, locs = locs)
+  list_rbind() |>
   left_join(locs, by = c("subid", "context_id"))  |>  
-  select(-lat.y, -lon.y, -accuracy, -speed_kmh, -altitude_meters, -direction,
-         -data_type)  |>  
+  select(-lat.y, -lon.y, -data_type)  |>  
   rename(lat = lat.x, lon = lon.x)  |>  
   relocate(subid)
 ```
 
 
-#  Brief EDA
+# Brief EDA
 
+Glimpse enriched data.
 ```{r}
 enriched  |>   
   glimpse()
+```
 
+Check length of subids (verify it is the same as above).
+```{r}
 enriched  |>  
-  pull(subid)  |>
+  pull(subid) |>
   unique() |>  
   length()
 ```
 
+Create table summarizing number of unique `context_id` observations per subject.
 ```{r}
-enriched |>  
-  tabyl(subid) |>  
-  arrange(n)
-
-enriched |>  
-  tabyl(subid) |> 
-  summarize(min(n), max(n))
-
-enriched |>  
-  tabyl(subid) |> 
-  pull(n) |>  
-  hist()
-
-enriched |>  
-  tabyl(subid) |> 
-  filter(n < 5000) |> 
-  pull(n) |>  
-  hist()
+enriched |>
+  group_by(subid) |>
+  summarise(unique.context = n_distinct(context_id)) |> 
+  print_kbl()
 ```
 
-> CP 6/12: do we still need this section below?? Examining missing data already done in cln_locations.
-
-Review of missing data for context
-
-* type is missing for 110 for one location which accounts for all missing type in df
-* emotion missing for one entry ofr subids 3, 6, and 48
-* risk missing for an entry for subids 3, and 121.
+Display unique `context_id` observations per subject in a histogram.
 ```{r}
-enriched  |>  
-  summarize(across(.fns = ~sum(is.na(.))))  |>  
-  glimpse()
+enriched |>
+  group_by(subid) |>
+  summarise(unique.context = n_distinct(context_id)) |>
+  pull(unique.context) |> 
+  hist(col = "white", border = "black",
+       xlab = "# of Unique Context IDs", ylab = "Frequency",
+       main = "Histogram of Unique Context IDs per Subject")
 ```
 
+Review of missing data for context. Can also look at cln_locations.qmd for further exploration. 
+Omitting `vacation` here because we will likely not be using it.
+
+- Type is missing for 110 for one location which accounts for all missing type in df
+- Emotion missing for one entry of subids 3, 6, and 48
+- Risk missing for an entry for subids 3, and 121.
 ```{r}
-enriched  |>  tabyl(type)
-enriched  |>  tabyl(drank)
-enriched  |>  tabyl(alcohol)
-enriched  |>  tabyl(emotion)
-enriched  |>  tabyl(risk)
-enriched  |>  tabyl(avoid)
-enriched  |>  tabyl(vacation)
+enriched[rowSums(is.na(enriched[, c("type", "drank", "alcohol", "emotion", "risk", "avoid")])) > 0, ] |>
+  group_by(subid) |> 
+  distinct(full_address, .keep_all = TRUE) |> 
+  print_kbl()
 ```
 
-### EDA for participant removal based on missing days
-
+Summary of `type` responses.
 ```{r}
-enriched <- enriched  |>  
-  mutate(time = with_tz(time, tzone = "America/Chicago")) |>  # done here again to be safe before convert to date
-  mutate(gps_date = as_date(time))  |> 
-  left_join(select(study_dates, subid, study_start, study_end, study_ndays), by = "subid")  |>  
-  filter(gps_date >= study_start,
-         gps_date <= study_end)  |>  
-  glimpse()
+enriched  |>  tab(type)
+```
 
+Summary of `drank` responses.
+```{r}
+enriched  |>  tab(drank)
+```
 
-# number of days with gps points
-enriched  |>  
-  group_by(subid, gps_date)  |>  
-  summarize(n())  |>  
-  group_by(subid)  |>  
-  summarize(gps_ndays = n()) |> 
-  left_join(select(study_dates, subid, study_ndays), by = "subid")  |>  
-  mutate(days_diff = gps_ndays - study_ndays)  |>  
-  arrange(days_diff)  |>  
-  print(n = Inf)  |>  
-  pull(days_diff)  |>  
-  hist(main = "Days of Missing GPS")
+Summary of `alcohol` responses.
+```{r}
+enriched  |>  tab(alcohol)
+```
+
+Summary of `emotion` responses.
+```{r}
+enriched  |>  tab(emotion)
+```
+
+Summary of `risk` responses.
+```{r}
+enriched  |>  tab(risk)
+```
+
+Summary of `avoid` responses.
+```{r}
+enriched  |>  tab(avoid)
 ```
 
 # Save enriched GPS
@@ -267,5 +338,5 @@ Saving xz compressed for use on CHTC for feature engineering
 
 ```{r}
 enriched  |>  
-  vroom::vroom_write(here::here(path_gps, "gps_enriched.csv.xz"), delim = ",")
+  write_csv(here::here(path_gps, "gps_enriched.csv.xz"), delim = ",")
 ```
