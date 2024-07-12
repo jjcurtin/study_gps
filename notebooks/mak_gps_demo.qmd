@@ -1,0 +1,231 @@
+---
+title: "Make GPS demographics"
+editor: visual
+---
+
+# Housekeeping
+
+## Code Status
+
+In progress as of 07/2024.
+
+## Conclusions   
+
+
+
+# Set up
+
+## Environment
+```{r}
+#| message: false
+#| warning: false
+
+options(conflicts.policy = "depends.ok")
+devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true", 
+                      sha1 = "a58e57da996d1b70bb9a5b58241325d6fd78890f")
+```
+
+## Paths
+```{r}
+path_shared <- format_path("studydata/risk/data_processed/shared")
+path_gps <- format_path("studydata/risk/data_processed/gps")
+path_maps <- format_path("studydata/risk/data_processed/gps/figures")
+path_notes <- format_path("GitHub/analysis_risk/shared/notes")
+```
+
+## Packages and plot settings
+```{r}
+#| message: false
+#| warning: false
+
+library("tidyverse")
+library("scales")
+library("ggplot2")
+
+# adjust plot visuals
+theme_set(theme_classic())
+options(tibble.width = Inf, dplyr.print_max = Inf)
+```
+
+
+# Examine demographic characteristics
+
+
+## Load in study dates
+
+Load in study_dates.
+```{r}
+study_dates <- read_csv(file.path(path_gps,"study_dates.csv"),
+                        show_col_types = FALSE)
+```
+Pull list of subject IDs with at least one month data, credible lapse reporting,
+and sufficient GPS data.
+```{r}
+subids_dates <- study_dates |>  
+  pull(subid) |>  
+  unique()
+```
+
+## Open and process ID data file containing demographics
+
+```{r}
+dem_data <- read_csv(file.path(path_shared, "screen.csv"),
+                     show_col_types = FALSE) |> 
+  select(subid,  
+         age = dem_1, 
+         sex = dem_2, 
+         race = dem_3, 
+         hispanic = dem_4,
+         education = dem_5,
+         work = dem_6,
+         income = dem_7,
+         contains("dsm")) |> 
+         mutate(hispanic = if_else(str_detect(hispanic, "Yes"), "1", "0")) |>  
+    mutate(american_native = ifelse(str_detect(race,"American Indian/Alaska Native"),1,0),
+        asian = ifelse(str_detect(race,"Asian"),1,0),
+        pacific = ifelse(str_detect(race,"Native Hawaiian or Other Pacific Islander"),1,0),
+        black = ifelse(str_detect(race,"Black/African American"),1,0),
+        white = ifelse(str_detect(race,"White/Caucasian"),1,0),
+        other = ifelse(str_detect(race,"Other/Multiracial"),1,0),
+        )
+```
+
+Filter down demographics file to only include subjects being used in GPS analyses.
+```{r}
+dem_data <-  dem_data |>  
+  filter(subid %in% subids_dates)
+```
+
+## Summary tables
+
+### Age
+
+```{r}
+age_summary <- dem_data |> 
+  summarize(mean=round(mean(age),1), sd=round(sd(age),1), min=min(age), max=max(age))
+age_summary
+```
+
+### Sex
+
+```{r}
+sex_summary <- dem_data |> 
+  group_by(sex) |> 
+  summarize(n = n()) |> 
+  mutate(`%` = scales::percent(n/sum(n)))
+sex_summary
+```
+
+### Race
+
+```{r}
+race_summary <- dem_data |> 
+  group_by(race) |> 
+  summarize(n = n()) |> 
+  mutate(`%` = scales::percent(n/sum(n)))
+race_summary
+```
+
+### Ethnicity
+
+```{r}
+hisp_summary <- dem_data |> 
+  group_by(hispanic) |> 
+  summarize(n = n()) |> 
+  mutate(`%` = scales::percent(n/sum(n)))
+hisp_summary  
+```
+
+### Income
+
+```{r}
+income_summary <- dem_data |>
+  drop_na() |> # probably need a better way to do this
+  summarize(mean=scales::dollar(round(mean(income))), sd=scales::dollar(round(sd(income))), min=scales::dollar(min(income)), max=scales::dollar(max(income)))
+income_summary
+```
+### DSM
+Total DSM score
+```{r}
+dsm_summary <- dem_data |>  
+  mutate(across(dsm5_1:dsm5_11, ~ recode(., "No" = 0, "Yes" = 1))) |>  
+  rowwise() |>  
+  mutate(dsm5_total = sum(c(dsm5_1, dsm5_2, dsm5_3, dsm5_4, dsm5_5, dsm5_6, dsm5_7, 
+                            dsm5_8, dsm5_9, dsm5_10, dsm5_11))) |>  
+  ungroup() |>  
+  summarise(min = min(dsm5_total),
+            max = max(dsm5_total),
+            mean = mean(dsm5_total))
+dsm_summary
+```
+
+## Figures
+
+### Age
+```{r}
+dem_data |> 
+  ggplot(aes(x = age)) +
+  geom_density(fill = "blue", color = "darkblue", alpha = .1, size = .8)
+```
+
+### Sex
+```{r}
+dem_data |> 
+  group_by(sex) |> 
+  summarize(n = n()) |>
+  ggplot(aes(x="", y=n, fill=sex)) +
+  geom_bar(stat="identity", color = "black", size = 1) +
+  coord_polar("y", start=0) +
+  scale_fill_manual(values = c("white", "gray")) +
+  theme_void()
+```
+
+### Race
+```{r}
+dem_data |> 
+  group_by(race) |> 
+  summarize(n = n()) |>
+  ggplot(aes(x="", y=n, fill=race)) +
+  geom_bar(stat="identity", color = "black", size = 1) +
+  coord_polar("y", start=0) +
+  scale_fill_manual(values = c("#3a3a3a", "#838383", 
+                               "#aeaeae", "#c9c9c9",
+                               "#e5e5e5", "white")) +
+  theme_void()
+```
+
+### Ethnicity
+```{r}
+dem_data |>
+  mutate(hispanic = recode(hispanic,
+                           `0` = "No",
+                           `1` = "Yes")) |> 
+  group_by(hispanic) |> 
+  summarize(n = n()) |>
+  ggplot(aes(x="", y=n, fill=hispanic)) +
+  geom_bar(stat="identity", color = "black", size = 1) +
+  coord_polar("y", start=0) +
+  scale_fill_manual(values = c("white", "gray")) +
+  theme_void()
+```
+
+### Income
+```{r}
+dem_data |> 
+  ggplot(aes(x = income)) +
+  geom_density(fill = "blue", color = "darkblue", alpha = .1, size = .8)
+```
+
+### DSM
+```{r}
+dem_data |>
+  mutate(across(dsm5_1:dsm5_11, ~ recode(., "No" = 0, "Yes" = 1))) |>  
+  rowwise() |>  
+  mutate(dsm5_total = sum(c(dsm5_1, dsm5_2, dsm5_3, dsm5_4, dsm5_5, dsm5_6, dsm5_7, 
+                            dsm5_8, dsm5_9, dsm5_10, dsm5_11))) |> 
+  ungroup() |> 
+  group_by(dsm5_total) |> 
+  summarize(n = n()) |>
+  ggplot(aes(x = dsm5_total, y = n)) +
+  geom_bar(stat = "identity", color = "black", fill = "white")
+```
