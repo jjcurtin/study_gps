@@ -259,13 +259,13 @@ dates$study_start[dates$subid == 134] = as_datetime("2018-09-28", tz = "America/
 # added by cp
 dates$study_start[dates$subid == 139] = as_datetime("2018-11-19", tz = "America/Chicago")
 
-
 # removed by cp - not sure if we should be removing any of this person's data
 #dates$study_start[dates$subid == 161] = as_datetime("2018-12-20", tz = "America/Chicago")
 
 dates$study_start[dates$subid == 167] = as_datetime("2019-02-06", tz = "America/Chicago")
 
 # 171 has 1 observation per day for last ~month of study - cp add in cutoff
+dates$study_end[dates$subid == 171] = as_datetime("2019-03-20", tz = "America/Chicago")
 
 dates$study_start[dates$subid == 178] = as_datetime("2019-02-25", tz = "America/Chicago")
 
