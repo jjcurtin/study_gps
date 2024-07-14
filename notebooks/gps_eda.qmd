@@ -310,6 +310,9 @@ gps_obs |>
 ### Plot number of observations by day per subject
 
 Create timeseries plotting function, including mean n_obs of non-missing days.
+
+> CP REGENERATE THESE TMRW ON 7/15!!
+
 ```{r}
 plot_timeseries <- function(x, y, z) {
     gps_obs <- gps_obs |> filter(subid == z)
@@ -351,6 +354,9 @@ if(file.exists(here::here(path_maps, "per-subj-timeseries.pdf"))){
 
 ### Create map plots for subjects with few obs per day
 
+> CP 7/14: This could be much better, I'm manually generating these right now (not a huge deal
+since there aren't many subjects to generate). Maybe circle back to make this better at some point.
+
 List subjects who have mean nobs below ~20.
 ```{r}
 low_nobs_ids <- gps_obs |>
@@ -359,48 +365,37 @@ low_nobs_ids <- gps_obs |>
   select(subid) |>
   unlist() |> 
   unique()
+
+low_nobs_ids
 ```
 
-Create function to generate static map per subject.
 ```{r}
-plot_geo <- function(z) {
-    gps <- gps |> filter(subid == z)
+gps_162 <- gps |> filter(subid == 162)
+
+cbbox <- make_bbox(lon = gps_162$lon, lat = gps_162$lat, f = .1)
+sq_map <- get_map(location = cbbox, maptype = "stamen_toner_lite")
     
-    graph_title <- paste0("Subject ID", z, sep = " ")
-   
-    cbbox <- make_bbox(lon = gps$lon, lat = gps$lat, f = .1)
-    sq_map <- get_map(location = cbbox, maptype = "stamen_toner_lite")
-    
-    ggmap(sq_map) + 
-      geom_point(data = gps, aes(x = gps$lon, y = gps$lat), 
-                size = 1, lineend = "round", color="darkred") +
-      labs(x = " ", y = " ", title = graph_title) +
-      theme_minimal() +
-      ggforce::facet_grid_paginate(~date, ncol = 2, nrow = 2, page = 10) +
-      theme(legend.position = "none")
+p <- ggmap(sq_map) + 
+  geom_point(data = gps_162, aes(x = lon, y = lat),
+             size = 1, color="darkred") +
+  labs(x = " ", y = " ", title = "Placeholder") +
+  theme_minimal() +
+  ggforce::facet_grid_paginate(~date, ncol = 1, nrow = 1) +
+  theme(legend.position = "none")
+
+ggforce::n_pages(p)
+
+pdf(here::here(path_maps, "162_by_day.pdf"))
+for(i in 1:92){
+  print(ggmap(sq_map) + 
+  geom_point(data = gps_162, aes(x = lon, y = lat),
+             size = 1, color="darkred") +
+  labs(x = " ", y = " ", title = "Sub 162") +
+  theme_minimal() +
+  ggforce::facet_grid_paginate(~date, ncol = 1, nrow = 1, page = i) +
+  theme(legend.position = "none"))
 }
-```
-
-Generate individual GPS map per subject and save out in /shared/gps/figures if compiled file does already not exist.
-```{r}
-#| eval: false
-#| label: Static subject maps
-
-if(file.exists(here::here(path_gps, "per-subj-geo.pdf"))){
-
-  message("PDF file already exist -- delete to recreate!")
-
-} else{
-  geo_plots <- low_nobs_ids |> 
-    map(\(subid) plot_geo(subid))
-  
-  output_file <- paste0(path_gps, "/per-subj-geo.pdf", sep = "")
-
-  multi.page <- ggpubr::ggarrange(plotlist = geo_plots,
-                                    nrow = 1, ncol = 1)
-
-  ggpubr::ggexport(multi.page, filename = output_file)
-}
+dev.off()
 ```
 
 ### Examine 1-observation days
