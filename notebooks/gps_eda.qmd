@@ -438,6 +438,6 @@ full_join(gps, gps_obs, by=c("subid", "date")) |>
   arrange(time) |>
   select(-date_tmp) |> 
   kable(caption = "1-observation days") |>
-  kable_styling("striped") |> 
-  scroll_box(width = "700px", height = "400px")
+  kable_styling("striped") 
+  #scroll_box(width = "700px", height = "400px")
 ```
