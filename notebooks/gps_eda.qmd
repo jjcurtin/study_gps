@@ -320,10 +320,10 @@ plot_timeseries <- function(x, y, z) {
     print(ggplot(data = gps_obs, aes(x = .data[[x]], y = .data[[y]], color = z)) +
           geom_line(color = "darkblue")) +
       labs(title = graph_title) +
-      geom_hline(aes(yintercept = mean(n_obs[n_obs > 0]), color = "red"), linetype = 2, show.legend = FALSE)
+      geom_hline(aes(yintercept = mean(n_obs[n_obs > 0]), color = "red"), linetype = 2, show.legend = FALSE) +
       # include option below to scale figures
       #coord_cartesian(ylim=c(0, 200))
-      #coord_cartesian(ylim=c(0, 500))
+      coord_cartesian(ylim=c(0, 500))
 }
 ```
 
@@ -334,6 +334,7 @@ subid_all <- list(gps_obs$subid) |> unlist() |> unique()
 
 If pdf output file does not already exist, create and save out plots in /data_processed/gps/figures.
 ```{r}
+# | eval: false
 if(file.exists(here::here(path_maps, "per-subj-timeseries.pdf"))){
 
   message("PDF file already exist -- delete to recreate!")
@@ -369,6 +370,7 @@ low_nobs_ids
 ```
 
 ```{r}
+# | eval: false
 gps_264 <- gps |> filter(subid == 264)
 
 cbbox <- make_bbox(lon = gps_264$lon, lat = gps_264$lat, f = .1)
@@ -399,6 +401,7 @@ dev.off()
 
 CP testing to try to change map window by date!
 ```{r}
+# | eval: false
 gps_74 <- gps |> filter(subid == 74)
 
 # get list of dates
