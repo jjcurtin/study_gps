@@ -1,333 +1,338 @@
 ---
-title: "make enriched gps/location"
-author: "John Curtin"
+title: "Make enriched gps/location"
+author: "John Curtin, updated by Claire Punturieri"
 date: "`r lubridate::today()`"
-output: 
-  html_document:
-    toc: true 
+format: 
+  html:
+    toc: true
     toc_depth: 4
-knit: (function(input, ...) {
-    rmarkdown::render(
-      input,
-      output_dir = dplyr::if_else(Sys.info()[["sysname"]] == "Windows",
-      "P:/studydata/risk/knits/gps", 
-      "/Volumes/private/studydata/risk/knits/gps")
-    )
-  })
+    embed-resources: true
+editor_options: 
+  chunk_output_type: console
 ---
 
-### Code Status
+# Housekeeping
 
-Complete
+## Code Status
 
-### Notes   
+Updated to current lab practices 07/2024.
 
-This script aggregates gps files for all subjects and then matches each 
+## Notes   
+
+This script aggregates GPS files for all subjects and then matches each 
 geolocation to its nearest context.
 
 The sample starts with the N = 151 participants who completed through at 
-least follow-up 1 and who had valid lapse data.   More details on these decisions
-are available in the cleaning of EMA and lapses and in the mak_study_dates.Rmd
-scripts
+least follow-up 1 and who had valid lapse data.
 
-We then do EDA to confirm that GPS data are valid for these N=151.  
-This results in further removals.  Final sample is N = 146 
+We then did EDA (gps_eda.qmd) to confirm that GPS data are valid for these N=151.  
+This resulted in further removals. Final sample is N = 146, with some subjects
+having their data truncated to shorter periods of good data.
 
-**GPS problems that require removal**
-All had 50% or greater missing data and no long contiguous subsets
+More details on these decisions are available in the cleaning of EMA and lapses
+and in the mak_study_dates.qmd script.
 
-* 190 had gps problems through-out study.  Missing GPS on most (85) days.  Drop participant [no lapses]
-* 56 is missing most of their data until the last few days of the study. Drop participant [26 lapses]
-* 2 had tech (samsung) issues and is missing most of their data until the last few days of the study. Drop participant [5 lapses]
-* 51 tech (samsung) issues with big (month long) gaps in their data.  No continuous sections with
-good data.  [14 lapses]
-* 21 had tech (samsung) issues.  Large gaps.  Drop participant [no lapses]
+# Create and clean enriched data
 
+## Set up
 
+### Set up environment
+```{r}
+#| message: false
+#| warning: false
 
-
-**GPS problems that require adjustment of study dates**
-
-* 80 has good data for about first month (through 7/31).  No data after that b/c app not on phone.  
-set study end to 7/31 (lost 6 valid lapses but retains 1 lapse)
-* 74 had problems with Moves.  Gaps in data using Moves.  Switched to FollowMee on 7/19 and seemed
-to resolve issue.   Set study start to 7/19
-* 84 had many phone issues (lost phone, missing data, out of country wiht GPS off).  But had good data through 8/6.
-Set study end to 8/6 [lost 1 lapse and retained none].
-* 65 had tech (samsung) issues with many gaps in gps.  Has completed data starting at 7/18.
-Set study start to 7/18 [lost two lapses]
-* 117 turned off location services repeatedly b/c of data plan issues. Many gaps. There is a somewhat gap free
-period started at 10/14 - end of study.  Set study start to 10/14 [loses 3 but retains 7 lapses]
-* 19 had tech issues (samsung) with many gaps in gps.  Mostly continuous block between
-11/26 - 1/17.  Adjust study start to 11/26 and study end to 1/17 [ lost no lapses and retained 2 lapses]
-* 42 had many big gaps throughout their data. Mostly continous block started at 4/11 to end of study
-Set study start to 4/11.  [lost 4 but retained 14 lapses]
-* 167 had gps problems in first month.  Resolved at FU1.  Recode study start to 2/6 (data of FU1 when GPS starts working)
-* 207 had issues with broken phone, missing days, and out of country travel. Despite this, data were ok (some gaps but not really big ones) through 5/19.   
-End study on 5/19 (lost two lapses) 
-* 28 missing data for most of the first month.   Data are present afterward.  Adjust study start to 12/18
-* 218 has last day GPS on 6/4.  End study on that day [lost 3 lapses]
-* 39 has good data though 5/11.  End study on that day.
-* 214 missing big gap (4/5 - 4/16) near start of study because of tech issue.   
-Set study start to 4/17 [lost 4 lapses but has many more]
-* 47 has almost no data after 4/16.  Set study end to 4/16 [lost two lapses but have many more]
-* 203 missing large gap starting on 5/20.  Set study end to 5/19 
-* 40 has big gap start  on 4/29.  Set study end to 4/28
-* 76 has last date of GPS on 8/20.  Set study end to 8/20
-* 78 has last day of GPS on 8/28.  Set study end to 8/28
-* 161 has big gap from 12/10 - 12/19.  Set study start to 12/20
-* 180 traveled out of country for most of first month.  Set start date to 3/2 
-[lost many invalid and a couple of valid lapses. Many remain]
-* 169 has five day gap at study start.  Set study start to 2/19 [lost one lapse but retained MANY more]
-* 34 is missing data right near end.  Set study end to 3/1.  [Lost one valid lapse but retained MANY]
-* 265 has OK data from start through 10/7.  But there is one 6 day gap. Set study end to 10/7
-* 30 has good data through 12-24.   set study end to 12/24
-* 63 has some big gaps Also stays home a lot.  Has a good. mostly continuous
-block from study start until 6/7.  Set study end to 6/7/  [Lost 1 lapse, retained zero]
-* 178 has one big gap in middle of study 2/11 - 2/25.  Data is continuous from 2/25 through 
-end of study.  Set study start to 2/25.  [lost 5 but retained 2 lapses]
-
-**Data OK despite missing; No adjustments**
-
-* 3 has missing days but these appear to result from not leaving home for long periods do to a fractured leg.  Retain all data
-* 53 has some gaps but data appear usable as is
-* 134 OK.  Missing days likely due to not leaving home much.
-* 185 OK.  Missing days likely due to not leaving home much.
-* 26 has some gaps.  One due to being housebound and others but data seem sufficient 
-once gaps are handled.
-* 139 has gaps but rarely left home.  Likely OK
-* 66 has a few gaps but OK
-* 32 has some gaps but OK
-* 27 has some missing days but OK
-* 79 has some missing days but OK
-* 231 has some missing days but OK
-* 270 has some missing days but OK
-* 191 has few day gap but OK
-* 238 has one four day gap but OK
-* 137 missing one five day gap but OK
-* 241 has one big gap - Missing: 9/05-9/11/19.   Lapses before, during and after gap.
-
-
-### Set Up Environment
-
-Absolute paths
-```{r, absolute paths}
-switch (Sys.info()[['sysname']],
-        # PC paths
-        Windows = {
-          path_shared <- "P:/studydata/risk/data_processed/shared"
-          path_gps <- "P:/studydata/risk/data_processed/gps"},
-
-        # IOS paths
-        Darwin = {
-          path_shared <- "/Volumes/private/studydata/risk/data_processed/shared"
-          path_gps <- "/Volumes/private/studydata/risk/data_processed/gps"}
-        )
+options(conflicts.policy = "depends.ok")
+devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true", 
+                      sha1 = "a58e57da996d1b70bb9a5b58241325d6fd78890f")
 ```
 
-Packages for lab workflow 
-```{r, packages_workflow, message=FALSE, warning=FALSE}
-library(conflicted) # detect and warn about function conflicts
-conflict_prefer("filter", "dplyr")
-conflict_prefer("select", "dplyr")
-
-library(here)  # establish project directory consistently as working directory
+### Paths
+```{r}
+path_shared <- format_path("studydata/risk/data_processed/shared")
+path_gps <- format_path("studydata/risk/data_processed/gps")
 ```
 
+### Packages and source
+```{r}
+#| message: false
+#| warning: false
 
-Packages for script
-```{r, packages_script, message=FALSE, warning=FALSE}
 # for data wrangling
 library(tidyverse)
 library(lubridate)
-library(vroom)
-library(purrr)
-library(furrr)
-library(janitor)
+
+source(here::here("../lab_support/fun_gps.R"))
+
+# helpful lab functions
+devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/fun_eda.R?raw=true",
+ sha1 = "c045eee2655a18dc85e715b78182f176327358a7"
+)
+```
+
+### Initialize parallel processing
+```{r}
+cl <- parallel::makePSOCKcluster(parallel::detectCores(logical = FALSE))
+doParallel::registerDoParallel(cl)
 ```
 
 
-Source for script
-```{r, source_script, message=FALSE, warning=FALSE}
-source(here("../lab_support/fun_gps.R"))
-```
-
+## Data wrangling
 
 ### Study Dates
 
 Open study dates b/c it contains all the subids with context and valid lapses and 
-start and end dates for good GPS (determied iteratively in this script)
-```{r}
-study_dates <- vroom(here(path_gps, "study_dates.csv"), col_types = "dTTT",
-                     show_col_types = FALSE) %>% 
-  mutate(study_start = as_date(study_start),
-         study_end = as_date(study_end)) %>% 
-  mutate(study_ndays = as.numeric(difftime(study_end, study_start, units = "days"))) %>% 
-  glimpse()
+start and end dates for good GPS (determined iteratively in this script).
 
-subids_dates <- study_dates %>% 
-  pull(subid) %>% 
+```{r}
+study_dates <- read_csv(here::here(path_gps, "study_dates.csv"),
+                     show_col_types = FALSE) |>  
+  mutate(study_start = as_date(study_start),
+         study_end = as_date(study_end))  |>  
+  mutate(study_ndays = as.numeric(difftime(study_end, 
+                                           study_start, units = "days")))  |>  
+  glimpse()
+```
+
+Extract subids from study_dates file.
+```{r}
+subids_dates <- study_dates |>  
+  pull(subid) |>  
   unique()
 ```
 
-### Locations
+### Locations (context)
 
-Confirm that locations exists and has some places
+Load in contextual information file.
 ```{r}
-locs <- vroom(here(path_shared, "locations.csv"), col_types = "cddcccccccccccdd",
-              show_col_types = FALSE) %>% 
-  mutate(subid = as.numeric(subid)) %>% 
+locs <- read_csv(here::here(path_shared, "locations.csv"), 
+                 col_types = "cddcccccccccccdd",
+                 show_col_types = FALSE) |>  
+  mutate(subid = as.numeric(subid)) |>  
   glimpse()
+```
 
-subids_locs <- locs %>% 
-  pull(subid) %>% 
-  unique
+Extract subids from locations file.
+```{r}
+subids_locs <- locs |>  
+  pull(subid) |>  
+  unique()
+```
 
+Check if there are any subids missing location context.
+```{r}
 if(any(!(subids_dates %in% subids_locs))) stop("Missing location for some subids")
 ```
 
-
-
 ### GPS
+
+Load in GPS data, only for verified subjects (those in study_dates file).
 ```{r}
-gps <-  vroom(here(path_shared, "gps.csv"), col_types = "ddTdccccdddd",
-              show_col_types = FALSE) %>% 
-  filter(subid %in% subids_dates) %>%   # limit to sample in study_dates
-  mutate(time = with_tz(time, tz = "America/Chicago")) %>% 
-  group_by(subid) %>% 
-  mutate(dist = distGeo(as.matrix(tibble(lon, lat))),
+gps <-  read_csv(here::here(path_shared, "gps.csv"),
+              show_col_types = FALSE)  |>  
+  filter(subid %in% subids_dates)  |>    # limit to sample in study_dates
+  mutate(time = with_tz(time, tz = "America/Chicago")) |>  
+  group_by(subid)  |>  
+  mutate(date = date(time),
+         dist = distGeo(as.matrix(tibble(lon, lat))),
          duration = difftime(lead(time), time, units = "mins"),
          duration = as.numeric(duration),
-         duration = if_else(duration > 5 & dist > 500, NA_real_, duration)) %>% # set suspect gaps to NA if high duration AND moved
-  ungroup %>% 
+         # set suspect gaps to NA if high duration AND moved
+         duration = if_else(duration > 5 & dist > 500, NA_real_, duration)) |>  
+  ungroup()  |>  
   glimpse()
+```
 
-#get all subids
-subids_gps <- gps %>% 
-  pull(subid) %>% 
-  unique() %>% 
+Create function to filter data based on study_dates. This is important for
+subjects for whom we only want to use some of their data.
+
+> 7/11 CP: this works yay! confirm with john before applying to dataset.
+
+```{r}
+date_filter <- function(id, gps, study_dates) {
+  gps <- gps |> 
+    filter(subid == id)
+    
+  study_dates <- study_dates |> 
+    filter(subid == id)
+    
+  gps <- gps |> 
+    filter(date >= study_dates$study_start) |> 
+    filter(date <= study_dates$study_end)
+
+  return(gps)
+}
+```
+
+```{r}
+# can see original dataset still includes data we want to exclude
+# gps |> filter(subid == 19) |> arrange(time) |> select(subid, time) |>
+#   filter(row_number() == 1 | row_number() == n())
+# 
+# # test out manual filtering
+# gps_mini <- gps |> filter(subid == 19)
+# study_dates_mini <- study_dates |> filter(subid == 19)
+# 
+# sd <- study_dates_mini |> pull(study_start)
+# ed <- study_dates_mini |> pull(study_end)
+# 
+# test <- gps_mini |> filter(date >= sd)
+# test <- test |> filter(date <= ed)
+# 
+# test |> arrange(time) |> select(subid, time) |> filter(row_number() == 1 | row_number() == n())
+# 
+# # function works with one subject
+# id <- c(19)
+# filtered_data <- date_filter(gps, study_dates, id)
+```
+
+```{r}
+gps <- subids_dates |> 
+  map(\(id) date_filter(id, gps, study_dates)) |> 
+  bind_rows()
+
+# filtered_data <- map(ids, ~ date_filter(gps, study_dates, .x))
+# combined_data <- bind_rows(filtered_data)
+# 
+# combined_data |> filter(subid == 19) |> arrange(time) |> select(subid, time) |>
+#   filter(row_number() == 1 | row_number() == n())
+# 
+# combined_data |> filter(subid == 265) |> arrange(time) |> select(subid, time) |>
+#   filter(row_number() == 1 | row_number() == n())
+```
+
+Extract subids from GPS file.
+```{r}
+subids_gps <- gps |>  
+  pull(subid)  |>  
+  unique()  |>  
   print()
+```
 
+Check if there are any subids missing GPS.
+```{r}
 if(any(!(subids_dates %in% subids_gps))) stop("Missing gps for some subids")
 ```
 
-Merge context into gps
+### Merge context into GPS
+
+Create function to enrich GPS with context for one subid
 ```{r}
-#enrich gps with context for one subid
 enrich_subid <- function(a_subid, gps, locs) {
-  gps <- gps %>% 
+  gps <- gps |>  
+    filter(subid == a_subid) |> 
+    select(lon, lat)
+  
+  locs <- locs |>  
     filter(subid == a_subid)
   
-  locs <- locs %>% 
-    filter(subid == a_subid)
+  # enriched <- gps |>  
+  #   bind_cols(map2_dfr(gps$lon, gps$lat, find_nearest_context, context = locs)) 
   
-  enriched <- gps %>% 
-    bind_cols(map2_dfr(gps$lon, gps$lat, find_nearest_context, context = locs)) 
+  enriched <- map2(gps$lon, gps$lat, 
+                   \(lon, lat) find_nearest_context(lon, lat, context = locs))
   
   return(enriched)
 }
+```
 
-#future_map over subids
-(n_core <- parallel::detectCores(logical = FALSE))
-plan(multisession, workers = n_core)
+future_map over subids
+```{r}
+library(future)
+plan(multisession, workers = parallel::detectCores(logical = FALSE))
 
-enriched <- subids_gps %>% 
-  future_map_dfr(enrich_subid, gps = gps, locs = locs) %>% 
-  left_join(locs, by = c("subid", "context_id")) %>% 
-  select(-lat.y, -lon.y, -accuracy, -speed_kmh, -altitude_meters, -direction,
-         -data_type) %>% 
-  rename(lat = lat.x, lon = lon.x) %>% 
+enriched <- subids_gps  |>
+  # map(\(subid) enrich_subid(subid, gps, locs)) |> 
+  furrr::future_map_dfr(enrich_subid, gps = gps, locs = locs) |> 
+  left_join(locs, by = c("subid", "context_id"))  |>  
+  select(-lat.y, -lon.y, -data_type)  |>  
+  rename(lat = lat.x, lon = lon.x)  |>  
   relocate(subid)
 ```
 
 
-###  Brief EDA
+# Brief EDA
 
+Glimpse enriched data.
 ```{r}
-enriched %>%  
-  glimpse
-
-enriched %>% 
-  pull(subid) %>% 
-  unique %>% 
-  length
-```
-
-```{r}
-enriched %>% 
-  tabyl(subid) %>% 
-  arrange(n)
-
-enriched %>% 
-  tabyl(subid) %>%
-  summarize(min(n), max(n))
-
-enriched %>% 
-  tabyl(subid) %>%
-  pull(n) %>% 
-  hist
-
-enriched %>% 
-  tabyl(subid) %>%
-  filter(n < 5000) %>% 
-  pull(n) %>% 
-  hist
-```
-
-Review of missing data for context
-
-* type is missing for 110 for one location which accounts for all missing type in df
-* emotion missing for one entry ofr subids 3, 6, and 48
-* risk missing for an entry for subids 3, and 121.
-```{r}
-enriched %>% 
-  summarize(across(.fns = ~sum(is.na(.)))) %>% 
+enriched  |>   
   glimpse()
 ```
 
+Check length of subids (verify it is the same as above).
 ```{r}
-enriched %>% tabyl(type)
-enriched %>% tabyl(drank)
-enriched %>% tabyl(alcohol)
-enriched %>% tabyl(emotion)
-enriched %>% tabyl(risk)
-enriched %>% tabyl(avoid)
-enriched %>% tabyl(vacation)
+enriched  |>  
+  pull(subid) |>
+  unique() |>  
+  length()
 ```
 
-### EDA for participant removal based on missing days
-
+Create table summarizing number of unique `context_id` observations per subject.
 ```{r}
-enriched <- enriched %>% 
-  mutate(time = with_tz(time, tzone = "America/Chicago")) %>% # done here again to be safe before convert to date
-  mutate(gps_date = as_date(time)) %>%
-  left_join(select(study_dates, subid, study_start, study_end, study_ndays), by = "subid") %>% 
-  filter(gps_date >= study_start,
-         gps_date <= study_end) %>% 
-  glimpse()
-
-
-# number of days with gps points
-enriched %>% 
-  group_by(subid, gps_date) %>% 
-  summarize(n()) %>% 
-  group_by(subid) %>% 
-  summarize(gps_ndays = n()) %>% 
-  left_join(select(study_dates, subid, study_ndays), by = "subid") %>% 
-  mutate(days_diff = gps_ndays - study_ndays) %>% 
-  arrange(days_diff) %>% 
-  print(n = Inf) %>% 
-  pull(days_diff) %>% 
-  hist(main = "Days of Missing GPS")
+enriched |>
+  group_by(subid) |>
+  summarise(unique.context = n_distinct(context_id)) |> 
+  print_kbl()
 ```
 
+Display unique `context_id` observations per subject in a histogram.
+```{r}
+enriched |>
+  group_by(subid) |>
+  summarise(unique.context = n_distinct(context_id)) |>
+  pull(unique.context) |> 
+  hist(col = "white", border = "black",
+       xlab = "# of Unique Context IDs", ylab = "Frequency",
+       main = "Histogram of Unique Context IDs per Subject")
+```
 
+Review of missing data for context. Can also look at cln_locations.qmd for further exploration. 
+Omitting `vacation` here because we will likely not be using it.
 
+- Type is missing for 110 for one location which accounts for all missing type in df
+- Emotion missing for one entry of subids 3, 6, and 48
+- Risk missing for an entry for subids 3, and 121.
+```{r}
+enriched[rowSums(is.na(enriched[, c("type", "drank", "alcohol", "emotion", "risk", "avoid")])) > 0, ] |>
+  group_by(subid) |> 
+  distinct(full_address, .keep_all = TRUE) |> 
+  print_kbl()
+```
 
-### Save enriched GPS
+Summary of `type` responses.
+```{r}
+enriched  |>  tab(type)
+```
+
+Summary of `drank` responses.
+```{r}
+enriched  |>  tab(drank)
+```
+
+Summary of `alcohol` responses.
+```{r}
+enriched  |>  tab(alcohol)
+```
+
+Summary of `emotion` responses.
+```{r}
+enriched  |>  tab(emotion)
+```
+
+Summary of `risk` responses.
+```{r}
+enriched  |>  tab(risk)
+```
+
+Summary of `avoid` responses.
+```{r}
+enriched  |>  tab(avoid)
+```
+
+# Save enriched GPS
+
 Saving xz compressed for use on CHTC for feature engineering
 
 ```{r}
-enriched %>% 
-  vroom_write(here(path_gps, "gps_enriched.csv.xz"), delim = ",")
+enriched  |>  
+  write_csv(here::here(path_gps, "gps_enriched.csv.xz"), delim = ",")
 ```
