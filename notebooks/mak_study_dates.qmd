@@ -189,10 +189,13 @@ options(tibble.width = Inf, dplyr.print_max = Inf)
 
 Read in visit dates file for all subjects, but filter to only include start date, follow-up 1 date, and end date.
 ```{r}
-dates <- read_csv(here::here(path_processed, "visit_dates.csv"), show_col_types = FALSE) |> 
+dates <- read_csv(here::here(path_processed, "visit_dates.csv"), 
+                  show_col_types = FALSE) |> 
   select(subid, study_start = start_study, study_end = end_study, followup_1) |>  
   mutate(study_start = force_tz(study_start, tzone = "America/Chicago"),
-         study_end = force_tz(study_end, tzone = "America/Chicago")) |>  
+         study_end = force_tz(study_end, tzone = "America/Chicago"),
+         proj_start = study_start,
+         proj_end = study_end) |>  
   glimpse()
 ```
 
