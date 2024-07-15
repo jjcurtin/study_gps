@@ -311,8 +311,6 @@ gps_obs |>
 
 Create timeseries plotting function, including mean n_obs of non-missing days.
 
-> CP REGENERATE THESE TMRW ON 7/15!!
-
 ```{r}
 plot_timeseries <- function(x, y, z) {
     gps_obs <- gps_obs |> filter(subid == z)
@@ -322,10 +320,10 @@ plot_timeseries <- function(x, y, z) {
     print(ggplot(data = gps_obs, aes(x = .data[[x]], y = .data[[y]], color = z)) +
           geom_line(color = "darkblue")) +
       labs(title = graph_title) +
-      geom_hline(aes(yintercept = mean(n_obs[n_obs > 0]), color = "red"), linetype = 2, show.legend = FALSE) +
+      geom_hline(aes(yintercept = mean(n_obs[n_obs > 0]), color = "red"), linetype = 2, show.legend = FALSE)
       # include option below to scale figures
       #coord_cartesian(ylim=c(0, 200))
-      coord_cartesian(ylim=c(0, 500))
+      #coord_cartesian(ylim=c(0, 500))
 }
 ```
 
@@ -356,6 +354,7 @@ if(file.exists(here::here(path_maps, "per-subj-timeseries.pdf"))){
 
 > CP 7/14: This could be much better, I'm manually generating these right now (not a huge deal
 since there aren't many subjects to generate). Maybe circle back to make this better at some point.
+Also note that gps df isn't filtered on dates so it'll plot all data! Let's correct this.
 
 List subjects who have mean nobs below ~20.
 ```{r}
@@ -370,13 +369,13 @@ low_nobs_ids
 ```
 
 ```{r}
-gps_162 <- gps |> filter(subid == 162)
+gps_264 <- gps |> filter(subid == 264)
 
-cbbox <- make_bbox(lon = gps_162$lon, lat = gps_162$lat, f = .1)
+cbbox <- make_bbox(lon = gps_264$lon, lat = gps_264$lat, f = .1)
 sq_map <- get_map(location = cbbox, maptype = "stamen_toner_lite")
     
 p <- ggmap(sq_map) + 
-  geom_point(data = gps_162, aes(x = lon, y = lat),
+  geom_point(data = gps_264, aes(x = lon, y = lat),
              size = 1, color="darkred") +
   labs(x = " ", y = " ", title = "Placeholder") +
   theme_minimal() +
@@ -385,15 +384,45 @@ p <- ggmap(sq_map) +
 
 ggforce::n_pages(p)
 
-pdf(here::here(path_maps, "162_by_day.pdf"))
-for(i in 1:92){
+pdf(here::here(path_maps, "264_by_day.pdf"))
+for(i in 1:90){
   print(ggmap(sq_map) + 
-  geom_point(data = gps_162, aes(x = lon, y = lat),
+  geom_point(data = gps_264, aes(x = lon, y = lat),
              size = 1, color="darkred") +
-  labs(x = " ", y = " ", title = "Sub 162") +
+  labs(x = " ", y = " ", title = "Sub 264") +
   theme_minimal() +
   ggforce::facet_grid_paginate(~date, ncol = 1, nrow = 1, page = i) +
   theme(legend.position = "none"))
+}
+dev.off()
+```
+
+CP testing to try to change map window by date!
+```{r}
+gps_74 <- gps |> filter(subid == 74)
+
+# get list of dates
+dates_74 <- list(gps_74$date) |> unlist() |> as.Date() |>  unique()
+
+pdf(here::here(path_maps, "74_by_date.pdf"))
+for(d in dates_74){
+  gps_74_sub <- gps_74 |> filter(date == as.Date(d))
+  
+  cbbox <- make_bbox(lon = gps_74_sub$lon, lat = gps_74_sub$lat, f = .1)
+  sq_map <- get_map(location = cbbox, maptype = "stamen_toner_lite")
+  
+  #pdfname <- paste0("74_", as.Date(d), ".pdf")
+  titlegraph <- paste0("Sub 74", " ", as.Date(d))
+  
+  #pdf(here::here(path_maps, pdfname))
+  print(ggmap(sq_map) + 
+  geom_point(data = gps_74_sub, aes(x = lon, y = lat),
+            size = 1, color="darkred") +
+  labs(x = " ", y = " ", title = titlegraph) +
+  theme_minimal() +
+  #ggforce::facet_grid_paginate(~date, ncol = 1, nrow = 1, page = i) +
+  theme(legend.position = "none"))
+  #dev.off()
 }
 dev.off()
 ```
