@@ -60,6 +60,9 @@ path_gps <- format_path("studydata/risk/data_processed/gps")
 # for data wrangling
 library(tidyverse)
 library(lubridate)
+library(tictoc)
+library(xfun, include.only = "cache_rds")
+library(future)
 
 source(here::here("../lab_support/fun_gps.R"))
 
@@ -73,6 +76,7 @@ devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/fun_eda.
 ```{r}
 cl <- parallel::makePSOCKcluster(parallel::detectCores(logical = FALSE))
 doParallel::registerDoParallel(cl)
+plan(multisession, workers = parallel::detectCores(logical = FALSE))
 ```
 
 
@@ -107,7 +111,8 @@ Load in contextual information file.
 locs <- read_csv(here::here(path_shared, "locations.csv"), 
                  col_types = "cddcccccccccccdd",
                  show_col_types = FALSE) |>  
-  mutate(subid = as.numeric(subid)) |>  
+  mutate(subid = as.numeric(subid)) |>
+  filter(subid %in% subids_dates)  |>    # limit to sample in study_dates
   glimpse()
 ```
 
@@ -144,9 +149,6 @@ gps <-  read_csv(here::here(path_shared, "gps.csv"),
 
 Create function to filter data based on study_dates. This is important for
 subjects for whom we only want to use some of their data.
-
-> 7/11 CP: this works yay! confirm with john before applying to dataset.
-
 ```{r}
 date_filter <- function(id, gps, study_dates) {
   gps <- gps |> 
@@ -163,44 +165,14 @@ date_filter <- function(id, gps, study_dates) {
 }
 ```
 
-```{r}
-# can see original dataset still includes data we want to exclude
-# gps |> filter(subid == 19) |> arrange(time) |> select(subid, time) |>
-#   filter(row_number() == 1 | row_number() == n())
-# 
-# # test out manual filtering
-# gps_mini <- gps |> filter(subid == 19)
-# study_dates_mini <- study_dates |> filter(subid == 19)
-# 
-# sd <- study_dates_mini |> pull(study_start)
-# ed <- study_dates_mini |> pull(study_end)
-# 
-# test <- gps_mini |> filter(date >= sd)
-# test <- test |> filter(date <= ed)
-# 
-# test |> arrange(time) |> select(subid, time) |> filter(row_number() == 1 | row_number() == n())
-# 
-# # function works with one subject
-# id <- c(19)
-# filtered_data <- date_filter(gps, study_dates, id)
-```
-
+Apply function to filter data based on study_dates.
 ```{r}
 gps <- subids_dates |> 
   map(\(id) date_filter(id, gps, study_dates)) |> 
   bind_rows()
-
-# filtered_data <- map(ids, ~ date_filter(gps, study_dates, .x))
-# combined_data <- bind_rows(filtered_data)
-# 
-# combined_data |> filter(subid == 19) |> arrange(time) |> select(subid, time) |>
-#   filter(row_number() == 1 | row_number() == n())
-# 
-# combined_data |> filter(subid == 265) |> arrange(time) |> select(subid, time) |>
-#   filter(row_number() == 1 | row_number() == n())
 ```
 
-Extract subids from GPS file.
+Extract subids from GPS file (should match subids_dates after filtering).
 ```{r}
 subids_gps <- gps |>  
   pull(subid)  |>  
@@ -225,11 +197,13 @@ enrich_subid <- function(a_subid, gps, locs) {
   locs <- locs |>  
     filter(subid == a_subid)
   
-  # enriched <- gps |>  
-  #   bind_cols(map2_dfr(gps$lon, gps$lat, find_nearest_context, context = locs)) 
+  #enriched <- gps |>  
+    #bind_cols(map2_dfr(gps$lon, gps$lat, find_nearest_context, context = locs)) 
   
   enriched <- map2(gps$lon, gps$lat, 
-                   \(lon, lat) find_nearest_context(lon, lat, context = locs))
+                   \(lon, lat) find_nearest_context(lon, lat, context = locs)) |> 
+    bind_rows() |> 
+    mutate(subid = a_subid)
   
   return(enriched)
 }
@@ -237,95 +211,51 @@ enrich_subid <- function(a_subid, gps, locs) {
 
 future_map over subids
 ```{r}
-library(future)
-plan(multisession, workers = parallel::detectCores(logical = FALSE))
-
-enriched <- subids_gps  |>
-  # map(\(subid) enrich_subid(subid, gps, locs)) |> 
-  furrr::future_map_dfr(enrich_subid, gps = gps, locs = locs) |> 
-  left_join(locs, by = c("subid", "context_id"))  |>  
-  select(-lat.y, -lon.y, -data_type)  |>  
-  rename(lat = lat.x, lon = lon.x)  |>  
+tic()
+enriched <- cache_rds(expr = {
+  subids_gps  |>
+  furrr::future_map_dfr(enrich_subid, gps = gps, locs = locs,
+                        .options = furrr::furrr_options(seed = NULL)) |> 
+  left_join(locs, by = c("subid", "context_id"))  |>
+  select(-lat_context, -lon_context)  |>  
   relocate(subid)
+  },
+  dir = "cache/",
+  file = "enrich_all",
+  rerun = FALSE
+)
+toc()
+
+colSums(is.na(enriched))
 ```
 
+Test over one subject
 
-# Brief EDA
+Seed set to null to suppress:
 
-Glimpse enriched data.
+> Warning message:
+UNRELIABLE VALUE: Future (‘<none>’) unexpectedly generated random numbers without specifying argument 'seed'. There is a risk that those random numbers are not statistically sound and the overall results might be invalid. To fix this, specify 'seed=TRUE'. This ensures that proper, parallel-safe random numbers are produced via the L'Ecuyer-CMRG method. To disable this check, use 'seed=NULL', or set option 'future.rng.onMisuse' to "ignore". 
+
 ```{r}
-enriched  |>   
-  glimpse()
-```
+subid_test <- c(1)
 
-Check length of subids (verify it is the same as above).
-```{r}
-enriched  |>  
-  pull(subid) |>
-  unique() |>  
-  length()
-```
+tic()
+enriched_test <- cache_rds(expr = {
+  subid_test |> # subids_gps  |>
+  furrr::future_map_dfr(enrich_subid, gps = gps, locs = locs,
+                        # do we need to set a seed?
+                        .options = furrr::furrr_options(seed = NULL)) |> 
+  left_join(locs, by = c("subid", "context_id"))  |>
+  select(-lat_context, -lon_context)  |>  
+  relocate(subid)
+  },
+  dir = "cache/",
+  file = "enrich_single",
+  rerun = TRUE
+)
+toc()
 
-Create table summarizing number of unique `context_id` observations per subject.
-```{r}
-enriched |>
-  group_by(subid) |>
-  summarise(unique.context = n_distinct(context_id)) |> 
-  print_kbl()
-```
-
-Display unique `context_id` observations per subject in a histogram.
-```{r}
-enriched |>
-  group_by(subid) |>
-  summarise(unique.context = n_distinct(context_id)) |>
-  pull(unique.context) |> 
-  hist(col = "white", border = "black",
-       xlab = "# of Unique Context IDs", ylab = "Frequency",
-       main = "Histogram of Unique Context IDs per Subject")
-```
-
-Review of missing data for context. Can also look at cln_locations.qmd for further exploration. 
-Omitting `vacation` here because we will likely not be using it.
-
-- Type is missing for 110 for one location which accounts for all missing type in df
-- Emotion missing for one entry of subids 3, 6, and 48
-- Risk missing for an entry for subids 3, and 121.
-```{r}
-enriched[rowSums(is.na(enriched[, c("type", "drank", "alcohol", "emotion", "risk", "avoid")])) > 0, ] |>
-  group_by(subid) |> 
-  distinct(full_address, .keep_all = TRUE) |> 
-  print_kbl()
-```
-
-Summary of `type` responses.
-```{r}
-enriched  |>  tab(type)
-```
-
-Summary of `drank` responses.
-```{r}
-enriched  |>  tab(drank)
-```
-
-Summary of `alcohol` responses.
-```{r}
-enriched  |>  tab(alcohol)
-```
-
-Summary of `emotion` responses.
-```{r}
-enriched  |>  tab(emotion)
-```
-
-Summary of `risk` responses.
-```{r}
-enriched  |>  tab(risk)
-```
-
-Summary of `avoid` responses.
-```{r}
-enriched  |>  tab(avoid)
+colSums(is.na(enriched_test)) # why are there not more NA values?
 ```
 
 # Save enriched GPS
@@ -334,5 +264,5 @@ Saving xz compressed for use on CHTC for feature engineering
 
 ```{r}
 enriched  |>  
-  write_csv(here::here(path_gps, "gps_enriched.csv.xz"), delim = ",")
+  write_csv(here::here(path_gps, "gps_enriched.csv.xz"))
 ```
