@@ -141,9 +141,9 @@ gps <-  read_csv(here::here(path_shared, "gps.csv"),
   mutate(date = date(time),
          dist = distGeo(as.matrix(tibble(lon, lat))),
          duration = difftime(lead(time), time, units = "mins"),
-         duration = as.numeric(duration),
+         duration = as.numeric(duration)) |> 
          # set suspect gaps to NA if high duration AND moved
-         duration = if_else(duration > 5 & dist > 500, NA_real_, duration)) |>  
+         #duration = if_else(duration > 5 & dist > 500, NA_real_, duration)) |>  
   ungroup()  |>  
   glimpse()
 ```
@@ -193,17 +193,9 @@ Create function to enrich GPS with context for one subid
 enrich_subid <- function(a_subid, gps, locs) {
   gps <- gps |>  
     filter(subid == a_subid)
-    #select(lon, lat, dist, duration, time)
-  
-  #gps_measures <- gps |>
-    #select(-lon, -lat) |> 
-    #mutate(utc = with_tz(time, tzone = "UTC"))
   
   locs <- locs |>  
     filter(subid == a_subid)
-  
-  #enriched <- gps |>  
-    #bind_cols(map2_dfr(gps$lon, gps$lat, find_nearest_context, context = locs)) 
   
   enriched <- gps |> 
     bind_cols(
@@ -216,34 +208,21 @@ enrich_subid <- function(a_subid, gps, locs) {
 }
 ```
 
-```{r}
-enriched <- subids_gps |> 
-  furrr::future_map_dfr(enrich_subid, gps = gps, locs = locs) |> 
-  left_join(locs, by = c("subid", "context_id")) |> 
-  select(-lat.y, -lon.y, -data_type) |> 
-  rename(lat = lat.x, lon = lon.x) |> 
-  relocate(subid)
-```
-
-
 future_map over subids
 ```{r}
-tic()
 enriched <- cache_rds(expr = {
   subids_gps  |>
   furrr::future_map_dfr(enrich_subid, gps = gps, locs = locs,
                         .options = furrr::furrr_options(seed = NULL)) |> 
   left_join(locs, by = c("subid", "context_id"))  |>
-  select(-lat_context, -lon_context)  |>  
+  select(-lat.y, -lon.y, -data_type) |>  
+  rename(lat = lat.x, lon = lon.x) |>   
   relocate(subid)
   },
   dir = (here::here(path_cache)),
   file = "enrich_all",
   rerun = FALSE
 )
-toc()
-
-colSums(is.na(enriched))
 ```
 
 Test over one subject
@@ -256,13 +235,14 @@ UNRELIABLE VALUE: Future (‘<none>’) unexpectedly generated random numbers wi
 ```{r}
 subid_test <- c(1)
 
-tic()
 enriched_test <- cache_rds(expr = {
   subid_test |> # subids_gps  |>
   furrr::future_map_dfr(enrich_subid, gps = gps, locs = locs,
                         # do we need to set a seed?
                         .options = furrr::furrr_options(seed = NULL)) |> 
   left_join(locs, by = c("subid", "context_id"))  |>
+  select(-lat.y, -lon.y, -data_type) |>  
+  rename(lat = lat.x, lon = lon.x) |>  
   select(-lat_context, -lon_context)  |>  
   relocate(subid)
   },
@@ -270,9 +250,6 @@ enriched_test <- cache_rds(expr = {
   file = "enrich_single",
   rerun = FALSE
 )
-toc()
-
-colSums(is.na(enriched_test)) # why are there not more NA values?
 ```
 
 # Save enriched GPS
