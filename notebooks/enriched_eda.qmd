@@ -15,28 +15,15 @@ editor_options:
 
 ## Code Status
 
-Updated to current lab practices 07/2024.
+In progress has of 07/2024.
 
 ## Notes   
 
-This script aggregates GPS files for all subjects and then matches each 
-geolocation to its nearest context.
+This script does EDA on the enriched GPS file, generated via mak_gps_enriched.qmd
 
-The sample starts with the N = 151 participants who completed through at 
-least follow-up 1 and who had valid lapse data.
+# Set up
 
-We then did EDA (gps_eda.qmd) to confirm that GPS data are valid for these N=151.  
-This resulted in further removals. Final sample is N = 146, with some subjects
-having their data truncated to shorter periods of good data.
-
-More details on these decisions are available in the cleaning of EMA and lapses
-and in the mak_study_dates.qmd script.
-
-# Create and clean enriched data
-
-## Set up
-
-### Set up environment
+## Set up environment
 ```{r}
 #| message: false
 #| warning: false
@@ -46,22 +33,19 @@ devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/format_p
                       sha1 = "a58e57da996d1b70bb9a5b58241325d6fd78890f")
 ```
 
-### Paths
+## Paths
 ```{r}
 path_shared <- format_path("studydata/risk/data_processed/shared")
 path_gps <- format_path("studydata/risk/data_processed/gps")
 ```
 
-### Packages and source
+## Packages and source
 ```{r}
 #| message: false
 #| warning: false
 
 # for data wrangling
 library(tidyverse)
-library(lubridate)
-
-source(here::here("../lab_support/fun_gps.R"))
 
 # helpful lab functions
 devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/fun_eda.R?raw=true",
@@ -69,13 +53,15 @@ devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/fun_eda.
 )
 ```
 
-### Initialize parallel processing
+## Load in data
 ```{r}
-cl <- parallel::makePSOCKcluster(parallel::detectCores(logical = FALSE))
-doParallel::registerDoParallel(cl)
+enriched <- read_csv(here::here(path_gps, "gps_enriched.csv.xz"), 
+                 show_col_types = FALSE)
 ```
 
-# Brief EDA
+# EDA
+
+## Overview
 
 Glimpse enriched data.
 ```{r}
@@ -110,6 +96,21 @@ enriched |>
        main = "Histogram of Unique Context IDs per Subject")
 ```
 
+## Distance & duration
+
+Look at spread of distance.
+
+Look at spread of duration.
+
+Look at distance and duration directly before and after a 1-observation day.
+
+## Examine missing data
+
+Total number of missing variables per column.
+```{r}
+colSums(is.na(enriched))
+```
+
 Review of missing data for context. Can also look at cln_locations.qmd for further exploration. 
 Omitting `vacation` here because we will likely not be using it.
 
@@ -122,6 +123,8 @@ enriched[rowSums(is.na(enriched[, c("type", "drank", "alcohol", "emotion", "risk
   distinct(full_address, .keep_all = TRUE) |> 
   print_kbl()
 ```
+
+## Summary by context
 
 Summary of `type` responses.
 ```{r}

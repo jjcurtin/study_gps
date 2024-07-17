@@ -50,6 +50,7 @@ devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/format_p
 ```{r}
 path_shared <- format_path("studydata/risk/data_processed/shared")
 path_gps <- format_path("studydata/risk/data_processed/gps")
+path_cache <- format_path("studydata/risk/data_processed/gps/cache//")
 ```
 
 ### Packages and source
@@ -193,6 +194,11 @@ enrich_subid <- function(a_subid, gps, locs) {
   gps <- gps |>  
     filter(subid == a_subid) |> 
     select(lon, lat)
+    #select(lon, lat, dist, duration, time)
+  
+  #gps_measures <- gps |>
+    #select(-lon, -lat) |> 
+    #mutate(utc = with_tz(time, tzone = "UTC"))
   
   locs <- locs |>  
     filter(subid == a_subid)
@@ -203,7 +209,8 @@ enrich_subid <- function(a_subid, gps, locs) {
   enriched <- map2(gps$lon, gps$lat, 
                    \(lon, lat) find_nearest_context(lon, lat, context = locs)) |> 
     bind_rows() |> 
-    mutate(subid = a_subid)
+    mutate(subid = a_subid) #|> 
+    #left_join(gps_measures, by = c("subid", "utc"))
   
   return(enriched)
 }
@@ -220,7 +227,7 @@ enriched <- cache_rds(expr = {
   select(-lat_context, -lon_context)  |>  
   relocate(subid)
   },
-  dir = "cache/",
+  dir = (here::here(path_cache)),
   file = "enrich_all",
   rerun = FALSE
 )
@@ -249,9 +256,9 @@ enriched_test <- cache_rds(expr = {
   select(-lat_context, -lon_context)  |>  
   relocate(subid)
   },
-  dir = "cache/",
+  dir = (here::here(path_cache)),
   file = "enrich_single",
-  rerun = TRUE
+  rerun = FALSE
 )
 toc()
 
