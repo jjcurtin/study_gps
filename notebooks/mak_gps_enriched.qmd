@@ -192,8 +192,7 @@ Create function to enrich GPS with context for one subid
 ```{r}
 enrich_subid <- function(a_subid, gps, locs) {
   gps <- gps |>  
-    filter(subid == a_subid) |> 
-    select(lon, lat)
+    filter(subid == a_subid)
     #select(lon, lat, dist, duration, time)
   
   #gps_measures <- gps |>
@@ -206,15 +205,26 @@ enrich_subid <- function(a_subid, gps, locs) {
   #enriched <- gps |>  
     #bind_cols(map2_dfr(gps$lon, gps$lat, find_nearest_context, context = locs)) 
   
-  enriched <- map2(gps$lon, gps$lat, 
-                   \(lon, lat) find_nearest_context(lon, lat, context = locs)) |> 
-    bind_rows() |> 
-    mutate(subid = a_subid) #|> 
-    #left_join(gps_measures, by = c("subid", "utc"))
+  enriched <- gps |> 
+    bind_cols(
+      map2(gps$lon, gps$lat, 
+           \(lon, lat) find_nearest_context(lon, lat, context = locs)) |> 
+      bind_rows()
+    )
   
   return(enriched)
 }
 ```
+
+```{r}
+enriched <- subids_gps |> 
+  furrr::future_map_dfr(enrich_subid, gps = gps, locs = locs) |> 
+  left_join(locs, by = c("subid", "context_id")) |> 
+  select(-lat.y, -lon.y, -data_type) |> 
+  rename(lat = lat.x, lon = lon.x) |> 
+  relocate(subid)
+```
+
 
 future_map over subids
 ```{r}
