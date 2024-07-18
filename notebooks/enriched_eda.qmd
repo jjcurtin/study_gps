@@ -126,23 +126,37 @@ enriched |>
   filter(dist_context < 500) |> 
   ggplot(aes(x = dist_context)) +
   geom_histogram(color = "black", fill = "white") +
-  xlab("Distance from closest known context (< 500m(")
+  xlab("Distance from closest known context (< 500m)")
 ```
 
-Look at distance and duration directly before and after a 1-observation day.
+### Distance & duration around 1-observation days
+
+Define function to pull days with one GPS observation and the preceding and
+following row.
+```{r}
+single_obs <- function(enriched_obs) {
+  inds <- which(enriched_obs$n_obs == 1)
+  rows <- lapply(inds, function(x) (x-1):(x+1))
+  enriched_obs[unlist(rows),]
+}
+```
+
+Count number of observations per day, then add enriched file data in.
 ```{r}
 enriched_obs <- enriched |>
   group_by(subid, date) |>  
   summarise(n_obs = n())
 
+enriched_obs <- enriched_obs |> 
+  right_join(enriched, by = c("subid", "date"))
+```
+
+Print table displaying 1-observation days, and preceding/subsequent rows.
+```{r}
 enriched_obs |>
-  filter(n_obs == 1)
-
-# loop through one observation days for a given subject
-
-# maybe match enriched and enriched_obs on subid and date?
-# then can select points for one observation days
-# then identify point before and after (row preceding and following)
+  single_obs() |>
+  select(subid, date, n_obs, duration, dist) |>
+  print_kbl()
 ```
 
 ## Examine missing data
