@@ -85,16 +85,21 @@ Create table summarizing number of unique `context_id` observations per subject.
 ```{r}
 enriched |>
   group_by(subid) |>
-  summarise(unique.context = n_distinct(context_id)) |> 
+  summarise(unique_context = n_distinct(context_id)) |> 
   print_kbl()
+
+enriched |> 
+  group_by(subid) |>
+  summarise(unique_context = n_distinct(context_id)) |> 
+  summarise(mean(unique_context), min(unique_context), max(unique_context))
 ```
 
 Display unique `context_id` observations per subject in a histogram.
 ```{r}
 enriched |>
   group_by(subid) |>
-  summarise(unique.context = n_distinct(context_id)) |>
-  pull(unique.context) |> 
+  summarise(unique_context = n_distinct(context_id)) |>
+  pull(unique_context) |> 
   hist(col = "white", border = "black",
        xlab = "# of Unique Context IDs", ylab = "Frequency",
        main = "Histogram of Unique Context IDs per Subject")
@@ -105,10 +110,43 @@ enriched |>
 Look at spread of distance from last point.
 ```{r}
 enriched |>
-  filter(dist < 500) |> 
+  filter(!(duration > 5 & dist > 500)) |>
+  mutate(known_loc = if_else(dist_context <= 50, 1, 0)) |> 
+  pull(known_loc) |> 
+  mean()
+
+enriched |>
+  filter(!(duration > 5 & dist > 500)) |>
+  mutate(speed = dist/duration,
+         known_loc = if_else(dist_context <= 50, 1, 0)) |> 
+  pull(known_loc) |> 
+  sum()
+
+enriched |> 
+  filter(!(duration > 5 & dist > 500)) |>
+  mutate(speed = dist/duration,
+         known_loc = if_else(dist_context <= 50, 1, 0)) |> 
+  filter(speed < 100) |>  # what are these 40k points
+  pull(known_loc) |> 
+  sum()
+  
+enriched |> filter(dist_context <= 50) |> mutate(speed = dist/duration) |> select(subid, context_id, speed) |> view()
+  
+  filter(dist > 3000) |> nrow() 
   ggplot(aes(x = dist)) +
   geom_histogram(color = "black", fill = "white") +
   xlab("Distance from last point (< 500m)")
+
+```
+
+```{r}
+enriched |> 
+  filter((duration > 5 & dist > 500)) |> 
+  pull(dist) |>
+  median()
+  hist()
+  print_kbl()
+
 ```
 
 Look at spread of duration.
