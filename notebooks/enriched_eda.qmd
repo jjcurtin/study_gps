@@ -15,7 +15,7 @@ editor_options:
 
 ## Code Status
 
-In progress has of 07/2024.
+In progress as of 07/2024.
 
 ## Notes   
 
@@ -105,39 +105,66 @@ enriched |>
        main = "Histogram of Unique Context IDs per Subject")
 ```
 
-## Distance & duration
+## Test filtering
 
-Look at spread of distance from last point.
+Filtering
+```{r}
+enriched <- enriched |> 
+  filter(!(duration > 5 & dist > 500)) |> # filter out improbable jumps
+         # calculate speed in kilometers per hour
+  mutate(speed = (dist / 1000)/(duration / 60),
+         # dist = 0 and duration = 0 will lead to NaN response, set to 0
+         # not sure this is the best course of action?
+         # remove duration 0 points? set automatically to be transit?
+         speed = if_else(is.na(speed), 0, speed), 
+         # assume at known location if within 50m
+         known_loc = if_else(dist_context <= 50, 1, 0),
+         # set points at or below 1 km/h to be stationary
+         track_type = if_else(speed <= 1, "stationary", "transit"))
+```
+
+Examine points with duration longer than forced sampling time.
 ```{r}
 enriched |>
-  filter(!(duration > 5 & dist > 500)) |>
-  mutate(known_loc = if_else(dist_context <= 50, 1, 0)) |> 
-  pull(known_loc) |> 
-  mean()
+  # sampling should be forced every 2 hours, remove duration above that?
+  # interpolation?
+  filter(duration > 121) |> 
+  select(subid, dist, duration) |> 
+  arrange(desc(dist)) |> 
+  print_kbl()
+```
 
-enriched |>
-  filter(!(duration > 5 & dist > 500)) |>
-  mutate(speed = dist/duration,
-         known_loc = if_else(dist_context <= 50, 1, 0)) |> 
-  pull(known_loc) |> 
-  sum()
+Look at breakdown of stationary versus transit points.
+```{r}
+enriched |> tab(track_type)
+```
 
+Compare calculated track_type with Moves calculated trckpnt_type.
+```{r}
 enriched |> 
-  filter(!(duration > 5 & dist > 500)) |>
-  mutate(speed = dist/duration,
-         known_loc = if_else(dist_context <= 50, 1, 0)) |> 
-  filter(speed < 100) |>  # what are these 40k points
-  pull(known_loc) |> 
-  sum()
-  
-enriched |> filter(dist_context <= 50) |> mutate(speed = dist/duration) |> select(subid, context_id, speed) |> view()
-  
-  filter(dist > 3000) |> nrow() 
-  ggplot(aes(x = dist)) +
-  geom_histogram(color = "black", fill = "white") +
-  xlab("Distance from last point (< 500m)")
+  select(subid, trckpnt_type, track_type, speed) |> 
+  print_kbl()
+```
+
+Look at speed in relation to known locations.
+```{r}
+enriched |>
+  filter(known_loc == 1) |>
+  select(subid, context_id, dist, duration, speed, track_type) |> print_kbl()
+```
+
+Look at breakdown of states -- not sure if it's worth filtering based on state?
+Thought this would make a difference but I'm not so sure if we standardize features.
+```{r}
+enriched |> tab(state) |> arrange(desc(n))
+```
+
+Look at number of "other" points.
+```{r}
 
 ```
+
+## Distance & duration
 
 ```{r}
 enriched |> 
@@ -260,3 +287,27 @@ Summary of `avoid` responses.
 enriched  |>  tab(avoid)
 ```
 
+## Test feature development
+
+Homestay test
+```{r}
+homestay <- enriched_test |> filter(subid == 1) |>
+  filter(known_loc == 1) |> 
+  filter(type == "home") |> pull(duration) |> sum()
+
+totalstay <- enriched_test |> filter(subid == 1) |> 
+  pull(duration) |> sum()
+
+homestay/totalstay * 100
+```
+
+Location variance test
+```{r}
+latvar <- enriched_test |> filter(subid == 1) |> 
+  pull(lat) |> var()
+
+lonvar <- enriched_test |> filter(subid == 1) |> 
+  pull(lon) |> var()
+
+log(latvar + lonvar)
+```
