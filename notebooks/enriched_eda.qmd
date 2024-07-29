@@ -112,15 +112,29 @@ Filtering
 enriched <- enriched |> 
   filter(!(duration > 5 & dist > 500)) |> # filter out improbable jumps
          # calculate speed in kilometers per hour
-  mutate(speed = (dist / 1000)/(duration / 60),
+  mutate(speed = (dist / 1000)/(duration / 60), # change to mph?
          # dist = 0 and duration = 0 will lead to NaN response, set to 0
          # not sure this is the best course of action?
          # remove duration 0 points? set automatically to be transit?
-         speed = if_else(is.na(speed), 0, speed), 
+         # CLAIRE CHECK THIS
+         # remove missing values if confirmed same point
+         ##speed = if_else(is.na(speed), 0, speed), 
          # assume at known location if within 50m
+         # set to T/F
          known_loc = if_else(dist_context <= 50, 1, 0),
          # set points at or below 1 km/h to be stationary
-         track_type = if_else(speed <= 1, "stationary", "transit"))
+         track_type = if_else(speed <= 1, "stationary", "transit")) |> 
+  filter(!(is.na(speed)))
+```
+
+Percentage of points above ~100m/min (play around with), to see if they are
+at the beginning or end of a series (want most points to fall in middle).
+```{r}
+enriched |> filter(known_loc == 1) |> select(subid, sgmnt_type, date, dist, context_id) |> View()
+
+enriched |> filter(known_loc == 1) |> select(subid, sgmnt_type, track_type, duration, dist, speed, context_id) |>
+  # reverse to filter out
+  mutate(cut = if_else(speed < 5, 1,0)) |> pull(cut) |> mean()
 ```
 
 Examine points with duration longer than forced sampling time.
@@ -141,7 +155,9 @@ enriched |> tab(track_type)
 
 Compare calculated track_type with Moves calculated trckpnt_type.
 ```{r}
-enriched |> 
+enriched |>
+  filter(app_source == "moves") |> 
+  tab2(trckpnt_type, track_type)
   select(subid, trckpnt_type, track_type, speed) |> 
   print_kbl()
 ```
