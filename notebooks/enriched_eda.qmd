@@ -105,10 +105,21 @@ enriched |>
        main = "Histogram of Unique Context IDs per Subject")
 ```
 
+## Desicsions about next points far away
+
+## Decisions about speed
+
+# Decisions about long time at point
+
+
+## Decisions about one observation per day points
+
+
 ## Test filtering
 
 Filtering
 ```{r}
+# implement filters separately for readability
 enriched <- enriched |> 
   # 500m is ~.3 of a mile
   # filter out if the duration between points is greater than 5 min
@@ -117,7 +128,7 @@ enriched <- enriched |>
          # calculate speed in km/h, convert to mph
   mutate(speed = ((dist / 1000)/(duration / 60) * 0.621371),
          # assume at known location if within 50m
-         known_loc = if_else(dist_context <= 50, TRUE, FALSE),
+         known_loc = if_else(dist_context <= 50 & speed < 4, TRUE, FALSE),
          # set points at or below 1 km/h (~0.62mph) to be stationary
          track_type = if_else(speed <= 0.62, "stationary", "transit")) |> 
   filter(!(is.na(speed)))
@@ -182,6 +193,7 @@ enriched |>
   # sampling should be forced every 2 hours, remove duration above that?
   # interpolation?
   # not sure if this is actually a problem
+  # separately for moves and followmee
   filter(duration > 121) |>
   select(subid, dist, duration) |> 
   arrange(desc(dist)) |> 
@@ -268,6 +280,12 @@ enriched_obs |>
   print_kbl()
 
 enriched_obs |> filter(n_obs == 1) |> nrow()
+
+enriched_obs |>
+  mutate(duration = duration / 60) |> 
+  filter(n_obs == 1) |>
+  filter(duration < 2) |> 
+  view()
 ```
 
 ## Examine missing data
