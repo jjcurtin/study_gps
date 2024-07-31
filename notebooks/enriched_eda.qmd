@@ -110,31 +110,70 @@ enriched |>
 Filtering
 ```{r}
 enriched <- enriched |> 
+  # 500m is ~.3 of a mile
+  # filter out if the duration between points is greater than 5 min
+  # and the distance traveled is more than 500m
   filter(!(duration > 5 & dist > 500)) |> # filter out improbable jumps
-         # calculate speed in kilometers per hour
-  mutate(speed = (dist / 1000)/(duration / 60), # change to mph?
-         # dist = 0 and duration = 0 will lead to NaN response, set to 0
-         # not sure this is the best course of action?
-         # remove duration 0 points? set automatically to be transit?
-         # CLAIRE CHECK THIS
-         # remove missing values if confirmed same point
-         ##speed = if_else(is.na(speed), 0, speed), 
+         # calculate speed in km/h, convert to mph
+  mutate(speed = ((dist / 1000)/(duration / 60) * 0.621371),
          # assume at known location if within 50m
-         # set to T/F
-         known_loc = if_else(dist_context <= 50, 1, 0),
-         # set points at or below 1 km/h to be stationary
-         track_type = if_else(speed <= 1, "stationary", "transit")) |> 
+         known_loc = if_else(dist_context <= 50, TRUE, FALSE),
+         # set points at or below 1 km/h (~0.62mph) to be stationary
+         track_type = if_else(speed <= 0.62, "stationary", "transit")) |> 
   filter(!(is.na(speed)))
 ```
 
-Percentage of points above ~100m/min (play around with), to see if they are
+Check points before dist and duration = 0 to see if lat and long are the same
+```{r}
+speed_dup <- function(enriched) {
+  inds <- which(enriched$dist == 0 & enriched$duration == 0)
+  rows <- lapply(inds, function(x) (x-1):(x+1))
+  enriched[unlist(rows),]
+}
+```
+
+```{r}
+enriched |>
+  select(subid, lat, lon, dist, duration, speed) |> 
+  speed_dup() |> 
+  print_kbl()
+```
+
+Count number of is.na(speed)
+```{r}
+sum(is.na(enriched$speed)) # 32553
+```
+
+Percentage of points above threshold to see if they are
 at the beginning or end of a series (want most points to fall in middle).
 ```{r}
-enriched |> filter(known_loc == 1) |> select(subid, sgmnt_type, date, dist, context_id) |> View()
+enriched_sub <- enriched |>
+  filter(known_loc == 1) |>
+  select(subid, sgmnt_type, track_type, duration, dist, speed, context_id) |>
+  # if speed is greater than amount, it will be cut for place analyses
+  # average walking speed is about 3 miles per hour
+  # https://health.gov/sites/default/files/2019-09/Physical_Activity_Guidelines_2nd_edition.pdf
+  # ^ walking briskly/doing chores around house ~4mph upper limit
+  mutate(cut = if_else(speed > 4, 1, 0),
+         row_seq = sequence(rle(as.character(context_id))$lengths))
 
-enriched |> filter(known_loc == 1) |> select(subid, sgmnt_type, track_type, duration, dist, speed, context_id) |>
-  # reverse to filter out
-  mutate(cut = if_else(speed < 5, 1,0)) |> pull(cut) |> mean()
+first_seq_ids <- which(enriched_sub$row_seq == 1)
+last_seq_ids <- first_seq_ids - 1
+
+enriched_sub <- enriched_sub |>
+  mutate(row_place = if_else(row_number() %in% first_seq_ids, "first", "0"),
+         row_place = if_else(row_number() %in% last_seq_ids, "last", row_place),
+         row_place = if_else(row_place=="0", "middle", row_place))
+         # another thing to do would be to ignore middle rows?
+         # some rows listed as middle might be just second to last
+         # other option -- classify some of these points as transition?
+         # stationary --> transition --> transit?
+
+enriched_sub |>
+  janitor::tabyl(cut, row_place) |> 
+  janitor::adorn_percentages("row") |> 
+  janitor::adorn_pct_formatting((digits = 2)) |> 
+  janitor::adorn_ns()
 ```
 
 Examine points with duration longer than forced sampling time.
@@ -142,24 +181,18 @@ Examine points with duration longer than forced sampling time.
 enriched |>
   # sampling should be forced every 2 hours, remove duration above that?
   # interpolation?
-  filter(duration > 121) |> 
+  # not sure if this is actually a problem
+  filter(duration > 121) |>
   select(subid, dist, duration) |> 
   arrange(desc(dist)) |> 
   print_kbl()
-```
-
-Look at breakdown of stationary versus transit points.
-```{r}
-enriched |> tab(track_type)
 ```
 
 Compare calculated track_type with Moves calculated trckpnt_type.
 ```{r}
 enriched |>
   filter(app_source == "moves") |> 
-  tab2(trckpnt_type, track_type)
-  select(subid, trckpnt_type, track_type, speed) |> 
-  print_kbl()
+  tab2(sgmnt_type, track_type)
 ```
 
 Look at speed in relation to known locations.
@@ -173,11 +206,6 @@ Look at breakdown of states -- not sure if it's worth filtering based on state?
 Thought this would make a difference but I'm not so sure if we standardize features.
 ```{r}
 enriched |> tab(state) |> arrange(desc(n))
-```
-
-Look at number of "other" points.
-```{r}
-
 ```
 
 ## Distance & duration
@@ -238,6 +266,8 @@ enriched_obs |>
   single_obs() |>
   select(subid, date, n_obs, duration, dist) |>
   print_kbl()
+
+enriched_obs |> filter(n_obs == 1) |> nrow()
 ```
 
 ## Examine missing data
