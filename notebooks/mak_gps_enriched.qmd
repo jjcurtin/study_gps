@@ -225,33 +225,6 @@ enriched <- cache_rds(expr = {
 )
 ```
 
-Test over one subject
-
-Seed set to null to suppress:
-
-> Warning message:
-UNRELIABLE VALUE: Future (‘<none>’) unexpectedly generated random numbers without specifying argument 'seed'. There is a risk that those random numbers are not statistically sound and the overall results might be invalid. To fix this, specify 'seed=TRUE'. This ensures that proper, parallel-safe random numbers are produced via the L'Ecuyer-CMRG method. To disable this check, use 'seed=NULL', or set option 'future.rng.onMisuse' to "ignore". 
-
-```{r}
-subid_test <- c(1)
-
-enriched_test <- cache_rds(expr = {
-  subid_test |> # subids_gps  |>
-  furrr::future_map_dfr(enrich_subid, gps = gps, locs = locs,
-                        # do we need to set a seed?
-                        .options = furrr::furrr_options(seed = NULL)) |> 
-  left_join(locs, by = c("subid", "context_id"))  |>
-  select(-lat.y, -lon.y, -data_type) |>  
-  rename(lat = lat.x, lon = lon.x) |>  
-  select(-lat_context, -lon_context)  |>  
-  relocate(subid)
-  },
-  dir = (here::here(path_cache)),
-  file = "enrich_single",
-  rerun = FALSE
-)
-```
-
 # Save enriched GPS
 
 Saving xz compressed for use on CHTC for feature engineering
