@@ -215,7 +215,7 @@ enriched <- cache_rds(expr = {
   furrr::future_map_dfr(enrich_subid, gps = gps, locs = locs,
                         .options = furrr::furrr_options(seed = NULL)) |> 
   left_join(locs, by = c("subid", "context_id"))  |>
-  select(-lat.y, -lon.y, -data_type) |>  
+  select(-lat.y, -lon.y) |>  
   rename(lat = lat.x, lon = lon.x) |>   
   relocate(subid)
   },

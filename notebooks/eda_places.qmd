@@ -15,11 +15,18 @@ editor_options:
 
 ## Code Status
 
-In progress as of 07/2024.
+Completed as of 08/2024.
 
 ## Notes
 
-This script does EDA on the enriched GPS file, generated via mak_gps_enriched.qmd
+This script generates and does EDA to make filtering decisions for GPS **places** features.
+
+Summary of filtering decisions:
+
+- For `dist` greater than 0.01 and `duration` of 0, `duration` will be set to NA
+- For `speed` greater than 100mph, `duration`, will be set to NA (assuming this is at/around top car speed)
+- For `duration` > 2 hours and `dist` of > 0.31, `duration` will be set to NA
+- For `duration` > 24, regardless of `dist`, `duration` will be set to 24
 
 # Set up
 
@@ -116,7 +123,7 @@ enrich_subid <- function(a_subid, gps, locs) {
 }
 ```
 
-Create place data file.
+Generate places data frame.
 
 ```{r}
 if(file.exists(here::here(path_gps, "gps_enriched.csv.xz"))){
@@ -125,8 +132,21 @@ if(file.exists(here::here(path_gps, "gps_enriched.csv.xz"))){
   
   places <- read_csv(here::here(path_gps, "gps_enriched.csv.xz"), 
                  show_col_types = FALSE) |>
-    mutate(time = with_tz(time, tz = "America/Chicago"))
+    mutate(time = with_tz(time, tz = "America/Chicago"),
+           dist = dist / 1609.344,
+           duration = duration / 60,
+           speed = dist / duration,
+           dist_context = dist_context / 1609.344)
 
+  # count number of observations per day
+  places_obs <- places |>
+    group_by(subid, date) |>
+    summarise(n_obs = n())
+
+  places <- places_obs |> 
+    right_join(places, by = c("subid", "date")) |> 
+    ungroup()
+  
 } else{
   
   message("Merging raw GPS and context information...")
@@ -176,9 +196,23 @@ if(file.exists(here::here(path_gps, "gps_enriched.csv.xz"))){
       furrr::future_map_dfr(enrich_subid, gps = gps, locs = locs,
                         .options = furrr::furrr_options(seed = NULL)) |> 
     left_join(locs, by = c("subid", "context_id"))  |>
-    select(-lat.y, -lon.y, -data_type) |>  
+    select(-lat.y, -lon.y) |>  
     rename(lat = lat.x, lon = lon.x) |>   
-    relocate(subid)
+    relocate(subid) |> 
+    # convert from meters to miles, minutes to hours
+    mutate(dist = dist / 1609.344,
+           duration = duration / 60,
+           speed = dist / duration,
+           dist_context = dist_context / 1609.344)
+  
+  # count number of observations per day
+  places_obs <- places |>
+    group_by(subid, date) |>
+    summarise(n_obs = n())
+
+  places <- places_obs |> 
+    right_join(places, by = c("subid", "date")) |> 
+    ungroup()
   
 }
 ```
@@ -220,7 +254,6 @@ places |>
 Display unique `context_id` observations per subject in a histogram.
 
 ```{r}
-png("hist1.png")
 places |>
   group_by(subid) |>
   summarise(unique_context = n_distinct(context_id)) |>
@@ -228,18 +261,13 @@ places |>
   hist(col = "white", border = "black",
        xlab = "# of Unique Context IDs", ylab = "Frequency",
        main = "Histogram of Unique Context IDs per Subject")
-dev.off()
 ```
-
-![Unique Context IDs](../hist1.png)
 
 ## Decisions
 
 ### One observation per day points
 
-> Does distGeo calculate the distance with LEAD or LAG? Does this matter?
-
-Define function to pull days with one GPS observation and the preceding and following row.
+Define function to pull days with one GPS observation and the preceding and following row (AKA observation).
 
 ```{r}
 single_obs <- function(places) {
@@ -247,18 +275,6 @@ single_obs <- function(places) {
   rows <- map(inds, function(x) (x-1):(x+1))
   places[unlist(rows),]
 }
-```
-
-Count number of observations per day, then combined with enriched file.
-
-```{r}
-places_obs <- places |>
-  group_by(subid, date) |>  
-  summarise(n_obs = n())
-
-places <- places_obs |> 
-  right_join(places, by = c("subid", "date")) |> 
-  ungroup()
 ```
 
 Display number of 1-observation days.
@@ -273,317 +289,108 @@ Print table displaying 1-observation days, and preceding/subsequent rows.
 places |>
   single_obs() |>
   select(subid, time, n_obs, duration, dist) |>
-  mutate(dist = dist / 1609.344) |>
-  mutate(duration = duration / 60) |>
-  print_kbl() |>
+  print_kbl(digits = 4) |>
   kableExtra::scroll_box(width = "700px", height = "500px")
 ```
 
-Print table displaying only 1-observation days, descending by **duration**. Suspicious if duration is LOW. Time differences calculated with LEAD (difference from NEXT row).
+Print table displaying only 1-observation days, descending by `duration`.
+Note: time differences calculated with LEAD (difference from NEXT row).
 
-We can see here that all low duration timestamps are at the end of a day (compare `time` and `next_time`).
+Suspicious if `duration` is LOW. Low observation days should have their point sampled closely to the
+beginning of the subsequent day.
 
 ```{r}
 places |>
   filter(n_obs == 1) |> 
   select(subid, time, n_obs, duration, dist) |>
-  mutate(dist = dist / 1609.344,
-         next_time = time + lubridate::minutes(as.integer(duration)),
-         date_diff = date(next_time) - date(time),
-         duration_hours = duration / 60) |>
-  arrange(duration) |> 
-  print_kbl() |> 
+  mutate(next_time = time + lubridate::minutes(as.integer(duration * 60)),
+         date_diff = date(next_time) - date(time)) |>
+  arrange(desc(duration)) |> 
+  print_kbl(digits = 4) |> 
   kableExtra::scroll_box(width = "700px", height = "500px")
 ```
 
-Print table displaying only 1-observation days, descending by **distance**. Suspicious if distance is HIGH.
+Print table displaying only 1-observation days, descending by `dist`.
+
+Suspicious if `dist` is HIGH because it suggests that we are missing observations (participant appears to "jump" to next location).
 
 ```{r}
 places |>
   filter(n_obs == 1) |> 
   select(subid, date, n_obs, duration, dist) |>
-  mutate(dist = dist / 1609.344,
-         duration = duration / 60) |>
   arrange(desc(dist)) |> 
-  print_kbl() |> 
+  print_kbl(digits = 4) |> 
   kableExtra::scroll_box(width = "600px", height = "500px")
 ```
 
-**FILTERING DECISION**
-
-Filter out distances of more than 500 meters (0.31 miles). 500 meters selected for consistency with filtering out improbable jumps.
-
-```{r}
-places |> 
-  filter(n_obs == 1) |>
-  filter(dist > 500) |> 
-  mutate(dist = dist / 1609.344,
-         duration = duration / 60) |>
-  nrow()
-```
-
-### Improbable jumps (next point far away)
-
-Goal is to eliminate improbable jumps because that would suggest our calculations of total duration will not be accurate.
-
-```{r}
-png("scatter1.png")
-places |>
-  filter(!(n_obs == 1 & dist > 500)) |> 
-  mutate(dist = dist / 1609.344,
-         duration = duration / 60) |>
-  # filter missing values for plot display
-  filter(!(is.na(dist) | is.na(duration))) |> 
-  ggplot(aes(x = dist, y = duration)) +
-  scattermore::geom_scattermore(pointsize = 3, alpha = 0.3)
-dev.off()
-```
-
-![Improbable Jumps](../scatter1.png)
-
-**FILTERING DECISION**
-
-Duration \> 5 minutes and distance \> 500 meters seems to work well because we want most points to cluster against axes (suggests someone is in one place or is moving).
-
-```{r}
-png("scatter2.png")
-places |>
-  filter(!(n_obs == 1 & dist > 500)) |> 
-  # filter duration more than 5 minutes and a jump of more than 500 meters (0.31 miles)
-  filter(!(duration > 5 & dist > 500)) |>
-  mutate(dist = dist / 1609.344,
-         duration = duration / 60) |>
-  # filter missing values for plot display
-  filter(!(is.na(dist) | is.na(duration))) |>
-  ggplot(aes(x = dist, y = duration)) +
-  scattermore::geom_scattermore(pointsize = 3, alpha = 0.3)
-dev.off()
-```
-
-![Improbable Jumps - Post-Filter](../scatter2.png)
-
-Check how many points we are losing.
-
-```{r}
-places |> 
-  filter(duration > 5 & dist > 500) |> 
-  nrow()
-```
-
-### Long time at point
-
-#### Extended periods
-
-Generate histogram displaying duration in hours.
+Count number of occurrences of 1-observation days by `dist`.
 
 ```{r}
 places |>
-  filter(!(n_obs == 1 & dist > 500)) |>
-  filter(!(duration > 5 & dist > 500)) |>
-  mutate(duration = duration / 60) |>  # convert to hours
-  pull(duration) |> 
-  hist()
-```
-
-Check extended gaps, defined as lasting greater than 48 hours.
-
-```{r}
-places |>
-  filter(!(n_obs == 1 & dist > 500)) |>
-  filter(!(duration > 5 & dist > 500)) |>
-  mutate(duration = duration / 60) |> 
-  filter(duration > 48) |>
-  pull(duration) |> 
-  hist()
-```
-
-Count extended periods.
-
-```{r}
-places |> 
-  filter(!(n_obs == 1 & dist > 500)) |>
-  filter(!(duration > 5 & dist > 500)) |>
-  mutate(duration = duration / 60) |> 
-  filter(duration > 48) |> 
-  nrow()
-```
-
-Possible reasons for missing data could be tech issues or not leaving the house.
-
-```{r}
-places |>
-  filter(!(n_obs == 1 & dist > 500)) |>
-  filter(!(duration > 5 & dist > 500)) |>
-  mutate(duration = duration / 60) |> 
-  filter(duration > 48) |>
-  select(subid, date, duration) |> 
-  print_kbl() |> 
-  kableExtra::scroll_box(width = "600px", height = "500px")
-```
-
-Load in study_notes to cross reference.
-
-```{r}
-#notes <- read_csv("../analysis_risk/shared/notes/notes_raw.csv",
-                  #show_col_types = FALSE)
-```
-
-Pull subids missing \> 48 hours of data and examine their notes.
-
-Sedentary: - 3 broke leg, rarely left home - 26 had surgery and was housebound, rarely left home - 74 broke foot, rarely left home and worked close to home - 134 rarely left home - 139 rarely left home
-
-All other subjects had reported tech issues or no specific notes.
-
-```{r}
-subids_gaps <- places |>
-  filter(!(n_obs == 1 & dist > 500)) |>
-  filter(!(duration > 5 & dist > 500)) |>
-  mutate(duration = duration / 60) |> 
-  filter(duration > 48) |>  
-  pull(subid) |>  
-  unique()
-
-#notes |>  
-   #filter(subid %in% subids_gaps) |> 
-   #print_kbl() |> 
-   #kableExtra::scroll_box(width = "700px", height = "500px")
-```
-
-**FILTERING DECISION**
-
-Remove gaps for subjects with poor GPS quality. Subjects who were reportedly sedentary retain all gaps.
-
-```{r}
-sedentary <- c(3, 26, 74, 134, 139)
-
-subids_gaps <- setdiff(subids_gaps, sedentary)
-
-places |>
-  mutate(duration = duration / 60) |>
-  filter((subid %in% subids_gaps & duration > 48)) |> 
-  nrow()
-```
-
-#### Duration greater than forced sampling time
-
-> CP 8/6: Not so sure we should do anything with this other than look at it. Even though the forced sampling time for FollowMee was set to 2 hours, we know that the system was not perfect (especially if someone was in one place).
-
-Examine points with duration longer than forced sampling time. The forced sampling time for FollowMee was 2 hours, unknown for Moves.
-
-```{r}
-places |>
-  filter(!(n_obs == 1 & dist > 500)) |>
-  filter(!(duration > 5 & dist > 500)) |>
-  mutate(duration = duration / 60) |>
-  filter(!(subid %in% subids_gaps & duration > 48)) |> 
-  filter(duration > 2) |>
-  select(subid, dist, duration) |> 
+  filter(n_obs == 1) |> 
+  mutate(dist = round(dist, 2)) |> 
+  group_by(dist) |>
+  summarise(n_dist = n()) |> 
   arrange(desc(dist)) |> 
-  print_kbl() |> 
-  kableExtra::scroll_box(width = "500px", height = "500px")
+  print_kbl()
 ```
 
-Examine long duration counts by app source (Moves or FollowMee).
+Histogram of `dist` observations less than 2 miles for 1-observation days.
 
 ```{r}
 places |>
-  filter(!(n_obs == 1 & dist > 500)) |>
-  filter(!(duration > 5 & dist > 500)) |>
-  mutate(duration = duration / 60) |>
-  filter(!(subid %in% subids_gaps & duration > 48)) |> 
-  filter(duration > 2) |>
-  tab(app_source)
-```
-
-### Next points far away
-
-Create histogram of `dist` with updated filtering.
-
-```{r}
-png("hist2.png")
-places |>
-  filter(!(n_obs == 1 & dist > 500)) |>
-  filter(!(duration > 5 & dist > 500)) |>
-  mutate(duration = duration / 60,
-         dist = dist / 1609.344) |>
-  filter(!(subid %in% subids_gaps & duration > 48)) |> 
+  filter(n_obs == 1) |> 
+  mutate(dist = round(dist, 2)) |> 
+  group_by(dist) |>
+  summarise(n_dist = n()) |>
+  filter(dist < 2) |>
   pull(dist) |> 
-  hist()
-dev.off()
+  hist(breaks = 30)
 ```
 
-![Distance Histogram](../hist2.png)
-
-Visualize `dist` and `duration` scatterplot with current filtering.
-
-```{r}
-png("scatter3.png")
-places |>
-  filter(!(n_obs == 1 & dist > 500)) |>
-  filter(!(duration > 5 & dist > 500)) |>
-  mutate(dist = dist / 1609.344,
-         duration = duration / 60) |>
-  filter(!(subid %in% subids_gaps & duration > 48)) |> 
-  filter(!(is.na(dist) | is.na(duration))) |>
-  ggplot(aes(x = dist, y = duration)) +
-  scattermore::geom_scattermore(pointsize = 3)
-dev.off()
-```
-
-![Distance Scatterplot](../scatter3.png)
-
-These points suggest fast movement.
-
--   30 traveled to Cleveland, guessing high speed point is due to flight
--   207 traveled to Mexico, same reason as above appears to be apparent
-
-**We will do more checks with respect to speed later on, so leave for now.**
+Histogram of `dist` observations greater than 2 miles for 1-observation days.
+Note: the only point excluded with the 50  mile filtering is an observation
+that is 800 miles away.
 
 ```{r}
 places |>
-  filter(!(n_obs == 1 & dist > 500)) |>
-  filter(!(duration > 5 & dist > 500)) |>
-  mutate(dist = dist / 1609.344,
-         duration = duration / 60) |>
-  filter(!(subid %in% subids_gaps & duration > 48)) |>
-  # selected just for visualization
-  filter((dist > 100)) |>
-  select(subid, date, dist, duration) |> 
-  print_kbl() |> 
-  kableExtra::scroll_box(width = "700px", height = "500px")
+  filter(n_obs == 1) |> 
+  select(subid, date, n_obs, duration, dist) |>
+  # mask 800 mile point
+  filter(dist < 50 & dist > 2) |> 
+  pull(dist) |> 
+  hist(breaks = 70)
 ```
+
+**FILTERING DECISION**
+
+If distance is more than 500 meters (0.31 miles), set duration to NA because we cannot trust the duration of that observation. However, this will be addressed in the *Extended Periods* section, so no filtering will be applied here.
 
 ### Speed
 
 #### Speed NaN
 
-Speed is NaN if distance and duration are both equal to 0, or if distance and duration are NaN to begin with.
+`speed` is NaN if `dist` and `duration` are both equal to 0, or if `dist` and `duration` are NaN to begin with.
+
+Generate table of instances where `speed` is NaN.
 
 ```{r}
 places |>
-  filter(!(n_obs == 1 & dist > 500)) |>
-  filter(!(duration > 5 & dist > 500)) |>
-  mutate(dist = dist / 1609.344,
-         duration = duration / 60,
-         speed = dist / duration) |>
-  filter(!(subid %in% subids_gaps & duration > 48)) |>
   filter(is.na(speed)) |>
   select(subid, dist, duration, speed) |> 
   print_kbl() |> 
-  kableExtra::scroll_box(width = "700px", height = "500px")
+  kableExtra::scroll_box(width = "400px", height = "500px")
+```
 
+Count number of observations where `speed` is NaN.
+
+```{r}
 places |> 
-  filter(!(n_obs == 1 & dist > 500)) |>
-  filter(!(duration > 5 & dist > 500)) |>
-  mutate(dist = dist / 1609.344,
-         duration = duration / 60,
-         speed = dist / duration) |>
-  filter(!(subid %in% subids_gaps & duration > 48)) |>
   filter(is.na(speed)) |> 
   nrow()
 ```
 
-Check points before dist and duration = 0 to see if lat and long are the same
+Check points before `dist` and `duration` = 0 to see if `lat` and `long` are the same.
 
 ```{r}
 speed_nan <- function(places) {
@@ -593,205 +400,178 @@ speed_nan <- function(places) {
 }
 ```
 
-These points appear to be the same. Therefore, we will remove these points.
+These points appear to be the same, suggesting erroneous rapid resampling (duplicate points!).
 
 ```{r}
 places |>
-  mutate(dist = dist / 1609.344,
-         duration = duration / 60,
-         speed = dist / duration) |>
   select(subid, lat, lon, dist, duration, speed) |> 
   speed_nan() |>
   # subset for easy loading
   head(300) |> 
-  print_kbl() |> 
+  print_kbl(digits = 4) |> 
   kableExtra::scroll_box(width = "500px", height = "500px")
-```
-
-**FILTERING DECISION**
-
-```{r}
-places |>
-  filter(!(n_obs == 1 & dist > 500)) |>
-  filter(!(duration > 5 & dist > 500)) |>
-  mutate(dist = dist / 1609.344,
-         duration = duration / 60,
-         speed = dist / duration) |>
-  filter(!(subid %in% subids_gaps & duration > 48)) |>
-  filter(!(is.na(speed))) |>
-  nrow()
 ```
 
 #### Speed Inf
 
-Speed is infinite if there is a value for distance but no value for duration.
+`speed` is infinite if there is a value for `dist` but no value for `duration`.
 
-Duration of 0 could be due to a rounding error (perhaps duration of less than or around one minute?).
-
-For the purpose of categorizing places, I don't think we need to do anything with these points.
+Generate table displaying instances of Inf `speed`.
 
 ```{r}
 places |>
-  filter(!(n_obs == 1 & dist > 500)) |>
-  filter(!(duration > 5 & dist > 500)) |>
-  mutate(dist = dist / 1609.344,
-         duration = duration / 60,
-         speed = dist / duration) |>
-  filter(!(subid %in% subids_gaps & duration > 48)) |>
-  filter(!(is.na(speed))) |> 
-  filter(is.infinite(speed)) |> 
+  filter(is.infinite(speed)) |>
   select(subid, dist, duration, speed) |>
   arrange(desc(dist)) |> 
-  print_kbl() |> 
+  print_kbl(digits = 4) |> 
   kableExtra::scroll_box(width = "500px", height = "500px")
 ```
 
-Look at points before and after infinite points.
+About half of infinite points are due to a very low distance and 0 duration (0.01 miles = ~16 meters ~50 feet).
+Distance jumps greater than this amount with 0 duration are suggestive of a sampling error and
+the duration at this point is therefore not trustworthy.
+
+Count number of observations less than 0.01 miles from next point.
 
 ```{r}
-speed_inf <- function(places) {
-  inds <- which(is.infinite(places$speed))
+places |> 
+  filter(is.infinite(speed)) |> 
+  filter(dist < 0.01) |> 
+  nrow()
+```
+
+Count number of observations greater than 0.01 miles from next point.
+
+```{r}
+places |> 
+  filter(is.infinite(speed)) |> 
+  filter(dist > 0.01) |> 
+  nrow()
+```
+
+Check points before `dist` < 0.01 and `duration` = 0 to see if `lat` and `long` are the same.
+
+```{r}
+speed_inf_lowdist <- function(places) {
+  inds <- which(places$dist < 0.01 & places$duration == 0 & is.infinite(places$speed))
   rows <- map(inds, function(x) (x-1):(x+1))
   places[unlist(rows),]
 }
 ```
 
+Like our NaN points, these also appear to match the subsequent point.
+This suggests that these instances of "infinite" `speed` are actually caused by rapidly repeated
+sampling of a time point.
+
 ```{r}
-places |> 
-  filter(!(n_obs == 1 & dist > 500)) |>
-  filter(!(duration > 5 & dist > 500)) |>
-  mutate(dist = dist / 1609.344,
-         duration = duration / 60,
-         speed = dist / duration) |>
-  filter(!(subid %in% subids_gaps & duration > 48)) |>
-  filter(!(is.na(speed))) |>
-  select(subid, lat, lon, dist, duration, speed) |> 
-  speed_inf() |>
+places |>
+  select(subid, time, lat, lon, dist, duration, speed) |> 
+  speed_inf_lowdist() |>
   # subset for easy loading
   head(300) |> 
-  print_kbl() |> 
-  kableExtra::scroll_box(width = "500px", height = "500px")
+  print_kbl(digits = 4) |> 
+  kableExtra::scroll_box(width = "600px", height = "500px")
 ```
 
-**FILTERING DECISION**
+#### NaN and Inf speed by data type
 
-Infinite rows appear to be duplicates, remove.
+There does not appear to be an impact of `data_type` (GPS or network) on Inf or NaN points.
+
+Create tibble of `data_type` when `speed` is NaN.
 
 ```{r}
-places |> 
-  filter(!(n_obs == 1 & dist > 500)) |>
-  filter(!(duration > 5 & dist > 500)) |>
-  mutate(dist = dist / 1609.344,
-         duration = duration / 60,
-         speed = dist / duration) |>
-  filter(!(subid %in% subids_gaps & duration > 48)) |>
-  filter(!(is.na(speed))) |>
-  filter(is.infinite(speed)) |>
+places |>
+  filter(is.nan(speed)) |> 
+  tab(data_type)
+```
+
+Create tibble of `data_type` when `speed` is Inf.
+
+```{r}
+places |>
+  filter(is.infinite(speed)) |> 
+  tab(data_type)
+```
+
+Count number of observations of `data_type` other than GPS (AKA network).
+
+```{r}
+places |>
+  filter(!(data_type == "gps")) |> 
   nrow()
 ```
 
-#### Improbable speeds
-
-Generate table of speeds over 100mph.
+Print table displaying observations for which `data_type` is not GPS (AKA network).
 
 ```{r}
 places |> 
-  filter(!(n_obs == 1 & dist > 500)) |>
-  filter(!(duration > 5 & dist > 500)) |>
-  mutate(dist = dist / 1609.344,
-         duration = duration / 60,
-         speed = dist / duration) |>
-  filter(!(subid %in% subids_gaps & duration > 48)) |>
-  filter(!(is.na(speed))) |>
-  filter(!(is.infinite(speed))) |>
-  filter(speed > 100) |>
-  select(subid, lat, lon, dist, duration, speed) |>
+  filter(!(data_type == "gps")) |> 
+  select(subid, lat, lon, dist, duration, speed, data_type) |>
   arrange(desc(speed)) |> 
   print_kbl() |> 
   kableExtra::scroll_box(width = "500px", height = "500px")
 ```
 
-Look at row preceding and following 10000mph.
+**FILTERING DECISION**
+
+We will LEAVE points where `dist` and `duration` are equal to 0, or where `dist` is less than 0.01 and `duration` is 0.
+For `dist` greater than 0.01 and `duration` of 0, we will set `duration` to NA.
+
+Check the number of points whose `duration` will be set to NA.
 
 ```{r}
-speed_imp <- function(places) {
-  inds <- which(places$speed > 10000)
-  rows <- map(inds, function(x) (x-1):(x+1))
-  places[unlist(rows),]
-}
+places |>
+  filter(dist > 0.01 & duration == 0) |> 
+  nrow()
 ```
 
-Notes from subject maps: - 94, 128 have bizarre banding - Plane travel: 30, 31, 44, 207, 243 - Long road trips (pinging between cell towers?): 40, 118, 221, 248
+Display table with points that will be set to NA (`dist` > 0.01 miles and `duration` = 0)
+to confirm that they are indeed being set to NA.
 
 ```{r}
-places |> 
-  filter(!(n_obs == 1 & dist > 500)) |>
-  filter(!(duration > 5 & dist > 500)) |>
-  mutate(dist = dist / 1609.344,
-         duration = duration / 60,
-         speed = dist / duration) |>
-  filter(!(subid %in% subids_gaps & duration > 48)) |>
-  filter(!(is.na(speed))) |>
-  filter(!(is.infinite(speed))) |>
-  speed_imp() |> 
-  select(subid, lat, lon, dist, duration, speed) |>
+places |>
+    filter(dist > 0.01 & duration == 0) |> 
+    mutate(duration = if_else(dist > 0.01 & duration == 0, NA_real_,
+                            duration)) |>
+  select(subid, lat, lon, dist, duration, speed) |> 
   print_kbl() |> 
   kableExtra::scroll_box(width = "500px", height = "500px")
 ```
 
-Histogram of all speed values.
+#### Improbable speeds
+
+Improbable speed is defined as > 100mph, which is at/around realistic maximum car speed.
+
+Generate histogram of all speed values.
 
 ```{r}
-png("hist3.png")
 places |> 
-  filter(!(n_obs == 1 & dist > 500)) |>
-  filter(!(duration > 5 & dist > 500)) |>
-  mutate(dist = dist / 1609.344,
-         duration = duration / 60,
-         speed = dist / duration) |>
-  filter(!(subid %in% subids_gaps & duration > 48)) |>
-  filter(!(is.na(speed))) |>
-  filter(!(is.infinite(speed))) |> 
+  mutate(duration = if_else(dist > 0.01 & duration == 0, NA_real_,
+                            duration)) |>
+  filter(!(is.na(duration))) |> 
   pull(speed) |> 
   hist()
-dev.off()
 ```
 
-![Speed Histogram](../hist3.png)
-
-Histogram of speed under 100mph.
+Generate histogram of speed under 100mph.
 
 ```{r}
-png("hist4.png")
 places |> 
-  filter(!(n_obs == 1 & dist > 500)) |>
-  filter(!(duration > 5 & dist > 500)) |>
-  mutate(dist = dist / 1609.344,
-         duration = duration / 60,
-         speed = dist / duration) |>
-  filter(!(subid %in% subids_gaps & duration > 48)) |>
-  filter(!(is.na(speed))) |>
-  filter(!(is.infinite(speed))) |>
+  mutate(duration = if_else(dist > 0.01 & duration == 0, NA_real_,
+                            duration)) |>
+  filter(!(is.na(duration))) |>
   filter(speed < 100) |> 
   pull(speed) |> 
   hist()
-dev.off()
 ```
-
-![Speed Histogram - Under 100mph](../hist4.png)
 
 Count number of observations **under 100mph.**
 
 ```{r}
 places |> 
-  filter(!(n_obs == 1 & dist > 500)) |>
-  filter(!(duration > 5 & dist > 500)) |>
-  mutate(dist = dist / 1609.344,
-         duration = duration / 60,
-         speed = dist / duration) |>
-  filter(!(subid %in% subids_gaps & duration > 48)) |>
-  filter(!(is.na(speed))) |>
-  filter(!(is.infinite(speed))) |>
+ mutate(duration = if_else(dist > 0.01 & duration == 0, NA_real_,
+                            duration)) |>
+  filter(!(is.na(duration))) |>
   filter(speed < 100) |> 
   nrow()
 ```
@@ -800,52 +580,412 @@ Count number of observations **above 100mph.**
 
 ```{r}
 places |> 
-  filter(!(n_obs == 1 & dist > 500)) |>
-  filter(!(duration > 5 & dist > 500)) |>
-  mutate(dist = dist / 1609.344,
-         duration = duration / 60,
-         speed = dist / duration) |>
-  filter(!(subid %in% subids_gaps & duration > 48)) |>
-  filter(!(is.na(speed))) |>
-  filter(!(is.infinite(speed))) |>
+  mutate(duration = if_else(dist > 0.01 & duration == 0, NA_real_,
+                            duration)) |>
+  filter(!(is.na(duration))) |>
   filter(speed > 100) |> 
+  nrow()
+```
+
+Generate table of speeds over 100mph.
+
+```{r}
+places |> 
+  mutate(duration = if_else(dist > 0.01 & duration == 0, NA_real_,
+                            duration)) |>
+  filter(speed > 100) |>
+  select(subid, lat, lon, dist, duration, speed) |>
+  arrange(desc(speed)) |> 
+  print_kbl() |> 
+  kableExtra::scroll_box(width = "500px", height = "500px")
+```
+
+**Two types of potential speed issues to look at:**
+- Short distance and short duration
+- Long distance and short duration
+
+##### Short distance, short duration
+
+High values for `speed` resulting from small `dist` and `duration` values might be because of rapid resampling.
+
+```{r}
+places |> 
+  mutate(duration = if_else(dist > 0.01 & duration == 0, NA_real_,
+                            duration)) |>
+  filter(!(is.infinite(speed))) |>
+  filter(speed > 100) |>
+  # less than 500 meters and 5 minutes
+  filter(dist < 0.31 & duration < 0.0833) |> 
+  select(subid, lat, lon, dist, duration, speed) |>
+  arrange(desc(speed)) |>
+  print_kbl(digits = 4) |>
+  kableExtra::scroll_box(width = "500px", height = "500px")
+```
+
+Count number of observations of high `speed` with small `dist` and `duration` values.
+
+```{r}
+places |> 
+  mutate(duration = if_else(dist > 0.01 & duration == 0, NA_real_,
+                            duration)) |>
+  filter(!(is.na(duration))) |>
+  filter(speed > 100) |>
+  # less than 500 meters and 5 minutes
+  filter(dist < 0.31 & duration < 0.0833) |> 
+  nrow()
+```
+
+##### Long distance, short duration
+
+Possible contributors to high `speed` values with high `dist` and low `duration`
+values are very fast travel and/or sampling error.
+
+```{r}
+places |> 
+  mutate(duration = if_else(dist > 0.01 & duration == 0, NA_real_,
+                            duration)) |>
+  filter(speed > 100) |>
+  # distance of more than 500m and less than 5 minutes
+  filter(dist > 0.31 & duration < 0.0833) |> 
+  select(subid, lat, lon, dist, duration, speed) |>
+  arrange(desc(dist)) |>
+  print_kbl(digits = 4) |>
+  kableExtra::scroll_box(width = "500px", height = "500px")
+```
+
+Count number of observations with high `speed` due to high `dist` and low `duration`.
+
+```{r}
+places |> 
+  mutate(duration = if_else(dist > 0.01 & duration == 0, NA_real_,
+                            duration)) |>
+  filter(!(is.na(duration))) |>
+  filter(speed > 100) |>
+  # distance of more than 500m and less than 5 minutes
+  filter(dist > 0.31 & duration < 0.0833) |> 
   nrow()
 ```
 
 **FILTERING DECISION**
 
-Remove all observations above 100mph (assuming this is at or around top car speed).
+Set `duration` to NA for all observations above 100mph (assuming this is at or around top car speed).
+
+Count number of observations for which `duration` will be set to NA.
 
 ```{r}
 places |> 
-  filter(!(n_obs == 1 & dist > 500)) |>
-  filter(!(duration > 5 & dist > 500)) |>
-  mutate(dist = dist / 1609.344,
-         duration = duration / 60,
-         speed = dist / duration) |>
-  filter(!(subid %in% subids_gaps & duration > 48)) |>
-  filter(!(is.na(speed))) |>
-  filter(!(is.infinite(speed))) |>
-  filter((speed > 100)) |> 
+  mutate(duration = if_else(dist > 0.01 & duration == 0, NA_real_,
+                            duration)) |>
+  filter(!(is.na(duration))) |>
+  filter(speed > 100) |> 
   nrow()
 ```
 
+Confirm that the `duration` value of these points is correctly set to NA.
+
+```{r}
+places |>
+  filter(speed > 100) |> 
+  mutate(duration = if_else(dist > 0.01 & duration == 0, NA_real_,
+                            duration),
+         duration = if_else(speed > 100, NA_real_,
+                            duration)) |>
+  select(subid, lat, lon, dist, duration, speed) |>
+  arrange(desc(dist)) |>
+  head(300) |> 
+  print_kbl(digits = 4) |>
+  kableExtra::scroll_box(width = "500px", height = "500px")
+```
+
+### Long time at point
+
+#### Extended periods
+
+Check points that have a suspiciously long duration.
+Note that the forced resampling rate for FollowMee was ~2 hours, but is unknown for Moves.
+(See sop_android_tech_setup_followmee in analysis_risk/methods/sop)
+
+Generate table to examine points with a `duration` value of longer than 2 hours.
+
+```{r}
+places |>
+  mutate(duration = if_else(dist > 0.01 & duration == 0, NA_real_,
+                            duration),
+         duration = if_else(speed > 100, NA_real_,
+                            duration)) |>
+  filter(duration > 2) |>
+  select(subid, dist, duration) |> 
+  arrange(desc(dist)) |> 
+  print_kbl() |> 
+  kableExtra::scroll_box(width = "500px", height = "500px")
+```
+
+Examine long `duration` counts by app source (Moves or FollowMee).
+
+```{r}
+places |>
+  mutate(duration = if_else(dist > 0.01 & duration == 0, NA_real_,
+                            duration),
+         duration = if_else(speed > 100, NA_real_,
+                            duration)) |>
+  filter(duration > 2) |>
+  tab(app_source)
+```
+
+Examine `duration` quantiles.
+
+```{r}
+places |> 
+  mutate(duration = if_else(dist > 0.01 & duration == 0, NA_real_,
+                            duration),
+         duration = if_else(speed > 100, NA_real_,
+                            duration)) |>
+  pull(duration) |> 
+  quantile(c(.1, .25, .5, .75, .9, .99, .999), na.rm = TRUE)
+```
+
+Generate histogram displaying duration in hours.
+
+```{r}
+places |>
+  mutate(duration = if_else(dist > 0.01 & duration == 0, NA_real_,
+                            duration),
+         duration = if_else(speed > 100, NA_real_,
+                            duration)) |>
+  pull(duration) |> 
+  hist()
+```
+
+Generate histogram for `duration` values greater than 48 hours.
+
+```{r}
+places |>
+  mutate(duration = if_else(dist > 0.01 & duration == 0, NA_real_,
+                            duration),
+         duration = if_else(speed > 100, NA_real_,
+                            duration)) |>
+  filter(duration > 48) |>
+  pull(duration) |> 
+  hist(breaks = 70)
+```
+
+Generate histogram for `duration` values less than 48 hours.
+
+```{r}
+places |>
+  mutate(duration = if_else(dist > 0.01 & duration == 0, NA_real_,
+                            duration),
+         duration = if_else(speed > 100, NA_real_,
+                            duration)) |>
+  filter(duration < 48) |>
+  pull(duration) |> 
+  hist(breaks = 70)
+```
+
+Count number of points with a duration greater than 48 hours.
+
+```{r}
+places |> 
+  mutate(duration = if_else(dist > 0.01 & duration == 0, NA_real_,
+                            duration),
+         duration = if_else(speed > 100, NA_real_,
+                            duration)) |>
+  filter(duration > 48) |> 
+  nrow()
+```
+
+Generate table to examine points with a duration of greater than 48 hours.
+Possible reasons for missing data could be tech issues or not leaving the house.
+
+*Note that CP originally cross-referenced these participants with study_notes, but CP and JC
+ultimately decided that it would be better to filter data without using study_notes knowledge
+to more appropriately simulate handling of data in a real-world implementation (i.e., we would
+not have access to notes about who stays home more versus who has tech issues).*
+
+```{r}
+places |>
+  mutate(duration = if_else(dist > 0.01 & duration == 0, NA_real_,
+                            duration),
+         duration = if_else(speed > 100, NA_real_,
+                            duration)) |>
+  filter(duration > 48) |>
+  select(subid, date, duration) |> 
+  print_kbl() |> 
+  kableExtra::scroll_box(width = "500px", height = "500px")
+```
+
+**FILTERING DECISION**
+
+Set a tolerance level for amount of extended periods of no data we tolerate.
+
+Because the forced sampling rate for FollowMee is 2 hours, in a 2 hour period we would
+expect to get at least one GPS point. Therefore, for a duration > 2 hours and a distance
+of > 0.31, we will set the duration to NA. For a duration > 24, regardless of
+distance, the duration will be set to 24.
+
+This enables us to capture some information about extended stays for participants who were more
+sedentary because it retains long `duration` if an individual stayed in the same location.
+
+Count number of points with a duration greater than 2 and a distance greater
+than 0.31.
+
+```{r}
+places |>
+  mutate(duration = if_else(dist > 0.01 & duration == 0, NA_real_,
+                            duration),
+         duration = if_else(speed > 100, NA_real_,
+                            duration)) |>
+  filter(duration > 2 & dist > 0.31) |>
+  nrow()
+```
+
+Count number of points with a duration greater than 24, regardless of distance.
+
+```{r}
+places |>
+  mutate(duration = if_else(dist > 0.01 & duration == 0, NA_real_,
+                            duration),
+         duration = if_else(speed > 100, NA_real_,
+                            duration)) |>
+  filter(!(duration > 2 & dist > 0.31)) |>
+  filter(duration > 24) |>
+  nrow()
+```
+
+Create tables to ensure that we are successfully amending duration values for these points.
+
+```{r}
+places |>
+  filter(duration > 2 & dist > 0.31) |> 
+  mutate(duration = if_else(dist > 0.01 & duration == 0, NA_real_,
+                            duration),
+         duration = if_else(speed > 100, NA_real_,
+                            duration),
+         duration = if_else(duration > 2 & dist > 0.31, NA_real_,
+                            duration),
+         duration = if_else(duration > 24, 24,
+                            duration)) |>
+  select(subid, lat, lon, dist, duration, speed) |>
+  head(300) |> 
+  print_kbl(digits = 4) |>
+  kableExtra::scroll_box(width = "500px", height = "500px")
+```
+
+```{r}
+places |>
+  filter(duration > 24) |> 
+  mutate(duration = if_else(dist > 0.01 & duration == 0, NA_real_,
+                            duration),
+         duration = if_else(speed > 100, NA_real_,
+                            duration),
+         duration = if_else(duration > 2 & dist > 0.31, NA_real_,
+                            duration),
+         duration = if_else(duration > 24, 24,
+                            duration)) |>
+  select(subid, lat, lon, dist, duration, speed) |>
+  head(300) |> 
+  print_kbl(digits = 4) |>
+  kableExtra::scroll_box(width = "500px", height = "500px")
+```
+
+### Next points far away
+
+Create histogram of `dist` with updated filtering.
+
+```{r}
+places |>
+  mutate(duration = if_else(dist > 0.01 & duration == 0, NA_real_,
+                            duration),
+         duration = if_else(speed > 100, NA_real_,
+                            duration),
+         duration = if_else(duration > 2 & dist > 0.31, NA_real_,
+                            duration),
+         duration = if_else(duration > 24, 24,
+                            duration)) |>
+  # filter out points that have a missing duration for visualization purposes
+  filter(!(is.na(duration))) |> 
+  pull(dist) |> 
+  hist()
+```
+
+Generate table, descending by `dist`, to see if there are still problematic
+high value points.
+
+```{r}
+places |> 
+  mutate(duration = if_else(dist > 0.01 & duration == 0, NA_real_,
+                            duration),
+         duration = if_else(speed > 100, NA_real_,
+                            duration),
+         duration = if_else(duration > 2 & dist > 0.31, NA_real_,
+                            duration),
+         duration = if_else(duration > 24, 24,
+                            duration)) |>
+  arrange(desc(dist)) |>
+  filter(!(is.na(duration))) |> 
+  head(600) |>
+  select(subid, lat, lon, dist, duration, speed) |>
+  print_kbl(digits = 4) |>
+  kableExtra::scroll_box(width = "500px", height = "500px")
+```
+
+Calculate the percentage `duration` of points less than 24 hours but with a `duration`
+value greater than 2 hours and a `dist` greater than 0.31 miles (500 meters).
+
+```{r}
+places |> 
+  mutate(duration = if_else(dist > 0.01 & duration == 0, NA_real_,
+                            duration),
+         duration = if_else(speed > 100, NA_real_,
+                            duration)) |> 
+  filter(!(is.na(duration))) |>
+  filter(duration < 24) |>
+  mutate(d2 = if_else(duration > 2 & dist > 0.31, 1, 0)) |> 
+  pull(d2) |> 
+  mean() * 100
+```
+
+**FILTERING DECISION**
+
+These high `dist` points make practical sense with the other filtering we have already done.
+Longer distances traveled appear to fit reasonably within an expected timeframe.
+Therefore, no additional filtering will be done here.
+
 ### Classifying stationary/transit behavior
+
+We will classify someone as being at a known if they are within 0.031 miles (50 meters)
+of that location.
+
+Display table showing breakdown of points that fall at known versus unknown locations.
+
+```{r}
+places |>
+  mutate(duration = if_else(dist > 0.01 & duration == 0, NA_real_,
+                            duration),
+         duration = if_else(speed > 100, NA_real_,
+                            duration),
+         duration = if_else(duration > 2 & dist > 0.31, NA_real_,
+                            duration),
+         duration = if_else(duration > 24, 24,
+                            duration)) |>
+  mutate(known_loc = if_else(dist_context <= 0.031, TRUE, FALSE)) |>
+  tabyl(known_loc)
+```
+
+Create subset of places dataframe to assess how well we can classify stationary versus transit points.
 
 ```{r}
 places_sub <- places |>
   # apply previous filtering
-  filter(!(n_obs == 1 & dist > 500)) |>
-  filter(!(duration > 5 & dist > 500)) |>
-  mutate(dist = dist / 1609.344,
-         duration = duration / 60,
-         speed = dist / duration,
-         known_loc = if_else(dist_context <= 50, TRUE, FALSE)) |> 
-         #track_type = if_else(speed <= 0.62, "stationary", "transit")) |>
-  filter(!(subid %in% subids_gaps & duration > 48)) |>
-  filter(!(is.na(speed))) |>
-  filter(!(is.infinite(speed))) |>
-  filter(!(speed > 100)) |>
+  mutate(duration = if_else(dist > 0.01 & duration == 0, NA_real_,
+                            duration),
+         duration = if_else(speed > 100, NA_real_,
+                            duration),
+         duration = if_else(duration > 2 & dist > 0.31, NA_real_,
+                            duration),
+         duration = if_else(duration > 24, 24,
+                            duration)) |>
+  mutate(known_loc = if_else(dist_context <= 0.031, TRUE, FALSE)) |> 
   # subset to only known locations
   filter(known_loc == 1) |>
   select(subid, sgmnt_type, duration, dist, speed, context_id) |>
@@ -856,6 +996,8 @@ places_sub <- places |>
 ```
 
 This shows us that the majority of the points classified as "transit" (above 4mph) do not fall in the "middle" of being at a location.
+
+NA points occur when speed is NaN (duration is set to NA from our previous filtering).
 
 ```{r}
 first_seq_ids <- which(places_sub$row_seq == 1)
@@ -873,55 +1015,108 @@ places_sub |>
     adorn_ns()
 ```
 
+Create table with stationary versus transit filtering.
+`known_loc` is NaN when `speed` is NaN, and `speed` is NaN when `dist` and
+`duration` are 0.
+
+```{r}
+places |>
+  mutate(duration = if_else(dist > 0.01 & duration == 0, NA_real_,
+                            duration),
+         duration = if_else(speed > 100, NA_real_,
+                            duration),
+         duration = if_else(duration > 2 & dist > 0.31, NA_real_,
+                            duration),
+         duration = if_else(duration > 24, 24,
+                            duration),
+         known_loc = if_else(dist_context <= 0.031 & speed <= 4,
+                             TRUE, FALSE),
+         known_loc = if_else(is.na(known_loc), FALSE, known_loc)) |>
+  head(600) |>
+  select(subid, lat, lon, dist, duration, speed, dist_context, known_loc) |>
+  print_kbl(digits = 4) |>
+  kableExtra::scroll_box(width = "600px", height = "500px")
+```
+
+
+### Visualizations
+
+Visualize `dist` and `duration` scatterplot with current filtering.
+
+```{r}
+places |>
+  mutate(duration = if_else(dist > 0.01 & duration == 0, NA_real_,
+                            duration),
+         duration = if_else(speed > 100, NA_real_,
+                            duration),
+         duration = if_else(duration > 2 & dist > 0.31, NA_real_,
+                            duration),
+         duration = if_else(duration > 24, 24,
+                            duration),
+         known_loc = if_else(dist_context <= 0.031 & speed <= 4,
+                             TRUE, FALSE),
+         known_loc = if_else(is.na(known_loc), FALSE, known_loc)) |> 
+  filter(!(is.na(dist) | is.na(duration))) |>
+  ggplot(aes(x = duration, y = dist)) +
+  scattermore::geom_scattermore(pointsize = 3, alpha = 0.2) +
+  ggmagnify::geom_magnify(from = c(xmin = 0, xmax = 2, ymin = 0, ymax = 125),
+                          to = c(xmin = 10, xmax = 20, ymin = 50, ymax = 125),
+                          shadow = TRUE)
+```
+
 ## Final filtering decisions
 
-Compare nrow() before and after filtering to see how many points we lose.
+Compare nrow() before and after filtering to see how many points we "lose" (AKA
+how many points for which we set `duration` to NA).
 
 ```{r}
 (places |> nrow()) - (places |>
-                          filter(!(n_obs == 1 & dist > 500)) |>
-                          filter(!(duration > 5 & dist > 500)) |>
-                          mutate(dist = dist / 1609.344,
-                                 duration = duration / 60,
-                                 speed = dist / duration,
-                                 known_loc = if_else(dist_context <= 50 & speed <= 4,
-                                                     TRUE, FALSE)) |>
-                          filter(!(subid %in% subids_gaps & duration > 48)) |>
-                          filter(!(is.na(speed))) |>
-                          filter(!(is.infinite(speed))) |>
-                          filter(!(speed > 100)) |> 
-                          nrow())
+                            mutate(duration = if_else(dist > 0.01 & duration == 0,
+                                                      NA_real_, duration),
+                                   duration = if_else(speed > 100,
+                                                      NA_real_, duration),
+                                   duration = if_else(duration > 2 & dist > 0.31,
+                                                      NA_real_, duration),
+                                   duration = if_else(duration > 24,
+                                                      24, duration),
+                                   known_loc = if_else(dist_context <= 0.031 & speed <= 4,
+                                                       TRUE, FALSE),
+                                   known_loc = if_else(is.na(known_loc),
+                                                       FALSE, known_loc)) |>
+                        filter(!(is.na(duration)))) |> 
+  nrow()
 ```
 
 Apply final filter.
 
 ```{r}
-# remove points or set to NA?
-# duration = if_else(duration > 5 & dist > 500, NA_real_, duration))
-
 places <- places |>
-  # remove one observation days with high movement
-  filter(!(n_obs == 1 & dist > 500)) |>
-  # remove improbable jumps
-  filter(!(duration > 5 & dist > 500)) |>
-  mutate(dist = dist / 1609.344,
-         duration = duration / 60,
-         speed = dist / duration,
-         known_loc = if_else(dist_context <= 50 & speed <= 4, TRUE, FALSE)) |> 
-  filter(!(subid %in% subids_gaps & duration > 48)) |>
-  filter(!(is.na(speed))) |>
-  filter(!(is.infinite(speed))) |>
-  filter(!(speed > 100))
+  mutate(duration = if_else(dist > 0.01 & duration == 0, NA_real_,
+                            duration),
+         duration = if_else(speed > 100, NA_real_,
+                            duration),
+         duration = if_else(duration > 2 & dist > 0.31, NA_real_,
+                            duration),
+         duration = if_else(duration > 24, 24,
+                            duration),
+         known_loc = if_else(dist_context <= 0.031 & speed <= 4,
+                             TRUE, FALSE),
+         known_loc = if_else(is.na(known_loc), FALSE, known_loc))
 ```
 
 # EDA
+
+Examine data following cleaning.
+We will filter out rows for which `duration` is NA because these points will
+not be counted in our rate calculations.
 
 ## Overview
 
 Glimpse enriched data.
 
 ```{r}
-places |>   
+places |>
+  filter(!(is.na(duration))) |> 
   glimpse()
 ```
 
@@ -951,7 +1146,6 @@ places |>
 Display unique `context_id` observations per subject in a histogram.
 
 ```{r}
-png("hist5.png")
 places |>
   group_by(subid) |>
   summarise(unique_context = n_distinct(context_id)) |>
@@ -959,10 +1153,7 @@ places |>
   hist(col = "white", border = "black",
        xlab = "# of Unique Context IDs", ylab = "Frequency",
        main = "Histogram of Unique Context IDs per Subject")
-dev.off()
 ```
-
-![Unique Context IDs - After Filtering](../hist5.png)
 
 ## Examine missing data
 
@@ -992,18 +1183,6 @@ Summary of `type` responses.
 
 ```{r}
 places |> tab(type)
-```
-
-```{r}
-places |>
-  group_by(subid) |>
-  distinct(context_id, .keep_all = TRUE) |> 
-  filter(type == "other") |>
-  select(-sgmnt_type, -trckpnt_type, -app_source,
-         -lat_context, -lon_context, -dist_context, -utc,
-         -dist, -duration) |> 
-  print_kbl() |> 
-  kableExtra::scroll_box(width = "500px", height = "500px")
 ```
 
 Summary of `drank` responses.
