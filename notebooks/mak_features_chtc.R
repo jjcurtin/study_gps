@@ -2,10 +2,9 @@
 
 # Constants
 # CP: do we need either of these?
-dist_max <- 0.31   # only use context if places are within 50 meters (0.31 miles)
+dist_max <- 0.031   # only use context if places are within 50 meters (0.031 miles)
 window <- "1day"  #window for calculating labels
 
-options(conflicts.policy = "depends.ok")
 devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true", 
                      sha1 = "a58e57da996d1b70bb9a5b58241325d6fd78890f")
 
@@ -19,13 +18,12 @@ suppressPackageStartupMessages({
   source("../analysis_risk/shared/fun_features.R")
 })
 
-# CP: do we need this?
 # get chtc process num
-args <- commandArgs(trailingOnly = TRUE) 
+#args <- commandArgs(trailingOnly = TRUE) 
 #job_start <- 2001
 #job_stop <- 2002
-job_start <- as.numeric(args[1]) # CHTC arg starts at 1 because using passed in row numbers
-job_stop <- as.numeric(args[2])
+#job_start <- as.numeric(args[1]) # CHTC arg starts at 1 because using passed in row numbers
+#job_stop <- as.numeric(args[2])
 
 # read in data
 # CP: instead of reaading in this file, I will change this so that the file is created here
@@ -43,12 +41,13 @@ data <- read_csv(here::here(path_gps, "gps_enriched.csv.xz"), show_col_types = F
          duration = if_else(speed > 100, NA_real_, duration),
          duration = if_else(duration > 2 & dist > 0.31, NA_real_, duration),
          duration = if_else(duration > 24, 24, duration),
-         known_loc = if_else(dist_context <= 0.031 & speed <= 4, TRUE, FALSE),
+         known_loc = if_else(dist_context <= dist_max & speed <= 4, TRUE, FALSE),
          known_loc = if_else(is.na(known_loc), FALSE, known_loc)) |> 
   filter(known_loc == TRUE) # currently only care about observations with context
                                    # this may change when need to figure out total duration
                                    # of observations in window in future
 
+# change name of this file to be labels
 labels <- read_csv(here::here(path_gps, "lapses.csv"), show_col_types = FALSE) |>  
   mutate(dttm_label = with_tz(lapse_onset, tz = "America/Chicago")) #|>  
   # CP: commented out, not sure if we need this if we are not using chtc  
@@ -65,19 +64,20 @@ period_durations <- c(6, 12, 24, 48, 72, 168)
 lead <-  0 
 
 # make features ------------------
-# CP: iterates through each subject by day. each feature_row represents
+# CP: iterates through each subject by label. each feature_row represents
 # all calculations for every period duration for that place feature and
-# each possible response type for that feature.
+# each possible context_value for that feature.
 # row: day of observation
-# column: every possible rate calculated for each response type and duration combination
+# column: every possible rate calculated for each context_value and duration combination
 # three types of rates are returned from score_ratesum:
 # a raw rate and two relative rates (these are our change rate features):
 # dratecount: difference between rate in period and rate across all data
 # pratecount: percent change between rate in period and rate across all data
-# Q: what is the benefit of having a difference rate and a percent change rate?
-# it doesn't actually look like pratecount is getting calculated right now
 
-# CP: uncommented line 81 because it said for testing
+labels <- labels |> 
+  slice_head(n = 100)
+
+tic()
 i_label <- 1   # for testing
 features <- foreach (i_label = 1:nrow(labels), .combine = "rbind") %do% {
   
@@ -85,8 +85,7 @@ features <- foreach (i_label = 1:nrow(labels), .combine = "rbind") %do% {
   label <- labels |> slice(i_label)
   subid <- label$subid 
   dttm_label <-  label$dttm_label
-  #the_label_num <- label$label_num # commented out by CP, wasn't sure what this does
-  the_label_num <- 1 # added by CP to make things work temporarily
+  #the_label_num <- label$label_num
   
   # type
   feature_row <- score_ratesum(subid, 
@@ -170,12 +169,12 @@ features <- foreach (i_label = 1:nrow(labels), .combine = "rbind") %do% {
                             context_values = c("yes", "no")), 
               by = c("subid", "dttm_label"))
   
-  feature_row <- feature_row |> 
-    mutate(label_num = the_label_num)
+  #feature_row <- feature_row |> 
+    #mutate(label_num = the_label_num)
   
   feature_row
 }
-
+toc()
 # Add outcome label and other info to features ------------------
 features |> 
   mutate(lapse = labels$label) |>  
