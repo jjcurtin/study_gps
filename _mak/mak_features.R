@@ -1,7 +1,6 @@
 # Script to engineer features on CHTC
 
 # Constants
-# CP: do we need either of these?
 dist_max <- 0.031   # only use context if places are within 50 meters (0.031 miles)
 window <- "1day"  #window for calculating labels
 
@@ -47,10 +46,10 @@ data <- read_csv(here::here(path_gps, "gps_enriched.csv.xz"), show_col_types = F
                                    # this may change when need to figure out total duration
                                    # of observations in window in future
 
-# change name of this file to be labels
-labels <- read_csv(here::here(path_gps, "lapses.csv"), show_col_types = FALSE) |>  
-  mutate(dttm_label = with_tz(lapse_onset, tz = "America/Chicago")) #|>  
-  # CP: commented out, not sure if we need this if we are not using chtc  
+labels <- read_csv(here::here(path_gps, "labels.csv"), show_col_types = FALSE) |>
+  # dttm_label represents label ONSET, required for score_ratesum function
+  mutate(dttm_label = with_tz(day_start, tz = "America/Chicago"),
+         day_end = with_tz(day_end, tz = "America/Chicago")) #|>  
   #slice(job_start:job_stop) |> 
   #mutate(label_num = seq(job_start, job_stop, by = 1))
 
@@ -74,12 +73,17 @@ lead <-  0
 # dratecount: difference between rate in period and rate across all data
 # pratecount: percent change between rate in period and rate across all data
 
-labels <- labels |> 
-  slice_head(n = 100)
+#labels <- labels |> 
+  #slice_head(n = 100)
 
-tic()
-i_label <- 1   # for testing
-features <- foreach (i_label = 1:nrow(labels), .combine = "rbind") %do% {
+#i_label <- 1   # for testing
+
+cl <- parallel::makePSOCKcluster(parallel::detectCores(logical = FALSE))
+doParallel::registerDoParallel(cl)
+
+features <- foreach (i_label = 1:nrow(labels),
+                     .combine = "rbind",
+                     .packages = c("dplyr", "foreach", "lubridate", "stringr")) %dopar% {
   
   # for (the_label_num in job_start:job_stop) {
   label <- labels |> slice(i_label)
@@ -174,10 +178,10 @@ features <- foreach (i_label = 1:nrow(labels), .combine = "rbind") %do% {
   
   feature_row
 }
-toc()
+
 # Add outcome label and other info to features ------------------
 features |> 
   mutate(lapse = labels$label) |>  
-  relocate(label_num, subid, dttm_label, lapse) |>
+  relocate(subid, dttm_label, lapse) |>
   write_csv(here::here(path_gps, "features.csv"))
   #vroom_write(str_c("features_", window, "_", job_start, "_", job_stop, ".csv"), delim = ",")
