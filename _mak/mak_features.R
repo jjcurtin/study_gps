@@ -179,9 +179,12 @@ features <- foreach (i_label = 1:nrow(labels),
   feature_row
 }
 
+# Quick EDA -----------
+
+## note to self to add in some EDA
+
 # Add outcome label and other info to features ------------------
 features |> 
-  mutate(lapse = labels$label) |>  
+  mutate(lapse = labels$lapse) |>  
   relocate(subid, dttm_label, lapse) |>
   write_csv(here::here(path_gps, "features.csv"))
-  #vroom_write(str_c("features_", window, "_", job_start, "_", job_stop, ".csv"), delim = ",")
