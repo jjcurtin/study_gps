@@ -12,32 +12,31 @@
 study <- "gps"
 window <- "1day"
 lead <- 0
-version <- "v1" #feature version (v1 = 24 hour fence, v2 = 6 hour fence)
+version <- "v1" 
 algorithm <- "xgboost"
 model <- "main"
 
-feature_set <- c("context") # GPS feature set name -- CP: changed from all, double check
-data_trn <- str_c("features_", lead, "gps_", version, ".csv.xz")  
+feature_set <- c("context") # GPS feature set name
+data_trn <- str_c("features.csv")
 
 seed_splits <- 102030
 
 ml_mode <- "classification"   # regression or classification
-configs_per_job <- 50 # number of model configurations that will be fit/evaluated within each CHTC
+configs_per_job <- 150 # number of model configurations that will be fit/evaluated within each CHTC
 
 # RESAMPLING FOR OUTCOME-----------------------------------
 # note that ratio is under_ratio, which is used by downsampling as is
 # It is converted to  overratio (1/ratio) for up and smote
-resample <- c("none", "up_1", "up_2", "up_3", "up_4", "down_1", "down_2", "down_3", "down_4")
-# daily lapse base rate ~ 7%
-# consider adding up_5 and down_5
 # memory constraints with SMOTE
+# daily lapse base rate ~ 7% (~ 13:1 majority to minority cases)
+resample <- c("none", "up_1", "up_2", "up_3", "up_4", "up_5", "down_1", "down_2", "down_3", "down_4", "down_5")
 
 # CHTC SPECIFIC CONTROLS------ ---------------------
 # tar <- c("train.tar.gz") # name of tar packages for submit file - does not transfer these anywhere 
 max_idle <- 1000
 request_cpus <- 1 
-request_memory <- "50000MB"
-request_disk <- "1600MB"
+request_memory <- "5000MB"
+request_disk <- "1000MB"
 flock <- TRUE
 glide <- TRUE
 
@@ -62,7 +61,7 @@ cv_name <- if_else(cv_resample_type == "nested",
 
 # STUDY PATHS----------------------------
 # the name of the batch of jobs to set folder name
-name_batch <- str_c("train_", algorithm, "_", window, "_", lead, "gps_", cv_name, "_", version, "_", model) 
+name_batch <- str_c("train_", algorithm, "_", cv_name, "_", version, "_", model) 
 # the path to the batch of jobs to put the folder name
 path_batch <- str_c("studydata/risk/chtc/", study, "/", name_batch) 
 # location of data set
@@ -83,7 +82,6 @@ path_data <- str_c("studydata/risk/data_processed/", study)
 hp1_xgboost <- c(0.0001, 0.001, 0.01, 0.1, 0.2, 0.3, .4)  # learn_rate, how fast model fits residual error; high: faster, but may overshoot, low: slower, may get stuck on less optimal solutions
 hp2_xgboost <- c(1, 2, 3, 4) # tree_depth, complexity of tree structure (larger no. = more likely to overfit)
 hp3_xgboost <- c(20, 30, 40, 50)  # mtry, no. feats. to split on at each split
-# CP: are these just here for reference?
 # trees = 500
 # early stopping = 20
 
@@ -99,10 +97,10 @@ format_data <- function (df){
   
   df |> 
     rename(y = !!y_col_name) |> 
-    mutate(y = factor(y, levels = c(!!y_level_pos, !!y_level_neg)), # set pos class first
+    # set pos class first
+    mutate(y = factor(y, levels = c(!!y_level_pos, !!y_level_neg)), 
            across(where(is.character), factor)) |>
     select(-c(dttm_label))
-    # previously select(-label_num, -dttm_label)
   # Now include additional mutates to change classes for columns as needed
   # see https://jjcurtin.github.io/dwt/file_and_path_management.html#using-a-separate-mutate
 }
@@ -125,14 +123,11 @@ build_recipe <- function(d, config) {
   }
   
   # Set recipe steps generalizable to all model configurations
-  # CP: note to review this in john meeting
   rec <- recipe(y ~ ., data = d) |>
     step_rm(subid, label_num) |>  # needed to retain until now for grouped CV in splits
     step_impute_median(all_numeric_predictors()) |> 
     step_impute_mode(all_nominal_predictors()) |> 
     step_dummy(all_factor_predictors()) |> 
-    step_normalize(all_numeric_predictors())  |>            
-    step_zv(all_predictors())  |> 
     step_select(where(~ !any(is.na(.)))) |>
     step_nzv(all_predictors())
  
@@ -160,7 +155,6 @@ build_recipe <- function(d, config) {
   return(rec)
 }
 
-# CP: fits??
 
 # Update paths for OS--------------------------------
 # This does NOT need to be edited.  This will work for Windows, Mac and Linux OSs
