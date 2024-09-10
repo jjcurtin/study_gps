@@ -91,6 +91,8 @@ features <- foreach (i_label = 1:nrow(labels),
   dttm_label <-  label$dttm_label
   #the_label_num <- label$label_num
   
+  # CONTEXT ---
+  
   # type
   feature_row <- score_ratesum(subid, 
                                dttm_label,
@@ -100,12 +102,16 @@ features <- foreach (i_label = 1:nrow(labels),
                                data_start = dates, 
                                col_name = "duration", 
                                context_col_name = "type",
-                               # CP: added errands, friend, and other
-                               context_values = c("aa", "bar", "cafe", "church",
+                               context_values = c("aa", "airport", "bar",
+                                                  "cafe", "church",
+                                                  "community space / recreation",
                                                   "errands", "family", "fitness",
                                                   "friend", "healthcare", "home",
-                                                  "liquorstore", "other", "park",
+                                                  "library", "liquorstore", "other",
+                                                  "park", "public drinking space",
                                                   "restaurant", "school",
+                                                  "temporary residence",
+                                                  "travel stop",
                                                   "volunteer", "work"))
   
   # drank
@@ -185,6 +191,7 @@ features <- foreach (i_label = 1:nrow(labels),
 
 # Add outcome label and other info to features ------------------
 features |> 
-  mutate(lapse = labels$lapse) |>  
-  relocate(subid, dttm_label, lapse) |>
+  mutate(lapse = labels$lapse,
+         label_num = 1:nrow()) |>  
+  relocate(label_num, subid, dttm_label, lapse) |>
   write_csv(here::here(path_gps, "features.csv"))
