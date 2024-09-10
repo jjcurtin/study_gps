@@ -1,8 +1,11 @@
 # Training controls for gps study
 
 # NOTES------------------------------
-# Batches to do:
+# Batches done:
 # xgboost context features
+
+# Batches to do:
+# glmnet context features
 # xgboost affective features
 
 
@@ -13,7 +16,7 @@ study <- "gps"
 window <- "1day"
 lead <- 0
 version <- "v1" 
-algorithm <- "xgboost"
+algorithm <- "glmnet"
 model <- "main"
 
 feature_set <- c("context") # GPS feature set name
@@ -68,10 +71,10 @@ path_batch <- str_c("studydata/risk/chtc/", study, "/", name_batch)
 path_data <- str_c("studydata/risk/data_processed/", study) 
 
 # ALGORITHM-SPECIFIC HYPERPARAMETERS-----------
-#hp1_glmnet <- c(0.05, seq(.1, 1, length.out = 10)) # alpha (mixture)
-#hp2_glmnet_min <- -8 # min for penalty grid - will be passed into exp(seq(min, max, length.out = out))
-#hp2_glmnet_max <- 2 # max for penalty grid
-#hp2_glmnet_out <- 200 # length of penalty grid
+hp1_glmnet <- c(0.05, seq(.1, 1, length.out = 10)) # alpha (mixture)
+hp2_glmnet_min <- -8 # min for penalty grid - will be passed into exp(seq(min, max, length.out = out))
+hp2_glmnet_max <- 2 # max for penalty grid
+hp2_glmnet_out <- 200 # length of penalty grid
 
 #hp1_knn <- seq(5, 255, length.out = 26) # neighbors (must be integer)
 
@@ -79,9 +82,9 @@ path_data <- str_c("studydata/risk/data_processed/", study)
 #hp2_rf <- c(2, 15, 30) # min_n
 #hp3_rf <- 1500 # trees (10 x's number of predictors)
 
-hp1_xgboost <- c(0.0001, 0.001, 0.01, 0.1, 0.2, 0.3, .4)  # learn_rate, how fast model fits residual error; high: faster, but may overshoot, low: slower, may get stuck on less optimal solutions
-hp2_xgboost <- c(1, 2, 3, 4) # tree_depth, complexity of tree structure (larger no. = more likely to overfit)
-hp3_xgboost <- c(20, 30, 40, 50)  # mtry, no. feats. to split on at each split
+#hp1_xgboost <- c(0.0001, 0.001, 0.01, 0.1, 0.2, 0.3, .4)  # learn_rate, how fast model fits residual error; high: faster, but may overshoot, low: slower, may get stuck on less optimal solutions
+#hp2_xgboost <- c(1, 2, 3, 4) # tree_depth, complexity of tree structure (larger no. = more likely to overfit)
+#hp3_xgboost <- c(20, 30, 40, 50)  # mtry, no. feats. to split on at each split
 # trees = 500
 # early stopping = 20
 

@@ -5,3 +5,4 @@ devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/chtc/fun
 
 path_training_controls <- file.path("_chtc/training_controls_gps.R") 
 make_jobs(path_training_controls, overwrite_batch = TRUE)
+
