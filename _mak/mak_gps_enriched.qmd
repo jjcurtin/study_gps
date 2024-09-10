@@ -50,6 +50,7 @@ devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/format_p
 ```{r}
 path_shared <- format_path("studydata/risk/data_processed/shared")
 path_gps <- format_path("studydata/risk/data_processed/gps")
+path_hannah <- format_path("studydata/risk/data_processed/gps/hannah")
 path_cache <- format_path("studydata/risk/data_processed/gps/cache//")
 ```
 
@@ -127,6 +128,38 @@ subids_locs <- locs |>
 Check if there are any subids missing location context.
 ```{r}
 if(any(!(subids_dates %in% subids_locs))) stop("Missing location for some subids")
+```
+
+Use Hannah's "other" recategorization file to update location file.
+
+> CP note to self 9/9: might want to move this further up to the mak_locations file? discuss w john
+
+Load in Hannah's file.
+```{r}
+other <- read_csv(here::here(path_hannah, "other_locations.csv"), 
+                 show_col_types = FALSE) |>  
+  mutate(subid = as.numeric(subid)) |>
+  select(subid, context_id, final) |> 
+  glimpse()
+```
+
+Clean Hannah's file.
+
+- Public drinking space and public drinking spaces homogenized to public drinking space
+- Recovery and health reclassified as healthcare
+```{r}
+other <- other |>
+  mutate(final = if_else(final == "public drinking spaces", "public drinking space", final),
+         final = if_else(final == "recovery and health", "healthcare", final))
+```
+
+Join Hannah's file with loc file. If there's a value in Hannah's file in the "final" column,
+that will replace the loc type value. Otherwise, leave as loc type value.
+```{r}
+locs <- locs |> 
+  left_join(other, by = c("subid", "context_id")) |> 
+  mutate(type = if_else(!(is.na(final)), final, type)) |> 
+  select(-final)
 ```
 
 ### GPS
@@ -221,7 +254,7 @@ enriched <- cache_rds(expr = {
   },
   dir = (here::here(path_cache)),
   file = "enrich_all",
-  rerun = FALSE
+  rerun = TRUE
 )
 ```
 
