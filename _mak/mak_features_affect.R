@@ -174,6 +174,7 @@ features <- foreach (i_label = 1:nrow(labels),
                        # amount of time in non-stationary state
                        # this would be when known_loc is false?
                        # maybe more appropriate to just use speed as a filter?
+                       # change to 4mph speed filter
                        feature_row <- score_ratesum(subid, 
                                                     dttm_label,
                                                     x_all  = data,
@@ -193,7 +194,7 @@ features <- foreach (i_label = 1:nrow(labels),
                                                  period_durations = period_durations,
                                                  lead = lead, 
                                                  data_start = dates, 
-                                                 col_name = "dist"), 
+                                                 col_name = "dist"), # duration?
                                    by = c("subid", "dttm_label"))
                        
                        feature_row <- feature_row |>  
