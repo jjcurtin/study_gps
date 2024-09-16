@@ -153,6 +153,14 @@ other <- other |>
          final = if_else(final == "recovery and health", "healthcare", final))
 ```
 
+```{r}
+other <- other |>
+  mutate(final = if_else(final == "public drinking space", "publicdrinkingspace", final),
+         final = if_else(final == "travel stop", "travelstop", final),
+         final = if_else(final == "temporary residence", "temporaryresidence", final),
+         final = if_else(final == "community space / recreation", "communityspacerecreation", final))
+```
+
 Join Hannah's file with loc file. If there's a value in Hannah's file in the "final" column,
 that will replace the loc type value. Otherwise, leave as loc type value.
 ```{r}
