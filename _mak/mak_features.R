@@ -187,11 +187,51 @@ features <- foreach (i_label = 1:nrow(labels),
 
 # Quick EDA -----------
 
-## note to self to add in some EDA
+## type
+features |> select(contains("rratesum") & contains("type")) |> skimr::skim()
+
+features |> select(contains("dratesum") & contains("type")) |>  skimr::skim()
+
+features |> select(contains("pratesum") & contains("type")) |> skimr::skim()
+
+## drank
+features |> select(contains("rratesum") & contains("drank")) |> skimr::skim()
+
+features |> select(contains("dratesum") & contains("drank")) |> skimr::skim()
+
+features |> select(contains("pratesum") & contains("drank")) |> skimr::skim()
+
+## alcohol
+features |> select(contains("rratesum") & contains("alcohol")) |> skimr::skim()
+
+features |> select(contains("dratesum") & contains("alcohol")) |> skimr::skim()
+
+features |> select(contains("pratesum") & contains("alcohol")) |> skimr::skim()
+
+## emotion
+features |> select(contains("rratesum") & contains("emotion")) |> skimr::skim()
+
+features |> select(contains("dratesum") & contains("emotion")) |> skimr::skim()
+
+features |> select(contains("pratesum") & contains("emotion")) |> skimr::skim()
+
+## risk
+features |> select(contains("rratesum") & contains("risk")) |> skimr::skim()
+
+features |> select(contains("dratesum") & contains("risk")) |> skimr::skim()
+
+features |> select(contains("pratesum") & contains("risk")) |> skimr::skim()
+
+## avoid
+features |> select(contains("rratesum") & contains("avoid")) |> skimr::skim()
+
+features |> select(contains("dratesum") & contains("avoid")) |> skimr::skim()
+
+features |> select(contains("pratesum") & contains("avoid")) |> skimr::skim()
 
 # Add outcome label and other info to features ------------------
 features |> 
   mutate(lapse = labels$lapse,
-         label_num = 1:nrow()) |>  
+         label_num = 1:nrow(features)) |>  
   relocate(label_num, subid, dttm_label, lapse) |>
   write_csv(here::here(path_gps, "features.csv"))
