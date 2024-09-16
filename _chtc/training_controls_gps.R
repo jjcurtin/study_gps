@@ -3,14 +3,15 @@
 # NOTES------------------------------
 
 # v2: update context feature type with more information for other category
+# v3: remove pratesum features
 
 # Batches done:
 # xgboost all context features v1
 # glmnet all context features v1
+# xgboost all context features v2
 
 # Batches to do:
-# xgboost all context features v2
-# xgboost raw and diff context features v2
+# xgboost raw and diff context features v3
 # xgboost affective features
 
 
@@ -18,11 +19,11 @@
 study <- "gps"
 window <- "1day"
 lead <- 0
-version <- "v2" 
+version <- "v3" 
 algorithm <- "xgboost"
 model <- "main"
 
-feature_set <- c("context_all") # GPS feature set name
+feature_set <- c("context_rawdiff") # GPS feature set name
 data_trn <- str_c("features.csv")
 
 seed_splits <- 102030
@@ -106,7 +107,8 @@ format_data <- function (df){
     # set pos class first
     mutate(y = factor(y, levels = c(!!y_level_pos, !!y_level_neg)), 
            across(where(is.character), factor)) |>
-    select(-c(dttm_label)) # for raw, diff -- remove pratesum
+    select(-c(dttm_label)) |> 
+    select(-(contains("pratesum"))) # for raw, diff -- remove pratesum
   # Now include additional mutates to change classes for columns as needed
   # see https://jjcurtin.github.io/dwt/file_and_path_management.html#using-a-separate-mutate
 }
