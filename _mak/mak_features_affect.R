@@ -122,14 +122,14 @@ score_variance <- function(the_subid, the_dttm_label, x_all,
       # get baseline variance using all data before label dttm
       baseline <- x %>% 
         get_x_period(the_subid, the_dttm_label, x_all = ., lead, period_duration = Inf) %>% # Inf gives all data back to first obs
-        summarise("base" := period_var(.data[[col_name]])) %>% 
+        summarise("base" := period_var(.data[[col_name]])) %>% # base_lat, base lon, then add together and take log
         pull(base)
       
       foreach (period_duration = period_durations, .combine = "cbind") %do% {
         
         raw <- x %>%
           get_x_period(the_subid, the_dttm_label, ., lead, period_duration) %>% 
-          summarise("raw" := period_var(.data[[col_name]])) %>%
+          summarise("raw" := period_var(.data[[col_name]])) %>% # raw_lat, raw_lon, add together
           pull(raw)
         
         passive_label <- if_else(passive, "passive", "NA")
