@@ -1,0 +1,167 @@
+---
+title: "Explore Calibration"
+author: "John Curtin"
+date: "`r lubridate::today()`"
+output: 
+  html_document:
+    toc: true 
+    toc_depth: 4
+format:
+  html:
+    embed-resources: true
+params:
+  study: "ema"
+  window: "1day"
+  lead: 0
+  version: "v5"
+  cv: "nested"
+editor_options: 
+  chunk_output_type: console
+---
+
+## Setup
+```{r set_params}
+study <- params$study
+data_type <- params$data_type
+window <- params$window
+lead <- params$lead 
+version <- params$version
+cv <- params$cv
+```
+
+Function conflicts
+```{r, packages_workflow}
+#| message: false
+#| warning: false
+
+# source
+devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/fun_ml.R?raw=true")
+
+# handle conflicts
+options(conflicts.policy = "depends.ok")
+tidymodels_conflictRules()
+```
+
+Packages for script
+```{r, packages_script}
+#| message: false
+#| warning: false
+
+library(tidyverse)
+library(tidymodels)
+library(probably)
+```
+
+Source support functions
+```{r source_functions}
+# EDA
+devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/fun_eda.R?raw=true")
+
+# CHTC support functions
+devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/chtc/static_files/fun_chtc.R?raw=true")
+```
+
+Absolute paths
+```{r, absolute_paths}
+switch (Sys.info()[['sysname']],
+        # PC paths
+        Windows = {
+          path_input <- str_c("P:/studydata/risk/chtc/", study)
+          path_processed <- str_c("P:/studydata/risk/data_processed/", study)
+          path_models <- str_c("P:/studydata/risk/models/", study)},
+
+        # IOS paths
+        Darwin = {
+          path_input <- str_c("/Volumes/private/studydata/risk/chtc/", study)
+          path_processed <- str_c("/Volumes/private/studydata/risk/data_processed/",
+                                  study)
+          path_models <- str_c("/Volumes/private/studydata/risk/models/", study)},
+        
+        # Linux paths
+        Linux = {
+          path_input <- str_c("~/mnt/private/studydata/risk/chtc/", study)
+          path_processed <- str_c("~/mnt/private/studydata/risk/data_processed/",
+                                  study)
+          path_models <- str_c("~/mnt/private/studydata/risk/models/", study)}
+        )
+```
+
+## Functions
+```{r}
+get_brier <- function(split_num, df){
+  
+  #filter to split
+  probs_split <- df |> 
+  filter(outer_split_num == split_num)
+
+  raw <- probs_split |>
+    filter(method == "prob_raw") |> 
+    brier_class(label, .pred_Lapse)
+  
+  logi <- probs_split |>
+    filter(method == "prob_logi") |> 
+    brier_class(label, .pred_Lapse)
+  
+  iso <- probs_split |>
+    filter(method == "prob_iso") |> 
+    brier_class(label, .pred_Lapse)
+  
+  beta <- probs_split |>
+    filter(method == "prob_beta") |> 
+    brier_class(label, .pred_Lapse)
+  
+  brier <- tibble(raw = raw$.estimate, 
+                logi = logi$.estimate, 
+                iso = iso$.estimate, 
+                beta = beta$.estimate)
+  return(brier)
+}
+
+```
+
+## Get Probs
+
+```{r}
+probs <- read_rds(file.path(path_models, str_c("outer_preds_", window, "_0_v5_nested.rds"))) |> 
+  pivot_longer(cols = starts_with("prob"), 
+               names_to = "method", 
+               values_to = ".pred_Lapse") |>
+  glimpse()
+```
+
+
+## Brier Scores
+
+```{r}
+
+brier <- 1:30 |> 
+  map(\(split_num) get_brier(split_num, probs)) |> 
+  list_rbind()
+
+brier |> head()
+
+brier |> summarize(across(everything(), list(mean, median)))
+                      
+```
+
+
+
+
+## Explore Plots
+```{r}
+
+probs |> 
+  filter(outer_split_num == 1) |> 
+  cal_plot_breaks(truth = label, 
+                  estimate = .pred_Lapse,
+                  .by = method)
+  
+probs |> 
+  filter(outer_split_num == 1) |> 
+  cal_plot_windowed(truth = label, 
+                  estimate = .pred_Lapse,
+                  .by = method)
+
+```
+
+

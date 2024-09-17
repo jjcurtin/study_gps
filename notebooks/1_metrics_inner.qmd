@@ -11,12 +11,10 @@ format:
     embed-resources: true
 params:
   study: "gps"
-  window: "1day"
-  lead: 0
-  version: "2"
-  cv: "nested"
+  version: "v2"
+  cv: "nested_1_x_10_3_x_10"
   algorithms: "xgboost"   # "all" or name of specific algorithm
-  model: "main" # "main" or "baseline"
+  model: "main"
 editor_options: 
   chunk_output_type: console
 ---
@@ -31,8 +29,6 @@ This script aggregates all results/metrics for a batch or batches of jobs that t
 
 ```{r}
 study <- params$study
-window <- params$window
-lead <- params$lead 
 version <- params$version
 cv <- params$cv
 algorithms <- params$algorithms
@@ -69,11 +65,8 @@ source("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true
 
 path_input <- format_path(str_c("studydata/risk/chtc/", study))
 path_models <- format_path(str_c("studydata/risk/models/", study))
-path_output <- format_path(str_c("studydata/risk/chtc/", study,
-                                 #"/train_glmnet_nested_1_x_10_3_x_10_v1_main/output"))
-                                 "/train_xgboost_nested_1_x_10_3_x_10_v2_main/output"))
-                                 #"/train_xgboost_nested_1_x_10_3_x_10_v3_main/output"))
-                                 #"/train_xgboost_nested_1_x_10_3_x_10_v4_main/output"))
+path_output <- format_path(str_c("studydata/risk/chtc/", study))
+
 ```
 
 Chunk Defaults
@@ -100,6 +93,7 @@ Set up object for results
 Get batch_names
 
 ```{r}
+batch_name <- str_c("train_", algorithms, "_", cv, "_", version, "_", model)
 # batch_names <- list.dirs(path_input, full.names = FALSE, recursive = FALSE)
 #   
 # if (algorithms == "all") {
@@ -186,20 +180,20 @@ Loop over batch_names to read in files and perform checks
 
 Load in results file
 ```{r}
-results_all <- read_csv(here::here(path_output, "batch_results.csv"),
+results_all <- read_csv(here::here(path_input, batch_name, "output", "batch_results.csv"),
                         show_col_types = FALSE)
 ```
 
 Remove duplicate rows (e.g., same hyper-parameters across multiple batches)
 
 ```{r}
-nrow(results_all)
-
-results_all <- results_all |> 
-  distinct(split_num, outer_split_num, inner_split_num, algorithm, feature_set,
-           hp1, hp2, hp3, resample, .keep_all = TRUE)
-
-nrow(results_all)
+# nrow(results_all)
+# 
+# results_all <- results_all |> 
+#   distinct(split_num, outer_split_num, inner_split_num, algorithm, feature_set,
+#            hp1, hp2, hp3, resample, .keep_all = TRUE)
+# 
+# nrow(results_all)
 ```
 
 Final checks across all batches
@@ -221,11 +215,11 @@ CP: commented out for now
 Save raw metrics file
 
 ```{r}
-#results_all %>% 
-  # arrange(split_num, outer_split_num, inner_split_num, algorithm, resample
-#  write_csv(here::here(path_models, str_c("inner_metrics_", 
-#                                            window, "_", lead, "_", version, "_", 
-#                                            cv, "_", model, ".csv")))
+results_all %>%
+  arrange(split_num, outer_split_num, inner_split_num, algorithm, resample) |> 
+  write_csv(here::here(path_models, str_c("inner_metrics_",
+                                             version, "_",
+                                             cv, "_", model, ".csv")))
 ```
 
 ### Median metrics across inner folds for model configurations
@@ -236,11 +230,10 @@ This median performance for each configuration over inner x outer folds (e.g., 3
 ```{r}
 metrics_avg <- results_all %>% 
   group_by(algorithm, feature_set, hp1, hp2, hp3, resample) %>% 
-   summarize(across(c(accuracy, bal_accuracy, roc_auc, sens, spec, ppv, npv),
-                    median),
-             n_jobs = n(), .groups = "drop") %>% 
-  relocate(n_jobs) %>% 
-  arrange(desc(roc_auc)) |> 
+   summarize(median_roc_auc = median(roc_auc),
+             n_folds = n(), .groups = "drop") %>% 
+  relocate(n_folds) %>% 
+  arrange(desc(median_roc_auc)) |> 
   ungroup()
 
 metrics_avg |> 
