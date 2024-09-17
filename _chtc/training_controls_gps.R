@@ -9,22 +9,22 @@
 # xgboost all context features v1
 # glmnet all context features v1
 # xgboost all context features v2
+# xgboost raw and diff context features v3
 
 # Batches to do:
-# xgboost raw and diff context features v3
-# xgboost affective features
+# xgboost affective + context features, raw and diff v4
 
 
 # SET GLOBAL PARAMETERS--------------------
 study <- "gps"
 window <- "1day"
 lead <- 0
-version <- "v3" 
+version <- "v4" 
 algorithm <- "xgboost"
 model <- "main"
 
-feature_set <- c("context_rawdiff") # GPS feature set name
-data_trn <- str_c("features.csv")
+feature_set <- c("context_affect_rawdiff") # GPS feature set name
+data_trn <- str_c("features_affect_context.csv")
 
 seed_splits <- 102030
 
@@ -108,7 +108,8 @@ format_data <- function (df){
     mutate(y = factor(y, levels = c(!!y_level_pos, !!y_level_neg)), 
            across(where(is.character), factor)) |>
     select(-c(dttm_label)) |> 
-    select(-(contains("pratesum"))) # for raw, diff -- remove pratesum
+    select(-(contains("pratesum"))) |>  # for raw, diff -- remove pratesum
+    select(-c(contains("pvar"))) # for raw, diff -- remove pvar
   # Now include additional mutates to change classes for columns as needed
   # see https://jjcurtin.github.io/dwt/file_and_path_management.html#using-a-separate-mutate
 }
