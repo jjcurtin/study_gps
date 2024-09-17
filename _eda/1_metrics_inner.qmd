@@ -13,7 +13,7 @@ params:
   study: "gps"
   window: "1day"
   lead: 0
-  version: "v3"
+  version: "2"
   cv: "nested"
   algorithms: "xgboost"   # "all" or name of specific algorithm
   model: "main" # "main" or "baseline"
@@ -71,8 +71,9 @@ path_input <- format_path(str_c("studydata/risk/chtc/", study))
 path_models <- format_path(str_c("studydata/risk/models/", study))
 path_output <- format_path(str_c("studydata/risk/chtc/", study,
                                  #"/train_glmnet_nested_1_x_10_3_x_10_v1_main/output"))
-                                 #"/train_xgboost_nested_1_x_10_3_x_10_v2_main/output"))
-                                 "/train_xgboost_nested_1_x_10_3_x_10_v3_main/output"))
+                                 "/train_xgboost_nested_1_x_10_3_x_10_v2_main/output"))
+                                 #"/train_xgboost_nested_1_x_10_3_x_10_v3_main/output"))
+                                 #"/train_xgboost_nested_1_x_10_3_x_10_v4_main/output"))
 ```
 
 Chunk Defaults
