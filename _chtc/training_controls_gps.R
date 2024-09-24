@@ -2,24 +2,27 @@
 
 # NOTES------------------------------
 
-# v2: update context feature type with more information for other category
-# v3: remove pratesum features
+# v2: update context feature `type` with more information for values labeled other, expand mtry hyperparameter range downwards to include 10 and 15
+# v3: remove pratesum features due to high missingness
+# v4: add in preliminary context features (location variance, time in transit, time spent out of the house in the evening)
+# v5: recalculate preliminary context features (location variance, time in transit, time spent out of the house in the evening)
 
 # Batches done:
 # xgboost all context features v1
 # glmnet all context features v1
 # xgboost all context features v2
 # xgboost raw and diff context features v3
+# xgboost affective + context features, raw and diff v4
+# xgboost recalculate affective and context features, raw and diff v5
 
 # Batches to do:
-# xgboost affective + context features, raw and diff v4
 
 
 # SET GLOBAL PARAMETERS--------------------
 study <- "gps"
 window <- "1day"
 lead <- 0
-version <- "v4" 
+version <- "v5" 
 algorithm <- "xgboost"
 model <- "main"
 
@@ -108,8 +111,8 @@ format_data <- function (df){
     mutate(y = factor(y, levels = c(!!y_level_pos, !!y_level_neg)), 
            across(where(is.character), factor)) |>
     select(-c(dttm_label)) |> 
-    select(-(contains("pratesum"))) |>  # for raw, diff -- remove pratesum
-    select(-c(contains("pvar"))) # for raw, diff -- remove pvar
+    select(-(contains("pratesum"))) #|>  # for raw, diff -- remove pratesum
+    #select(-c(contains("pvar"))) # for raw, diff -- remove pvar
   # Now include additional mutates to change classes for columns as needed
   # see https://jjcurtin.github.io/dwt/file_and_path_management.html#using-a-separate-mutate
 }
