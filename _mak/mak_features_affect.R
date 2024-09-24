@@ -44,7 +44,7 @@ data <- read_csv(here::here(path_gps, "gps_enriched.csv.xz"), show_col_types = F
          known_loc = if_else(is.na(known_loc), FALSE, known_loc),  # don't filter based on known loc
          transit = if_else(speed <= 4, FALSE, TRUE),
          home = if_else(type == "home", TRUE, FALSE),
-         evening = if_else((as.numeric(hour(dttm_obs)) >= 17 | as.numeric(hour(dttm_obs)) < 4)
+         evening_out = if_else((as.numeric(hour(dttm_obs)) >= 19 | as.numeric(hour(dttm_obs)) < 4)
                            & home == FALSE,
                            TRUE, FALSE))
 
@@ -70,7 +70,7 @@ lead <-  0
 # feature function test
 score_location_variance <- function(the_subid, the_dttm_label, x_all, 
                          period_durations, data_start, 
-                         lat, lon, context_values = NA) {
+                         lat, lon) {
   
   # Gets value for col_name and returns a raw variance and a variance change
   
@@ -95,16 +95,15 @@ score_location_variance <- function(the_subid, the_dttm_label, x_all,
     return(the_var)
   }
       
-  features <- foreach (context_value = context_values, .combine = "cbind") %do% {
-      # get baseline variance using all data before label dttm
-      baseline <- data %>% 
-        get_x_period(the_subid, the_dttm_label, x_all = ., lead, period_duration = Inf) %>% # Inf gives all data back to first obs
-        #summarise("base" := period_var(.data[[col_name]])) %>% # base_lat, base lon, then add together and take log
-        #summarise("base" := log10(period_var(.data[[lat]]) + period_var(.data[[lon]]) + 1)) %>%
-        summarise("base" := log10(period_var(lat) + period_var(lon) + 1)) %>%
-        pull(base)
+  # get baseline variance using all data before label dttm
+  baseline <- data %>% 
+    get_x_period(the_subid, the_dttm_label, x_all = ., lead, period_duration = Inf) %>% # Inf gives all data back to first obs
+    #summarise("base" := period_var(.data[[col_name]])) %>% # base_lat, base lon, then add together and take log
+    #summarise("base" := log10(period_var(.data[[lat]]) + period_var(.data[[lon]]) + 1)) %>%
+    summarise("base" := log10(period_var(lat) + period_var(lon) + 1)) %>%
+    pull(base)
       
-      foreach (period_duration = period_durations, .combine = "cbind") %do% {
+  features <- foreach (period_duration = period_durations, .combine = "cbind") %do% {
         
         raw <- data %>%
           get_x_period(the_subid, the_dttm_label, ., lead, period_duration) %>% 
@@ -118,7 +117,6 @@ score_location_variance <- function(the_subid, the_dttm_label, x_all,
           #"{data_type_value}.p{period_duration}.pvar_{col_name}" := (raw - baseline) / baseline) %>% 
           rename_with(~str_remove_all(.x, ".NA")) %>% 
           rename_with(~str_remove(.x, "^NA."))
-      }
   }
   
   features <- features %>%
