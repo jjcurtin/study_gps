@@ -43,7 +43,10 @@ data <- read_csv(here::here(path_gps, "gps_enriched.csv.xz"), show_col_types = F
          known_loc = if_else(dist_context <= dist_max & speed <= 4, TRUE, FALSE),
          known_loc = if_else(is.na(known_loc), FALSE, known_loc),  # don't filter based on known loc
          transit = if_else(speed <= 4, FALSE, TRUE),
-         evening = if_else(as.numeric(hour(dttm_obs)) >= 17 | as.numeric(hour(dttm_obs)) < 4, TRUE, FALSE))
+         home = if_else(type == "home", TRUE, FALSE),
+         evening = if_else((as.numeric(hour(dttm_obs)) >= 17 | as.numeric(hour(dttm_obs)) < 4)
+                           & home == FALSE,
+                           TRUE, FALSE))
 
 labels <- read_csv(here::here(path_gps, "labels.csv"), show_col_types = FALSE) |>
   # dttm_label represents label ONSET, required for score_ratesum function
@@ -65,28 +68,18 @@ lead <-  0
 
 
 # feature function test
-score_variance <- function(the_subid, the_dttm_label, x_all, 
-                         period_durations, lead, data_start, 
-                         col_name, data_type_col_name = NA, data_type_values = NA, 
-                         context_col_name = NA, context_values = NA, passive = FALSE) {
+score_location_variance <- function(the_subid, the_dttm_label, x_all, 
+                         period_durations, data_start, 
+                         lat, lon, context_values = NA) {
   
-  # Gets value for col_name and returns a raw variance, a variance change, and a proportion change in variance from baseline
-  # i.e., (raw variance - baseline variance) / baseline variance
-  # proportion score set to NA if baseline == 0
+  # Gets value for col_name and returns a raw variance and a variance change
   
   # the_subid: single integer subid
   # the_dttm_label: single dttm for label onset
   # x_all:  raw data for all subids and communications
   # period_durations: vector of 1+ integer period_durations in hours
-  # lead: the lead time for prediction in hours (a single integer)
   # data_start: a df with data_start = min(study_start, comm_start) for all subids
   # col_name: column name for raw data for feature as string - should be continuous var
-  # data_type_col_name: name of column name to filter on for data log type values
-  # data_type_values: a vector of 1+ meta data log types to filter on (sms, or voice, if empty uses all logs)
-  # context_col_name: col_name of context feature. Set to NA if no context filter
-  # context_values: a vector of 1+ context values to filter on.  Set to NA if no context filter
-  # passive: is a variable to distinguish variables that use no context and to append passive
-  # onto those variable names for filtering down feature sets in recipes (set to TRUE if passive)
   
   # filter down to when stationary
   data <- data |> filter(transit == FALSE)
@@ -101,47 +94,31 @@ score_variance <- function(the_subid, the_dttm_label, x_all,
     
     return(the_var)
   }
-  
-  # nested foreach - period_duration within data_type_value within context_value
-  
+      
   features <- foreach (context_value = context_values, .combine = "cbind") %do% {
-    
-    # Filter data if context_value provided
-    if (!is.na(context_value)) {
-      x_c <- x_all %>%
-        filter(.data[[context_col_name]] == context_value) 
-    } else x_c <- x_all
-    
-    
-    foreach (data_type_value = data_type_values, .combine = "cbind") %do% {
-      
-      if (!is.na(data_type_value)) {
-        x <- x_c %>% filter(.data[[data_type_col_name]] == data_type_value) 
-      } else x <- x_c
-      
       # get baseline variance using all data before label dttm
-      baseline <- x %>% 
+      baseline <- data %>% 
         get_x_period(the_subid, the_dttm_label, x_all = ., lead, period_duration = Inf) %>% # Inf gives all data back to first obs
-        summarise("base" := period_var(.data[[col_name]])) %>% # base_lat, base lon, then add together and take log
+        #summarise("base" := period_var(.data[[col_name]])) %>% # base_lat, base lon, then add together and take log
+        #summarise("base" := log10(period_var(.data[[lat]]) + period_var(.data[[lon]]) + 1)) %>%
+        summarise("base" := log10(period_var(lat) + period_var(lon) + 1)) %>%
         pull(base)
       
       foreach (period_duration = period_durations, .combine = "cbind") %do% {
         
-        raw <- x %>%
+        raw <- data %>%
           get_x_period(the_subid, the_dttm_label, ., lead, period_duration) %>% 
-          summarise("raw" := period_var(.data[[col_name]])) %>% # raw_lat, raw_lon, add together
+          #summarise("raw" := log10(period_var(.data[[lat]]) + period_var(.data[[lon]]) + 1)) %>% # raw_lat, raw_lon, add together
+          summarise("raw" := log10(period_var(lat) + period_var(lon) + 1)) %>%
           pull(raw)
         
-        passive_label <- if_else(passive, "passive", "NA")
-        
         tibble(
-          "{data_type_value}.p{period_duration}.l{lead}.rvar_{col_name}.{context_col_name}.{context_value}.{passive_label}" := raw,
-          "{data_type_value}.p{period_duration}.l{lead}.dvar_{col_name}.{context_col_name}.{context_value}.{passive_label}" := raw - baseline,
-          "{data_type_value}.p{period_duration}.l{lead}.pvar_{col_name}.{context_col_name}.{context_value}.{passive_label}" := (raw - baseline) / baseline) %>% 
+          "p{period_duration}.rvar_location" := raw,
+          "p{period_duration}.dvar_location" := raw - baseline) |> 
+          #"{data_type_value}.p{period_duration}.pvar_{col_name}" := (raw - baseline) / baseline) %>% 
           rename_with(~str_remove_all(.x, ".NA")) %>% 
           rename_with(~str_remove(.x, "^NA."))
       }
-    }
   }
   
   features <- features %>%
@@ -156,7 +133,7 @@ score_variance <- function(the_subid, the_dttm_label, x_all,
 
 
 #labels <- labels |> 
-  #slice_head(n = 100)
+#  slice_head(n = 100)
 
 #i_label <- 1   # for testing
 
@@ -203,52 +180,15 @@ features <- foreach (i_label = 1:nrow(labels),
                        
                        
                        # location variance
-                       feature_row <- feature_row |>  
-                         full_join(
-                          (score_variance(subid, 
-                                                dttm_label,
-                                                x_all  = data,
-                                                period_durations = period_durations,
-                                                lead = lead, 
-                                                data_start = dates, 
-                                                col_name = "lat")), 
-                                   by = c("subid", "dttm_label"))
-                       
-                       feature_row <- feature_row |>  
-                         full_join(
-                           (score_variance(subid, 
+                       feature_row <- feature_row |> 
+                         full_join(score_location_variance(subid, 
                                            dttm_label,
                                            x_all  = data,
                                            period_durations = period_durations,
-                                           lead = lead, 
                                            data_start = dates, 
-                                           col_name = "lon")), 
-                           by = c("subid", "dttm_label"))
-                       
-                       # period_durations <- c(6, 12, 24, 48, 72, 168) 
-                       
-                       feature_row <- feature_row |> 
-                                # r
-                         mutate(p6.l0.rvar_log = log(p6.l0.rvar_lat + p6.l0.rvar_lon),
-                                p12.l0.rvar_log = log(p12.l0.rvar_lat + p12.l0.rvar_lon),
-                                p24.l0.rvar_log = log(p24.l0.rvar_lat + p24.l0.rvar_lon),
-                                p48.l0.rvar_log = log(p48.l0.rvar_lat + p48.l0.rvar_lon),
-                                p72.l0.rvar_log = log(p72.l0.rvar_lat + p72.l0.rvar_lon),
-                                p168.l0.rvar_log = log(p168.l0.rvar_lat + p168.l0.rvar_lon),
-                                # d
-                                p6.l0.dvar_log = log(p6.l0.dvar_lat + p6.l0.dvar_lon),
-                                p12.l0.dvar_log = log(p12.l0.dvar_lat + p12.l0.dvar_lon),
-                                p24.l0.dvar_log = log(p24.l0.dvar_lat + p24.l0.dvar_lon),
-                                p48.l0.dvar_log = log(p48.l0.dvar_lat + p48.l0.dvar_lon),
-                                p72.l0.dvar_log = log(p72.l0.dvar_lat + p72.l0.dvar_lon),
-                                p168.l0.dvar_log = log(p168.l0.dvar_lat + p168.l0.dvar_lon),
-                                # p
-                                p6.l0.pvar_log = log(p6.l0.pvar_lat + p6.l0.pvar_lon),
-                                p12.l0.pvar_log = log(p12.l0.pvar_lat + p12.l0.pvar_lon),
-                                p24.l0.pvar_log = log(p24.l0.pvar_lat + p24.l0.pvar_lon),
-                                p48.l0.pvar_log = log(p48.l0.pvar_lat + p48.l0.pvar_lon),
-                                p72.l0.pvar_log = log(p72.l0.pvar_lat + p72.l0.pvar_lon),
-                                p168.l0.pvar_log = log(p168.l0.pvar_lat + p168.l0.pvar_lon))
+                                           lat = lat, lon = lon),
+                       by = c("subid", "dttm_label"))
+           
                        
                        
                        # n clusters -- could use number of contexts collected
@@ -278,37 +218,10 @@ features |> select(contains("dratesum") & contains("evening")) |>  skimr::skim()
 
 features |> select(contains("pratesum") & contains("evening")) |> skimr::skim()
 
-## lat
-features |> select(contains("rvar") & contains("lat")) |> skimr::skim()
+## location variance
+features |> select(contains("rvar") & contains("location")) |> skimr::skim()
 
-features |> select(contains("dvar") & contains("lat")) |>  skimr::skim()
-
-features |> select(contains("pvar") & contains("lat")) |> skimr::skim()
-
-## lon
-features |> select(contains("rvar") & contains("lon")) |> skimr::skim()
-
-features |> select(contains("dvar") & contains("lon")) |>  skimr::skim()
-
-features |> select(contains("pvar") & contains("lon")) |> skimr::skim()
-
-## log of lat/lon
-features |> select(contains("rvar") & contains("log")) |> skimr::skim()
-
-features |> select(contains("dvar") & contains("log")) |>  skimr::skim()
-
-features |> select(contains("pvar") & contains("log")) |> skimr::skim()
-
-# remove some columns with very high missingness
-
-features <- features |> select(-(contains("log")))
-
-features <- features |> select(-(contains("p6.l0.rvar")))
-features <- features |> select(-(contains("p12.l0.rvar")))
-features <- features |> select(-(contains("p6.l0.dvar")))
-features <- features |> select(-(contains("p12.l0.dvar")))
-features <- features |> select(-(contains("p6.l0.pvar")))
-features <- features |> select(-(contains("p12.l0.pvar")))
+features |> select(contains("dvar") & contains("location")) |>  skimr::skim()
 
 # Add outcome label and other info to features ------------------
 features |>
