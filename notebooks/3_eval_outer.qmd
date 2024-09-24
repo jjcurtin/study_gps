@@ -10,9 +10,9 @@ format:
   html:
     embed-resources: true
 params:
-  study: "ema"
-  cv: "nested"
-  window: "1hour"
+  study: "gps"
+  cv: "nested_1_x_10_3_x_10"
+  window: "1day"
   model: "main" # Note this should always be "main" - baseline models have separate outer script
   lead: 0
   version: "v5"
@@ -98,12 +98,10 @@ options(tibble.print_max = Inf)
 ### Model Performance Metrics
 
 ```{r read_metrics_preds}
-preds_out <- read_rds(here::here(path_models, str_c("outer_preds_", window, "_", 
-                                                    lead, "_", version, "_", 
-                                                    cv, "_", model, ".rds")))
-metrics_out <- read_rds(here::here(path_models, str_c("outer_metrics_", window, "_", 
-                                                      lead, "_", version, "_", 
-                                                    cv, "_", model, ".rds")))
+preds_out <- read_csv(here::here(path_models, str_c("inner_metrics_", version, "_", 
+                                                    cv, "_", model, ".csv")))
+metrics_out <- read_csv(here::here(path_models, str_c("inner_metrics_", version, "_", 
+                                                    cv, "_", model, ".csv")))
 ```
 
 #### Inner AUC
@@ -112,17 +110,22 @@ Best model configurations were selected using the median AUCs across 10 inner fo
 
 This comes from metrics_out validation sets.  Only used for auROC in validation sets
 
+> CP: why is this lower than what it looked like when I ran the inner metrics file?
+
 ```{r}
 metrics_out |> glimpse()
 
 metrics_out |> 
-  summarize(median(roc_auc_in), mean(roc_auc_in), min(roc_auc_in), max(roc_auc_in), sd(roc_auc_in))
+  #summarize(median(roc_auc_in), mean(roc_auc_in), min(roc_auc_in), max(roc_auc_in), sd(roc_auc_in))
+  summarize(median(roc_auc), mean(roc_auc), min(roc_auc), max(roc_auc), sd(roc_auc))
 ```
 
 
 #### Final Test/Outer Metrics
 
 This calculates auROC and other metrics using test sets (out loop held out folds).  The metrics also use probability corrected (prob_beta) probabilities.
+
+> CP: it looks like I need to manually add back in true lapse/no lapse outcomes?
 
 First get auROCs 
 ```{r}
