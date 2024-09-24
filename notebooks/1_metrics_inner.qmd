@@ -11,7 +11,7 @@ format:
     embed-resources: true
 params:
   study: "gps"
-  version: "v2"
+  version: "v5"
   cv: "nested_1_x_10_3_x_10"
   algorithms: "xgboost"   # "all" or name of specific algorithm
   model: "main"
@@ -210,8 +210,6 @@ Final checks across all batches
   results_all %>% tab(resample) %>% print()
 ```
 
-CP: commented out for now
-
 Save raw metrics file
 
 ```{r}
@@ -335,7 +333,7 @@ for (k in algorithms) {
                resample = factor(resample)) %>% 
         filter(str_detect(resample, "down")) %>% 
         ggplot(mapping = aes(x = log_hp1, 
-                         y = roc_auc, 
+                         y = median_roc_auc, 
                          group = hp3, 
                          color = hp3)) +
           geom_line() +
@@ -353,7 +351,7 @@ for (k in algorithms) {
                resample = factor(resample)) %>% 
         filter(str_detect(resample, "up")) %>% 
         ggplot(mapping = aes(x = log_hp1, 
-                         y = roc_auc, 
+                         y = median_roc_auc, 
                          group = hp3, 
                          color = hp3)) +
           geom_line() +
@@ -371,7 +369,7 @@ for (k in algorithms) {
                resample = factor(resample)) %>% 
         filter(str_detect(resample, "none")) %>% 
         ggplot(mapping = aes(x = log_hp1, 
-                         y = roc_auc, 
+                         y = median_roc_auc, 
                          group = hp3, 
                          color = hp3)) +
           geom_line() +
@@ -391,7 +389,7 @@ for (k in algorithms) {
                resample = factor(resample)) %>% 
         filter(str_detect(resample, "down")) %>% 
         ggplot(mapping = aes(x = hp2, 
-                         y = roc_auc, 
+                         y = median_roc_auc, 
                          group = log_hp1, 
                          color = log_hp1)) +
           geom_line() +
@@ -409,7 +407,7 @@ for (k in algorithms) {
                resample = factor(resample)) %>% 
         filter(str_detect(resample, "up")) %>% 
         ggplot(mapping = aes(x = hp2, 
-                         y = roc_auc, 
+                         y = median_roc_auc, 
                          group = log_hp1, 
                          color = log_hp1)) +
           geom_line() +
@@ -427,7 +425,7 @@ for (k in algorithms) {
                resample = factor(resample)) %>% 
         filter(str_detect(resample, "none")) %>% 
         ggplot(mapping = aes(x = hp2, 
-                         y = roc_auc, 
+                         y = median_roc_auc, 
                          group = log_hp1, 
                          color = log_hp1)) +
           geom_line() +
@@ -446,7 +444,7 @@ for (k in algorithms) {
                resample = factor(resample)) %>% 
         filter(str_detect(resample, "down")) %>% 
         ggplot(mapping = aes(x = hp3, 
-                         y = roc_auc, 
+                         y = median_roc_auc, 
                          group = hp2, 
                          color = hp2)) +
           geom_line() +
@@ -464,7 +462,7 @@ for (k in algorithms) {
                resample = factor(resample)) %>% 
         filter(str_detect(resample, "up")) %>% 
         ggplot(mapping = aes(x = hp3, 
-                         y = roc_auc, 
+                         y = median_roc_auc, 
                          group = hp2, 
                          color = hp2)) +
           geom_line() +
@@ -482,7 +480,7 @@ for (k in algorithms) {
                resample = factor(resample)) %>% 
         filter(str_detect(resample, "none")) %>% 
         ggplot(mapping = aes(x = hp3, 
-                         y = roc_auc, 
+                         y = median_roc_auc, 
                          group = hp2, 
                          color = hp2)) +
           geom_line() +
