@@ -1,5 +1,20 @@
 ---
-title: "Predictions"
+title: "Generate INNER predictions for `r params$model` models of training jobs from CHTC for `r params$study` study with version `r params$version` using `r params$cv` CV"
+author: "John Curtin & Claire Punturieri"
+date: "`r lubridate::today()`"
+output: 
+  html_document:
+    toc: true 
+    toc_depth: 4
+format:
+  html:
+    embed-resources: true
+params:
+  study: "gps"
+  version: "v5"
+  cv: "nested_1_x_10_3_x_10"
+  algorithms: "xgboost"   # "all" or name of specific algorithm
+  model: "main"
 editor_options: 
   chunk_output_type: console
 ---
@@ -8,9 +23,8 @@ editor_options:
 ```{r}
 study <- params$study
 cv <- params$cv
-window <- params$window
 model <- params$model
-lead <- params$lead 
+algorithms <- params$algorithms
 version <- params$version
 ```
 
@@ -51,8 +65,6 @@ devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/chtc/sta
 
 Absolute paths
 ```{r, absolute_paths}
-path_processed <- format_path(str_c("studydata/risk/data_processed/", study))
-path_input <- format_path(str_c("studydata/risk/chtc/", study))
 path_models <- format_path(str_c("studydata/risk/models/", study))
 ```
 

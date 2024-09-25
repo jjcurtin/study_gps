@@ -1,5 +1,20 @@
 ---
-title: "2_eval_auROC_inner"
+title: "Evaluate inner auROC for `r params$model` models of training jobs from CHTC for `r params$study` study with version `r params$version` using `r params$cv` CV"
+author: "John Curtin & Claire Punturieri"
+date: "`r lubridate::today()`"
+output: 
+  html_document:
+    toc: true 
+    toc_depth: 4
+format:
+  html:
+    embed-resources: true
+params:
+  study: "gps"
+  version: "v5"
+  cv: "nested_1_x_10_3_x_10"
+  algorithms: "xgboost"   # "all" or name of specific algorithm
+  model: "main"
 editor_options: 
   chunk_output_type: console
 ---
@@ -7,9 +22,8 @@ editor_options:
 ```{r}
 study <- params$study
 cv <- params$cv
-window <- params$window
 model <- params$model
-lead <- params$lead 
+algorithms <- params$algorithms
 version <- params$version
 ```
 
@@ -78,14 +92,10 @@ metrics <- read_csv(here::here(path_models, str_c("best_config_",
 
 ```{r}
 metrics |> 
-  filter(algorithm == best_config$algorithm,
-         feature_set == best_config$feature_set,
-         hp1 == best_config$hp1,
-         hp2 == best_config$hp2,
-         hp3 == best_config$hp3,
-         resample == best_config$resample) |> 
   ggplot(aes(x = roc_auc)) +
-  geom_histogram(bins = 10)
+  geom_histogram(bins = 10, fill = "white", color = "darkred") +
+  geom_vline(xintercept = median(metrics$roc_auc), color = "darkred", lwd = 1) +
+  labs(x = "auROC", y = "Frequency")
 ```
 
 
