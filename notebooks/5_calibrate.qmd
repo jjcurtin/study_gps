@@ -9,11 +9,23 @@ output:
 format:
   html:
     embed-resources: true
+params:
+  study: "gps"
+  version: "v5"
+  cv: "nested_1_x_10_3_x_10"
+  algorithms: "xgboost"   # "all" or name of specific algorithm
+  model: "main"
 editor_options: 
   chunk_output_type: console
 ---
 
-Make new script that does calibration analyses and auroc curve (from 3_eval_outer in shared/scripts_parameterized/nested) --> ADD AUROC CURVE
+```{r}
+study <- params$study
+cv <- params$cv
+model <- params$model
+algorithms <- params$algorithms
+version <- params$version
+```
 
 Function conflicts
 ```{r, packages_workflow}
@@ -81,6 +93,7 @@ get_brier <- function(split_num, df){
 
 ```{r}
 probs <- read_rds(file.path(path_processed, str_c("inner_predictions.rds"))) |>
+  # cp added mutate, guessing we need this?
   mutate(label = truth) |> 
   pivot_longer(cols = starts_with("prob"), 
                names_to = "method", 
@@ -90,6 +103,8 @@ probs <- read_rds(file.path(path_processed, str_c("inner_predictions.rds"))) |>
 
 
 ## Brier Scores
+
+> CP: this returns NaNs right now. I think the issue is that get_brier is looking for a column `method` with different types of probabilities -- raw, logi, iso, and beta. Right now there is only a general prob?
 
 ```{r}
 
@@ -123,4 +138,71 @@ probs |>
 
 ```
 
+#### ROC curve
+- This is single ROC by concatenating all outer folds.
+
+> CP: not sure if this is the appropriate probability measure, but code works!
+
+```{r roc_info}
+#preds_out %>%
+  #roc_auc(prob_beta, truth = label)
+
+#roc_data <- preds_out %>% 
+  #roc_curve(prob_beta, truth = label)
+
+roc_data <- probs |> 
+  roc_curve(prob, truth = truth)
+  
+roc_data |>  
+  ggplot(aes(x = 1 - specificity, y = sensitivity, color = .threshold)) +
+  geom_path(linewidth = 2) +
+  geom_abline(lty = 3) +
+  coord_fixed(xlim = c(0, 1), ylim = c(0, 1)) +
+  labs(x = "Specificity",
+       y = "Sensitivity") +
+  scale_x_continuous(breaks = seq(0,1,.25),
+    labels = sprintf("%.2f", seq(1,0,-.25))) +
+  scale_color_gradient(low="blue", high="red") +
+  theme(axis.text = element_text(size = rel(1.50)), 
+        axis.title = element_text(size = rel(1.75)))
+```
+
+And these are the curves for each outer fold
+```{r}
+# rocs per fold
+#roc_folds <- preds_out %>%
+  #nest(.by = outer_split_num, .key = "preds") |> 
+  #mutate(roc = map(preds, \(preds) roc_curve(preds, prob_beta, 
+                                             #truth = label)))
+roc_folds <- probs %>%
+  nest(.by = outer_split_num, .key = "preds") |> 
+  mutate(roc = map(preds, \(preds) roc_curve(preds, prob, 
+                                             truth = truth)))
+
+fig_roc_folds <- roc_data %>%  # plot region from full concatenated data 
+  ggplot(aes(x = 1 - specificity, y = sensitivity)) + 
+  geom_abline(lty = 3) +
+  coord_fixed(xlim = c(0, 1), ylim = c(0, 1)) +
+  labs(x = "Specificity",
+       y = "Sensitivity") +
+  scale_x_continuous(breaks = seq(0,1,.25),
+    labels = sprintf("%.2f", seq(1,0,-.25))) +
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank())
+  
+for (i in 1:nrow(roc_folds)) {
+  fig_roc_folds <- fig_roc_folds +
+     geom_path(data = roc_folds$roc[[i]],
+               mapping = aes(x = 1 - specificity, y = sensitivity),
+               color = "gray")
+}
+
+#add full concatenated curve
+fig_roc_folds +
+     geom_path(data = roc_data,
+               mapping = aes(x = 1 - specificity, y = sensitivity, color = .threshold),
+               linewidth = 2) +
+    scale_color_gradient(low="blue", high="red")
+```
 
