@@ -93,8 +93,8 @@ metrics <- read_csv(here::here(path_models, str_c("best_config_",
 ```{r}
 metrics |> 
   ggplot(aes(x = roc_auc)) +
-  geom_histogram(bins = 10, fill = "white", color = "darkred") +
-  geom_vline(xintercept = median(metrics$roc_auc), color = "darkred", lwd = 1) +
+  geom_histogram(bins = 10, fill = "dodgerblue", color = "dodgerblue") +
+  geom_vline(xintercept = median(metrics$roc_auc), color = "darkblue", lwd = 1, linetype="dotdash") +
   labs(x = "auROC", y = "Frequency")
 ```
 

@@ -1,5 +1,5 @@
 ---
-title: "Generate INNER predictions for `r params$model` models of training jobs from CHTC for `r params$study` study with version `r params$version` using `r params$cv` CV"
+title: "Generate INNER predictions "
 author: "John Curtin & Claire Punturieri"
 date: "`r lubridate::today()`"
 output: 
@@ -9,27 +9,13 @@ output:
 format:
   html:
     embed-resources: true
-params:
-  study: "gps"
-  version: "v5"
-  cv: "nested_1_x_10_3_x_10"
-  algorithms: "xgboost"   # "all" or name of specific algorithm
-  model: "main"
 editor_options: 
   chunk_output_type: console
 ---
 
 
-```{r}
-study <- params$study
-cv <- params$cv
-model <- params$model
-algorithms <- params$algorithms
-version <- params$version
-```
-
 Function conflicts
-```{r, packages_workflow}
+```{r}
 #| message: false
 #| warning: false
 
@@ -40,13 +26,14 @@ tidymodels_conflictRules()
 ```
 
 Packages for script
-```{r, packages_script}
+```{r}
 #| message: false
 #| warning: false
 
 library(tidyverse)
 library(tidymodels)
-library(tidyposterior)
+library(themis)
+#library(tidyposterior)
 # library(SHAPforxgboost)
 # library(rstanarm)
 
@@ -54,41 +41,38 @@ theme_set(theme_classic())
 ```
 
 Source support functions
-```{r source_functions}
+```{r}
 # EDA
-devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/fun_eda.R?raw=true")
 devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true")
 # CHTC support functions
 devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/chtc/static_files/fun_chtc.R?raw=true")
+# Source current training controls
+source("_chtc/training_controls_gps.R")
 ```
 
 
 Absolute paths
-```{r, absolute_paths}
+```{r}
 path_models <- format_path(str_c("studydata/risk/models/", study))
-```
-
-
-Chunk Defaults
-```{r defaults}
-#| include: false
-
-knitr::opts_chunk$set(attr.output='style="max-height: 500px;"')
-
-options(tibble.width = Inf)
-options(tibble.print_max = Inf)
+path_processed <- format_path(str_c("studydata/risk/data_processed/", study))
 ```
 
 ```{r}
 metrics <- read_csv(here::here(path_models, str_c("best_config_",
                                              version, "_",
-                                             cv, "_", model, ".csv")))
+                                             cv_name, "_", model, ".csv")))
+```
+
+```{r}
+data <- read_csv(here::here(path_processed, data_trn)) |> 
+  format_data()
 ```
 
 ## Get best config
 ```{r}
-best_config <- metrics |> 
-  slice(1) |> 
+best_config <- metrics |>
+  slice(1) |>
+  select(algorithm, feature_set, hp1, hp2, hp3, resample) |> 
   print()
 ```
 
@@ -98,6 +82,383 @@ best_config <- metrics |>
 
 Need to re-run same  nested CV but ONLY for this one configuration
 
+### Create nested outer splits object
+```{r}
+splits <- data |>  
+  make_splits(cv_resample_type, cv_resample, cv_outer_resample, 
+              cv_inner_resample, cv_group, the_seed = seed_splits)
+```
 
+### Function to fit and evaluate a model configuration from configs
+```{r}
+tune_model_local <- function(config, rec, splits, cv_resample_type, inner_split_num,
+                             outer_split_num, hp2_glmnet_min = NULL, hp2_glmnet_max = NULL,
+                             hp2_glmnet_out = NULL, y_level_pos = NULL) {
+  # config: single-row config-specific tibble from jobs
+  # splits: rset object that contains all resamples
+  # rec: recipe (created manually or via build_recipe() function)
+  
+  mode_metrics <- metric_set(roc_auc)
+  
+  
+  # cp review if decide to use glmnet
+  if (config$algorithm == "glmnet") {
+    grid_penalty <- expand_grid(penalty = exp(seq(hp2_glmnet_min, hp2_glmnet_max, 
+                                                  length.out = hp2_glmnet_out)))
+    
+    # make rset for single held-in/held_out split
+    # does not work for bootstrapping
+    split <- make_rset(splits, cv_resample_type = cv_resample_type, 
+                       split_num = config$split_num, 
+                       inner_split_num = config$inner_split_num, 
+                       outer_split_num = config$outer_split_num)
+    
+    models <- logistic_reg(penalty = tune(),
+                            mixture = config$hp1) %>%
+      set_engine("glmnet") %>%
+      set_mode("classification") %>%
+      tune_grid(preprocessor = rec,
+                resamples = split,
+                grid = grid_penalty,
+                # metrics assume that positive event it first level
+                # make sure this is true in recipe
+                metrics = mode_metrics)
 
+    # create tibble of penalty and metrics returned 
+    results <- collect_metrics(models, summarize = FALSE) %>% 
+      rename(hp2 = penalty) %>% 
+      select(hp2, .metric, .estimate) %>% 
+      pivot_wider(., names_from = ".metric",
+                  values_from = ".estimate") %>%  
+      bind_cols(config %>% select(-hp2), .) %>% 
+      relocate(hp2, .before = hp3) 
+    
+    return(results)
+  }
+  
+  # cp review if using random_forest
+  if (config$algorithm == "random_forest") {
+    # extract fold associated with this config - 1 held in and 1 held out set and make 1 
+    # set of features for the held in and held out set 
+    features <- make_config_features(config = config, splits = splits, rec = rec, 
+                              cv_resample_type = cv_resample_type)
+    feat_in <- features$feat_in
+    feat_out <- features$feat_out
+    
+    # fit model on feat_in with config hyperparameter values 
+    model <- rand_forest(mtry = config$hp1,
+                         min_n = config$hp2,
+                         trees = config$hp3) %>%
+      set_engine("ranger",
+                 importance = "none",
+                 respect.unordered.factors = "order",
+                 oob.error = FALSE,
+                 seed = seed_splits) %>%
+      set_mode("classification") %>%
+      fit(y ~ .,
+          data = feat_in)
+    
+    # use get_metrics function to get a tibble that shows performance metrics
+    results <- get_metrics(model = model, feat_out = feat_out, ml_mode, 
+                            y_level_pos) %>% 
+      pivot_wider(., names_from = "metric",
+                  values_from = "estimate") %>%   
+      relocate(roc_auc) %>% 
+      bind_cols(config, .) 
+    
+    return(results)
+  }
+  
+  if (config$algorithm == "xgboost") {
+    
+    # extract fold associated with this config - 1 held in and 1 held out set and make 1 
+    # set of features for the held in and held out set
+    config$inner_split_num <- inner_split_num
+    config$outer_split_num <- outer_split_num
+    
+    features <- make_config_features(config = config, splits = splits, rec = rec, 
+                              cv_resample_type = cv_resample_type)
+    feat_in <- features$feat_in
+    feat_out <- features$feat_out
+    
+    # fit model on feat_in with config hyperparameter values 
+    model <- boost_tree(learn_rate = config$hp1,
+                        tree_depth = config$hp2,
+                        mtry = config$hp3,
+                        trees = 500,  # set high but use early stopping
+                        stop_iter = 20) %>% 
+      set_engine("xgboost",
+                 validation = 0.2) %>% 
+      set_mode("classification") %>%
+      fit(y ~ ., data = feat_in)
+    
+    # use get_metrics function to get a tibble that shows performance metrics
+    auroc <- get_metrics(model = model, feat_out = feat_out,
+                           ml_mode = "classification", y_level_pos) %>% 
+      pivot_wider(., names_from = "metric",
+                  values_from = "estimate") %>%   
+      pull(roc_auc)
+      
+    results <- tibble(outer_split_num, inner_split_num, truth = feat_out$y,
+                    prob = predict(model, feat_out,
+                                   type = "prob")[[str_c(".pred_", y_level_pos)]],
+                    auroc = auroc)
+    
+    return(results)
+  }
+  
+  if (config$algorithm == "rda") {
+    # extract fold associated with this config - 1 held in and 1 held out set and make 1 
+    # set of features for the held in and held out set 
+    features <- make_config_features(config = config, splits = splits, rec = rec, 
+                                     cv_resample_type = cv_resample_type)
+    feat_in <- features$feat_in
+    feat_out <- features$feat_out
+    
+    # fit model on feat_in with config hyperparameter values 
+    model <- discrim_regularized(frac_common_cov = config$hp1,
+                                 frac_identity = config$hp2) %>% 
+      set_engine("klaR") %>% 
+      fit(y ~ ., data = feat_in)
+    
+    # use get_metrics function to get a tibble that shows classification performance metrics
+    if (ml_mode == "classification") {
+      results <- get_metrics(model = model, feat_out = feat_out, ml_mode,
+                             y_level_pos) %>% 
+        pivot_wider(., names_from = "metric",
+                    values_from = "estimate") %>%   
+        relocate(sens, spec, ppv, npv, accuracy, bal_accuracy, roc_auc) %>% 
+        bind_cols(config, .) 
+    } else {
+      results <- get_metrics(model = model, feat_out = feat_out, ml_mode,
+                             y_level_pos) %>% 
+        bind_cols(config, .) 
+    }
+    
+    return(results)
+  }
+  
+  if (config$algorithm == "nnet") {
+    # extract fold associated with this config - 1 held in and 1 held out set and make 1 
+    # set of features for the held in and held out set 
+    features <- make_config_features(config = config, splits = splits, rec = rec, 
+                                     cv_resample_type = cv_resample_type)
+    feat_in <- features$feat_in
+    feat_out <- features$feat_out
+    
+    weights = (ncol(feat_in)-1)*config$hp3+config$hp3*2+config$hp3+1
+    
+    # fit model on feat_in with config hyperparameter values 
+    model <- mlp(hidden_units = config$hp3,
+                 penalty = config$hp2,
+                 epochs = config$hp1) %>% 
+      set_engine("nnet", MaxNWts = weights) %>% 
+      set_mode(ml_mode) %>% 
+      fit(y ~ ., data = feat_in)
+    
+    # use get_metrics function to get a tibble that shows classification performance metrics
+    if (ml_mode == "classification") {
+      results <- get_metrics(model = model, feat_out = feat_out, ml_mode,
+                             y_level_pos) %>% 
+        pivot_wider(., names_from = "metric",
+                    values_from = "estimate") %>%   
+        relocate(sens, spec, ppv, npv, accuracy, bal_accuracy, roc_auc) %>% 
+        bind_cols(config, .) 
+    } else {
+      results <- get_metrics(model = model, feat_out = feat_out, ml_mode,
+                             y_level_pos) %>% 
+        bind_cols(config, .) 
+    }
+    
+    return(results)
+  }
+  
+  
+  if (config$algorithm == "knn") {
+    # extract single fold associated with config
+    features <- make_config_features(config = config, splits = splits, rec = rec, 
+                              cv_resample_type = cv_resample_type)
+    feat_in <- features$feat_in
+    feat_out <- features$feat_out
+    
+    # fit model - config provides number of neighbors
+    model <- nearest_neighbor(neighbors = config$hp1) %>% 
+      set_engine("kknn") %>% 
+      set_mode(ml_mode) %>% 
+      fit(y ~ .,
+          data = feat_in)
+    
+    # use get_metrics function to get a tibble that shows performance metrics
+    if (ml_mode == "classification") {
+      results <- get_metrics(model = model, feat_out = feat_out, ml_mode,
+                             y_level_pos) %>% 
+        pivot_wider(., names_from = "metric",
+                    values_from = "estimate") %>%   
+        relocate(sens, spec, ppv, npv, accuracy, bal_accuracy, roc_auc) %>% 
+        bind_cols(config, .) 
+    } else {
+      results <- get_metrics(model = model, feat_out = feat_out, ml_mode,
+                             y_level_pos) %>% 
+        bind_cols(config, .) 
+    }
+    
+    return(results) 
+  }
+  
+  if (config$algorithm == "glm") {
+    # extract fold associated with this config - 1 held in and 1 held out set and make 1 
+    # set of features for the held in and held out set 
+    features <- make_config_features(config = config, splits = splits, rec = rec, 
+                                     cv_resample_type = cv_resample_type)
+    feat_in <- features$feat_in
+    feat_out <- features$feat_out
+    
+    # fit model on feat_in with config hyperparameter values 
+    model <- logistic_reg() %>% 
+      set_engine("glm") %>% 
+      set_mode(ml_mode) %>% 
+      fit(y ~ .,
+          data = feat_in)
+    
+    # use get_metrics function to get a tibble that shows performance metrics
+    if (ml_mode == "classification") {
+      results <- get_metrics(model = model, feat_out = feat_out, ml_mode, 
+                             y_level_pos) %>% 
+        pivot_wider(., names_from = "metric",
+                    values_from = "estimate") %>%   
+        relocate(sens, spec, ppv, npv, accuracy, bal_accuracy, roc_auc) %>% 
+        bind_cols(config, .) 
+    } else {
+      results <- get_metrics(model = model, feat_out = feat_out, ml_mode,
+                             y_level_pos) %>% 
+        bind_cols(config, .) 
+    }
+  }
+  
+  if (config$algorithm == "glmnet_manual") {
+    
+    # extract fold associated with this config - 1 held in and 1 held out set and make 1 
+    # set of features for the held in and held out set 
+    features <- make_config_features(config = config, splits = splits, rec = rec, 
+                                     cv_resample_type = cv_resample_type)
+    feat_in <- features$feat_in
+    feat_out <- features$feat_out
+    
+    if (ml_mode == "classification") {
+      model <- logistic_reg(penalty = config$hp2,
+                            mixture = config$hp1) %>%
+        set_engine("glmnet") %>%
+        set_mode("classification") %>%
+        fit(y ~ ., data = feat_in)
+      
+    } else {
+      model <- linear_reg(penalty = config$hp2,
+                          mixture = config$hp1) %>%
+        set_engine("glmnet") %>%
+        set_mode("regression") %>%
+        fit(y ~ ., data = feat_in)
+      
+      
+    }
+    
+    # tidy model & get parameter estimates
+    model_tidy <- tidy(model)
+    param_names <- model_tidy |> 
+      filter(abs(estimate) > 0) |> 
+      pull(term)
+    
+    params_enframe <- tibble::enframe(list(param_names)) 
+    
+    params <- bind_cols(config, params_enframe) |> 
+      select(-name)
+    
+    # create tibble of metrics returned 
+    if (ml_mode == "classification") {
+      results <- get_metrics(model = model, feat_out = feat_out, ml_mode,
+                             y_level_pos) %>% 
+        pivot_wider(., names_from = "metric",
+                    values_from = "estimate") %>%   
+        relocate(sens, spec, ppv, npv, accuracy, bal_accuracy, roc_auc) %>% 
+        bind_cols(config, .) 
+    } else {
+      results <- get_metrics(model = model, feat_out = feat_out, ml_mode,
+                             y_level_pos) %>% 
+        bind_cols(config, .) 
+    }
+    
+    return(list(results = results, 
+                params = params))
+  }
+}
+```
+
+```{r}
+fit_eval <- function(config, d, splits) {
+  
+  # create recipe
+  # This is a custom/study specific function that exists in training_controls
+  rec <- build_recipe(d = d, config = config)
+  
+  
+  # Fit model and get predictions and model metrics
+  results <- if (config$algorithm == "glmnet") {
+    tune_model_local(config = best_config, rec = rec, splits = splits,
+                     inner_split_num = inner_split_num, outer_split_num = outer_split_num,
+                     cv_resample_type = cv_resample_type, 
+                     hp2_glmnet_min = hp2_glmnet_min, hp2_glmnet_max = hp2_glmnet_max, 
+                     hp2_glmnet_out = hp2_glmnet_out,
+                     y_level_pos = y_level_pos)
+  } else {
+    tune_model_local(config = best_config, rec = rec, splits = splits,
+                     inner_split_num = inner_split_num, outer_split_num = outer_split_num,
+                     cv_resample_type = cv_resample_type, 
+                     y_level_pos = y_level_pos)
+    # map to two vectors of 300 rows (inner: 1-10, outer 1-30)
+    inner_split_num_list <- rep(1:10, times = 30)
+    outer_split_num_list <- rep(1:30, each = 10)
+    # need to pipe in list bind after map
+    map2(inner_split_num_list, outer_split_num_list, \(inner_split_num_list, outer_split_num_list)
+    tune_model_local(config = best_config, rec = rec, splits = splits,
+                     inner_split_num = inner_split_num_list, outer_split_num = outer_split_num_list,
+                     cv_resample_type = cv_resample_type, 
+                     y_level_pos = y_level_pos)) |> 
+      bind_rows()
+  }
+  
+  return(results)
+}
+```
+
+```{r}
+if (algorithm == "glmnet_manual") {
+  all <- config_start_arg:config_end_arg |> 
+    map(\(config_current) fit_eval(config_current, configs, d, splits))
+  
+  results <- all |> 
+    map(\(l) pluck(l, "results")) |> 
+    list_rbind() |> 
+    write_csv(str_c("results_", job_num_arg, ".csv"))
+  
+  params <- all |> 
+    map(\(l) pluck (l, "params")) |> 
+    list_rbind() |> 
+    write_rds(str_c("params_", job_num_arg, ".rds"))
+  
+} else {
+  fit <- fit_eval(config = best_config, d = data, splits)
+}
+```
+
+```{r}
+metrics_sub <- metrics |> select(outer_split_num, inner_split_num, roc_auc) |> arrange(outer_split_num, inner_split_num) |> mutate(auroc_original = roc_auc) |> select(-roc_auc)
+
+fit_sub <- fit |> select(outer_split_num, inner_split_num, auroc) |> unique() |> mutate(auroc_refit = auroc) |> select(-auroc)
+
+metrics_sub |> 
+  left_join(fit_sub, by = c("inner_split_num", "outer_split_num")) |> kableExtra::kbl()
+```
+
+```{r}
+fit |> write_rds(here::here(path_processed, "inner_predictions.rds"))
+```
 
