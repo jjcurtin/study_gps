@@ -86,11 +86,16 @@ options(tibble.print_max = Inf)
 ```{r load_preds_metrics}
 # UPDATE INPUT FILE
 auc_day <- read_rds(file.path(path_processed, "inner_predictions.rds")) |>
-  #select(outer_split_num, inner_split_num, auroc) |> 
-  #unique() |> 
-  arrange(outer_split_num) |> 
-  mutate(repeat_num = rep(str_c("repeat", 1:3), each = 10),
-         fold_num = rep(str_c("fold", 1:10), 3)) |>   # assumes 3x10 fold
+  # cp: added these two lines because I think I need to change something in my predictions script to fix this...?
+  select(outer_split_num, inner_split_num, auroc) |> 
+  unique() |> 
+  # end of cp additions
+  arrange(outer_split_num) |>
+  # cp update splits
+  mutate(repeat_num = rep(str_c("repeat", 1:10), times = 30),
+         fold_num = rep(str_c("fold", 1:30), each = 10)) |> 
+  #mutate(repeat_num = rep(str_c("repeat", 1:3), each = 10),
+         #fold_num = rep(str_c("fold", 1:10), 3)) |>   # assumes 3x10 fold
   select(repeat_num, fold_num, auroc)
 ```
 
@@ -107,7 +112,7 @@ auc_day |>
 # Repeated CV (id = repeat, id2 = fold within repeat)
 # with a common variance:  statistic ~ model + (model | id2/id)
 set.seed(101)
-pp <- auc |> 
+pp <- auc_day |> 
   rename(id = repeat_num,
          id2 = fold_num) |> 
   perf_mod(formula = statistic ~ model + (1 | id2/id),
@@ -117,8 +122,7 @@ pp <- auc |>
          # iter = 2000, chains = 4,  
          adapt_delta = .99,
          # cores = 4, seed = 12345,
-         family = gaussian, 
-)  
+         family = gaussian)  
 ```
 
 ```{r}
