@@ -19,6 +19,21 @@ editor_options:
   chunk_output_type: console
 ---
 
+# Housekeeping
+
+## Code status
+
+Complete for use in GPS study as of 9/2024.
+
+## Notes
+
+Generates a median auROC histogram for best model configuration.
+
+# Set Up
+
+## Set Up Environment
+
+### Study parameters
 ```{r}
 study <- params$study
 cv <- params$cv
@@ -27,8 +42,8 @@ algorithms <- params$algorithms
 version <- params$version
 ```
 
-Function conflicts
-```{r, packages_workflow}
+### Defaults
+```{r}
 #| message: false
 #| warning: false
 
@@ -36,24 +51,22 @@ Function conflicts
 options(conflicts.policy = "depends.ok")
 devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/fun_ml.R?raw=true")
 tidymodels_conflictRules()
+
+theme_set(theme_classic())
+
+knitr::opts_chunk$set(attr.output='style="max-height: 500px;"')
+
+options(tibble.width = Inf)
+options(tibble.print_max = Inf)
 ```
 
-Packages for script
-```{r, packages_script}
+### Packages for script
+```{r}
 #| message: false
 #| warning: false
 
 library(tidyverse)
-library(tidymodels)
-library(tidyposterior)
-# library(SHAPforxgboost)
-# library(rstanarm)
 
-theme_set(theme_classic()) 
-```
-
-Source support functions
-```{r source_functions}
 # EDA
 devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/fun_eda.R?raw=true")
 devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true")
@@ -62,34 +75,21 @@ devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/chtc/sta
 ```
 
 
-Absolute paths
-```{r, absolute_paths}
-path_processed <- format_path(str_c("studydata/risk/data_processed/", study))
-path_input <- format_path(str_c("studydata/risk/chtc/", study))
+### Absolute paths
+```{r}
 path_models <- format_path(str_c("studydata/risk/models/", study))
 ```
 
+# Generate performance metric plot
 
-Chunk Defaults
-```{r defaults}
-#| include: false
-
-knitr::opts_chunk$set(attr.output='style="max-height: 500px;"')
-
-options(tibble.width = Inf)
-options(tibble.print_max = Inf)
-```
-
-
+Load in data.
 ```{r}
 metrics <- read_csv(here::here(path_models, str_c("best_config_",
                                              version, "_",
                                              cv, "_", model, ".csv")))
 ```
 
-
-### Performance metric plot across all inner folds
-
+Generate plot across all *inner* folds.
 ```{r}
 metrics |> 
   ggplot(aes(x = roc_auc)) +

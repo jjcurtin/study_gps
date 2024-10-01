@@ -1,13 +1,43 @@
+---
+title: "Collect and check metrics for `r params$model` models of training jobs from CHTC for `r params$study` study with version `r params$version` using `r params$cv` CV"
+author: "John Curtin & Claire Punturieri"
+date: "`r lubridate::today()`"
+output: 
+  html_document:
+    toc: true 
+    toc_depth: 4
+format:
+  html:
+    embed-resources: true
+params:
+  study: "gps"
+  version: "v5"
+  cv: "nested_1_x_10_3_x_10"
+  algorithms: "xgboost"   # "all" or name of specific algorithm
+  model: "main"
+editor_options: 
+  chunk_output_type: console
+---
 
+# Housekeeping
 
-### Code Status
+## Code Status
+
+Completed for use in GPS study as of 9/2024.
+
+## Notes
 
 In use for both kfold and nested cv, including use of batches
 
 This script aggregates all results/metrics for a batch or batches of jobs that train all model configurations for a specific outcome/label window.
 
-### Set Up Environment
+Currently being used to evaluate validation set performance.
 
+# Set Up
+
+## Set Up Environment
+
+### Study parameters
 ```{r}
 study <- params$study
 version <- params$version
@@ -16,33 +46,25 @@ algorithms <- params$algorithms
 model <- params$model
 ```
 
-Handle conflicts
-
+### Defaults
 ```{r}
 #| message: false
 #| warning: false
 
 options(conflicts.policy = "depends.ok")
-```
-
-Packages for script
-
-```{r}
-#| message: false
-#| warning: false
-
-library(tidyverse)
-
-devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/fun_eda.R?raw=true")
-theme_set(theme_classic()) 
-```
-
-Absolute paths
-
-```{r}
-#| message: false
 
 source("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true")
+
+knitr::opts_chunk$set(attr.output='style="max-height: 500px;"')
+
+options(tibble.width = Inf)
+options(tibble.print_max = Inf)
+theme_set(theme_classic())
+```
+
+### Paths
+```{r}
+#| message: false
 
 path_input <- format_path(str_c("studydata/risk/chtc/", study))
 path_models <- format_path(str_c("studydata/risk/models/", study))
@@ -50,35 +72,30 @@ path_output <- format_path(str_c("studydata/risk/chtc/", study))
 
 ```
 
-Chunk Defaults
-
+### Packages and source
 ```{r}
-#| include: false
+library(tidyverse)
 
-knitr::opts_chunk$set(attr.output='style="max-height: 500px;"')
-
-options(tibble.width = Inf)
-options(tibble.print_max = Inf)
+devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/fun_eda.R?raw=true")
 ```
 
-### Read results.csv files
+# Data checking
 
-Get batch_names
+## Basic checks
 
+Get batch name from above-specified model parameters.
 ```{r}
 batch_name <- str_c("train_", algorithms, "_", cv, "_", version, "_", model)
 ```
 
-Load in results file
+Load in results file.
 ```{r}
 results_all <- read_csv(here::here(path_input, batch_name, "output", "batch_results.csv"),
                         show_col_types = FALSE)
 ```
 
-Final checks across all batches
-
+Conduct final checks -- we expect to see results split evenly among possible hyperparameter combinations, resampling techniques, etc. If these numbers are not even, that suggests there may be a problem.
 ```{r}
-  results_all |>  tab(split_num) |> print()
   results_all |> tab(outer_split_num) |> print()
   results_all |> tab(inner_split_num) |> print()
   results_all |> tab(algorithm) |> print()
@@ -89,8 +106,7 @@ Final checks across all batches
   results_all |> tab(resample) |> print()
 ```
 
-Save raw metrics file
-
+Following basic checks, save raw metrics file into the models folder on the server.
 ```{r}
 results_all |>
   arrange(split_num, outer_split_num, inner_split_num, algorithm, resample) |> 
@@ -99,6 +115,9 @@ results_all |>
                                              cv, "_", model, ".csv")))
 ```
 
+## Identify best configuration
+
+Summarize median auROCs by model parameters.
 ```{r}
 metrics_avg <- results_all |> 
   group_by(algorithm, feature_set, hp1, hp2, hp3, resample) |> 
@@ -107,15 +126,20 @@ metrics_avg <- results_all |>
   relocate(n_folds) |> 
   arrange(desc(median_roc_auc)) |> 
   ungroup()
+```
 
+Check to make sure summarized tibble looks accurate.
+```{r}
 metrics_avg |> 
   slice(1:50) |> 
   print_kbl()
+```
 
+Pull out best configuration from metrics_avg and save out results for best configuration into models folder on server.
+```{r}
 best_config <- metrics_avg |> 
   slice(1) |> 
   print()
-
 
 results_all |> 
   filter(algorithm == best_config$algorithm,
@@ -130,8 +154,9 @@ results_all |>
 ```
 
 
-### Plot hyperparameters
+## Plot hyperparameters
 
+Ensure that you have assessed a wide enough range of hyperparameters.
 ```{r}
 # update algorithms to actual ones in the tibble
 algorithms <- unique(metrics_avg$algorithm) 
