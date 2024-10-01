@@ -8,7 +8,7 @@
 
 <meta name="author" content="Claire Punturieri">
 <meta name="author" content="John J. Curtin">
-<meta name="dcterms.date" content="2024-04-20">
+<meta name="dcterms.date" content="2024-10-01">
 
 <title>The Feasibility and Equity of Geolocation Data for Lapse Prediction in AUD</title>
 <style>
@@ -61,10 +61,10 @@ div.csl-indent {
 <meta name="citation_title" content="The Feasibility and Equity of Geolocation Data for Lapse Prediction in AUD">
 <meta name="citation_author" content="Claire Punturieri">
 <meta name="citation_author" content="John J. Curtin">
-<meta name="citation_publication_date" content="2024-04-20">
-<meta name="citation_cover_date" content="2024-04-20">
+<meta name="citation_publication_date" content="2024-10-01">
+<meta name="citation_cover_date" content="2024-10-01">
 <meta name="citation_year" content="2024">
-<meta name="citation_online_date" content="2024-04-20">
+<meta name="citation_online_date" content="2024-10-01">
 <meta name="citation_language" content="en">
 <meta name="citation_reference" content="citation_title=Mobile technology for mental health assessment;,citation_abstract=Assessment and outcome monitoring are critical for the effective detection and treatment of mental illness. Traditional methods of capturing social, functional, and behavioral data are limited to the information that patients report back to their health care provider at selected points in time. As a result, these data are not accurate accounts of day-to-day functioning, as they are often influenced by biases in self-report. Mobile technology (mobile applications on smartphones, activity bracelets) has the potential to overcome such problems with traditional assessment and provide information about patient symptoms, behavior, and functioning in real time. Although the use of sensors and apps are widespread, several questions remain in the field regarding the reliability of off-the-shelf apps and sensors, use of these tools by consumers, and provider use of these data in clinical decision-making.;,citation_author=Patricia A. Areàn;,citation_author=Kien Hoa Ly;,citation_author=Gerhard Andersson;,citation_publication_date=2016-06;,citation_cover_date=2016-06;,citation_year=2016;,citation_issue=2;,citation_issn=1958-5969;,citation_volume=18;,citation_language=en-US;,citation_journal_title=Dialogues in Clinical Neuroscience;,citation_journal_abbrev=Dialogues Clin Neurosci;">
 <meta name="citation_reference" content="citation_title=Using a mobile health application to reduce alcohol consumption: A mixed-methods evaluation of the drinkaware track &amp;amp;amp; calculate units application;,citation_abstract=BACKGROUND: Smartphone applications (&amp;amp;quot;apps&amp;quot;) offer promise as tools to help people monitor and reduce their alcohol consumption. To date, few evaluations of alcohol reduction apps exist, with even fewer considering apps already available to the public. The aim of this study was to evaluate an existing publically available app, designed by Drinkaware, a UK-based alcohol awareness charity. METHODS: We adopted a mixed-methods design, analysing routinely collected app usage data to explore user characteristics and patterns of usage. Following this, in-depth interviews were conducted with a sub-sample of app users to examine perceptions of acceptability, usability and perceived effectiveness, as well as to provide recommendations on how to improve the app. RESULTS: One hundred nineteen thousand seven hundred thirteen people downloaded and entered data into the app over a 13-month period. High attrition was observed after 1 week. Users who engaged with the app tended to be &quot;high risk&quot; drinkers and to report being motivated &quot;to reduce drinking&quot; at the point of first download. In those who consistently engaged with the app over time, self-reported alcohol consumption levels reduced, with most change occurring in the first week of usage. Our qualitative findings indicate satisfaction with the usability of the app, but mixed feedback was given regarding individual features. Users expressed conflicting views concerning the type of feedback and notifications that the app currently provides. A common preference was expressed for more personalised content. CONCLUSIONS: The Drinkaware app is a useful tool to support behaviour change in individuals who are already motivated and committed to reducing their alcohol consumption. The Drinkaware app would benefit from greater personalisation and tailoring to promote longer term use. This evaluation provides insight into the usability and acceptability of various app features and contains a number of recommendations for improving user satisfaction and the potential effectiveness of apps designed to encourage reductions in alcohol consumption.;,citation_author=Sophie Attwood;,citation_author=Hannah Parke;,citation_author=John Larsen;,citation_author=Katie L. Morton;,citation_publication_date=2017-05-17;,citation_cover_date=2017-05-17;,citation_year=2017;,citation_issue=1;,citation_doi=10.1186/s12889-017-4358-9;,citation_issn=1471-2458;,citation_volume=17;,citation_language=en-US;,citation_journal_title=BMC public health;,citation_journal_abbrev=BMC Public Health;">
@@ -175,7 +175,7 @@ div.csl-indent {
                 <div>
             <div class="quarto-title-meta-heading">Published</div>
             <div class="quarto-title-meta-contents">
-              <p class="date">April 20, 2024</p>
+              <p class="date">October 1, 2024</p>
             </div>
           </div>
           
@@ -216,9 +216,9 @@ div.csl-indent {
   <li><a href="#algorithmic-fairness-1" id="toc-algorithmic-fairness-1" class="nav-link" data-scroll-target="#algorithmic-fairness-1">Algorithmic fairness</a></li>
   <li><a href="#contribution-to-theory" id="toc-contribution-to-theory" class="nav-link" data-scroll-target="#contribution-to-theory">Contribution to Theory</a></li>
   </ul></li>
-  <li><a href="#references" id="toc-references" class="nav-link" data-scroll-target="#references">References</a></li>
+  <li><a href="#results" id="toc-results" class="nav-link" data-scroll-target="#results">Results</a></li>
   </ul>
-</nav>
+<div class="quarto-alternate-notebooks"><h2>Notebooks</h2><ul><li><a href="notebooks/2_auROC_folds-preview.html"><i class="bi bi-journal-code"></i>Evaluate inner auROC for `r params$model` models of training jobs from CHTC for `r params$study` study with version `r params$version` using `r params$cv` CV</a></li><li><a href="notebooks/1_collect_check-preview.html"><i class="bi bi-journal-code"></i>Collect and check metrics for `r params$model` models of training jobs from CHTC for `r params$study` study with version `r params$version` using `r params$cv` CV</a></li></ul></div></nav>
 </div>
 <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
 </div>
@@ -449,7 +449,7 @@ div.csl-indent {
 </section>
 <section id="algorithm-development-performance" class="level3">
 <h3 class="anchored" data-anchor-id="algorithm-development-performance">Algorithm development &amp; performance</h3>
-<p>The first aim of my project is to develop a machine learning algorithm which can predict lapse from contextualized geolocation data. To accomplish this, fseveral classification candidate machine learning algorithms will first be considered and will be trained and assessed using participant-grouped, nested <em>k</em>-fold cross-validation. Grouped cross-validation assigns all data from a participant as either held-in or held-out to avoid bias introduced when predicting a participant’s data from their own data. Nested cross-validation uses two nested loops for dividing and holding out folds: an outer loop, where held-out folds serve as test sets for model evaluation; and inner loops, where held-out folds serve as validation sets for model selection. Importantly, these sets are independent, maintaining separation between data used to train the models, select the best models, and evaluate those best models. Therefore, nested cross-validation removes optimization bias from the evaluation of model performance in the test sets and can yield lower variance performance estimates than single test set approaches <span class="citation" data-cites="jonathanUseCrossvalidationAssess2000">(<a href="#ref-jonathanUseCrossvalidationAssess2000" role="doc-biblioref">Jonathan, Krzanowski, and McCarthy 2000</a>)</span>.</p>
+<p>The first aim of my project is to develop a machine learning algorithm which can predict lapse from contextualized geolocation data. To accomplish this, several classification candidate machine learning algorithms will first be considered and will be trained and assessed using participant-grouped, nested <em>k</em>-fold cross-validation. Grouped cross-validation assigns all data from a participant as either held-in or held-out to avoid bias introduced when predicting a participant’s data from their own data. Nested cross-validation uses two nested loops for dividing and holding out folds: an outer loop, where held-out folds serve as test sets for model evaluation; and inner loops, where held-out folds serve as validation sets for model selection. Importantly, these sets are independent, maintaining separation between data used to train the models, select the best models, and evaluate those best models. Therefore, nested cross-validation removes optimization bias from the evaluation of model performance in the test sets and can yield lower variance performance estimates than single test set approaches <span class="citation" data-cites="jonathanUseCrossvalidationAssess2000">(<a href="#ref-jonathanUseCrossvalidationAssess2000" role="doc-biblioref">Jonathan, Krzanowski, and McCarthy 2000</a>)</span>.</p>
 <p>The primary performance metric for model selection and evaluation will be area under the Receiver Operating Characteristic Curve (auROC) <span class="citation" data-cites="kuhnAppliedPredictiveModeling2018">(<a href="#ref-kuhnAppliedPredictiveModeling2018" role="doc-biblioref">Kuhn and Johnson 2018</a>)</span>. auROC indexes the probability that the model will predict a higher score for a randomly selected positive case (lapse) relative to a randomly selected negative case (no lapse). This metric was selected because it 1) combines sensitivity and specificity, which are both important characteristics for clinical implementation; 2) is an aggregate metric across all decision thresholds, which is important because optimal decision thresholds may differ across settings and goals; and 3) is unaffected by class imbalance, which is important for comparing models with differing prediction window widths and levels of class imbalance. The best model configuration will be selected using median auROC across all validation sets. Several secondary performance metrics including sensitivity, specificity, balanced accuracy, positive predictive value (PPV), and negative predictive value (NPV) will also be assessed.</p>
 <p>SHAP (SHapley Additive exPlanations) values will be computed as our interpretability metric to identify the relative importance of different features in each final algorithm. SHAP values measure the unique contribution of features in an algorithm’s predictions <span class="citation" data-cites="lundbergUnifiedApproachInterpreting2017">(<a href="#ref-lundbergUnifiedApproachInterpreting2017" role="doc-biblioref">Lundberg and Lee 2017</a>)</span>. SHAP values possess several useful properties including: <em>Additivity</em> (SHAP values for each feature can be computed independently and summed); <em>Efficiency</em> (the sum of SHAP values across features must add up to the difference between predicted and observed outcomes for each observation); <em>Symmetry</em> (SHAP values for two features should be equal if the two features contribute equally to all possible coalitions); and <em>Dummy</em> (a feature that does not change the predicted value in any coalition will have a SHAP value of 0). Highly important features represent relevant, actionable potential antecedents to lapse (and therefore points of intervention) that will be relevant in the future development of a smart DTx. However, these will be descriptive analyses because standard errors or other indices of uncertainty for importance scores are not available for SHAP values.</p>
 <p>Finally, a Bayesian hierarchical generalized linear model will be used to estimate the posterior probability distributions and 95% Bayesian credible intervals (CIs) for auROC between the baseline (time-of-day) and geolocation models.</p>
@@ -463,9 +463,12 @@ div.csl-indent {
 <p>If successful, this study will contribute both to our ability to both predict and explain lapse in AUD as well as how we approach designing equitable machine learning models. First, it will identify the most predictive features which contribute to lapse from a minimally burdensome and continuously collected data source, geolocation data. These features will be created leveraging modeling techniques from both the substance use and affective science subdisciplines, resulting in broadly relevant transdiagnostic constructs. Furthermore, this study will also provide a critical evaluation of model performance beyond AUC by including examination of algorithmic fairness. Though many fairness metrics have been used in simulated data or in publicly available data sets (e.g., <em>COMPAS</em> recidivism data set; <span class="citation" data-cites="dresselAccuracyFairnessLimits2018">(<a href="#ref-dresselAccuracyFairnessLimits2018" role="doc-biblioref">Dressel and Farid 2018</a>)</span>), few researchers in applied mental health settings have made use of these tools to critically examine their own models <span class="citation" data-cites="timmonsCallActionAssessing2023">(<a href="#ref-timmonsCallActionAssessing2023" role="doc-biblioref">Timmons et al. 2023</a>)</span>. Thus, this study will also advocate for transparency in reporting fairness metrics alongside standard measures of model performance.</p>
 </section>
 </section>
-<section id="references" class="level2">
-<h2 class="anchored" data-anchor-id="references">References</h2>
-<div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list">
+<section id="results" class="level1 unnumbered">
+
+
+</section>
+
+<div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" role="doc-bibliography" id="quarto-bibliography"><h2 class="anchored quarto-appendix-heading">Results</h2><div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list">
 <div id="ref-areanMobileTechnologyMental2016" class="csl-entry" role="listitem">
 Areàn, Patricia A., Kien Hoa Ly, and Gerhard Andersson. 2016. <span>“<a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4969703">Mobile Technology for Mental Health Assessment</a>.”</span> <em>Dialogues in Clinical Neuroscience</em> 18 (2): 163–69.
 </div>
@@ -598,10 +601,7 @@ Wyant, Kendra, Sarah June Kittleson Sant’Ana, Gaylen Fronk, and John J. Curtin
 <div id="ref-zafarFairnessConstraintsMechanisms2017" class="csl-entry" role="listitem">
 Zafar, Muhammad Bilal, Isabel Valera, Manuel Gomez Rogriguez, and Krishna P. Gummadi. 2017. <span>“Fairness <span>Constraints</span>: <span>Mechanisms</span> for <span>Fair Classification</span>.”</span> In <em>Proceedings of the 20th <span>International Conference</span> on <span>Artificial Intelligence</span> and <span>Statistics</span></em>, 962–70. PMLR. <a href="https://proceedings.mlr.press/v54/zafar17a.html">https://proceedings.mlr.press/v54/zafar17a.html</a>.
 </div>
-</div>
-</section>
-
-</main>
+</div></section></div></main>
 <!-- /main column -->
 <script id="quarto-html-after-body" type="application/javascript">
 window.document.addEventListener("DOMContentLoaded", function (event) {
