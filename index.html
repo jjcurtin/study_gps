@@ -56,6 +56,9 @@ div.csl-indent {
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
 <link href="site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script src="site_libs/quarto-contrib/glightbox/glightbox.min.js"></script>
+<link href="site_libs/quarto-contrib/glightbox/glightbox.min.css" rel="stylesheet">
+<link href="site_libs/quarto-contrib/glightbox/lightbox.css" rel="stylesheet">
 
 
 <meta name="citation_title" content="The Feasibility and Equity of Geolocation Data for Lapse Prediction in AUD">
@@ -466,7 +469,22 @@ div.csl-indent {
 </section>
 <section id="results" class="level2">
 <h2 class="anchored" data-anchor-id="results">Results</h2>
-<p>{{ &lt; embed notebooks/2_auROC_folds.qmd#fig-auroc-histogram &gt; }}</p>
+<div class="quarto-embed-nb-cell">
+<div id="cell-fig-auroc-histogram" class="cell" data-fig-height="6" data-fig-width="6">
+<div class="cell-output cell-output-display">
+<div id="fig-auroc-histogram" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-auroc-histogram-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<a href="index_files/figure-html/notebooks-2_auROC_folds-fig-auroc-histogram-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-1" data-glightbox="description: .lightbox-desc-1"><img src="index_files/figure-html/notebooks-2_auROC_folds-fig-auroc-histogram-output-1.png" class="img-fluid figure-img"></a>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-auroc-histogram-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;1: Test caption!
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<a class="quarto-notebook-link" id="nblink-1" href="notebooks/2_auROC_folds-preview.html#cell-fig-auroc-histogram">Source: Evaluate inner auROC for `r params$model` models of training jobs from CHTC for `r params$study` study with version `r params$version` using `r params$cv` CV</a></div>
 </section>
 <section id="references" class="level2">
 <h2 class="anchored" data-anchor-id="references">References</h2>
@@ -603,6 +621,9 @@ Wyant, Kendra, Sarah June Kittleson Sant’Ana, Gaylen Fronk, and John J. Curtin
 <div id="ref-zafarFairnessConstraintsMechanisms2017" class="csl-entry" role="listitem">
 Zafar, Muhammad Bilal, Isabel Valera, Manuel Gomez Rogriguez, and Krishna P. Gummadi. 2017. <span>“Fairness <span>Constraints</span>: <span>Mechanisms</span> for <span>Fair Classification</span>.”</span> In <em>Proceedings of the 20th <span>International Conference</span> on <span>Artificial Intelligence</span> and <span>Statistics</span></em>, 962–70. PMLR. <a href="https://proceedings.mlr.press/v54/zafar17a.html">https://proceedings.mlr.press/v54/zafar17a.html</a>.
 </div>
+</div>
+<div class="hidden" aria-hidden="true">
+<span class="glightbox-desc lightbox-desc-1">Figure&nbsp;1: Test caption!</span>
 </div>
 </section>
 
@@ -1018,6 +1039,31 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 });
 </script>
 </div> <!-- /content -->
+<script>var lightboxQuarto = GLightbox({"openEffect":"zoom","selector":".lightbox","closeEffect":"zoom","descPosition":"bottom","loop":false});
+window.onload = () => {
+  lightboxQuarto.on('slide_before_load', (data) => {
+    const { slideIndex, slideNode, slideConfig, player, trigger } = data;
+    const href = trigger.getAttribute('href');
+    if (href !== null) {
+      const imgEl = window.document.querySelector(`a[href="${href}"] img`);
+      if (imgEl !== null) {
+        const srcAttr = imgEl.getAttribute("src");
+        if (srcAttr && srcAttr.startsWith("data:")) {
+          slideConfig.href = srcAttr;
+        }
+      }
+    } 
+  });
+
+  lightboxQuarto.on('slide_after_load', (data) => {
+    const { slideIndex, slideNode, slideConfig, player, trigger } = data;
+    if (window.Quarto?.typesetMath) {
+      window.Quarto.typesetMath(slideNode);
+    }
+  });
+
+};
+          </script>
 
 
 
