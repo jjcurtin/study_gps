@@ -217,6 +217,7 @@ div.csl-indent {
   <li><a href="#contribution-to-theory" id="toc-contribution-to-theory" class="nav-link" data-scroll-target="#contribution-to-theory">Contribution to Theory</a></li>
   </ul></li>
   <li><a href="#results" id="toc-results" class="nav-link" data-scroll-target="#results">Results</a></li>
+  <li><a href="#references" id="toc-references" class="nav-link" data-scroll-target="#references">References</a></li>
   </ul>
 <div class="quarto-alternate-notebooks"><h2>Notebooks</h2><ul><li><a href="notebooks/2_auROC_folds-preview.html"><i class="bi bi-journal-code"></i>Evaluate inner auROC for `r params$model` models of training jobs from CHTC for `r params$study` study with version `r params$version` using `r params$cv` CV</a></li><li><a href="notebooks/1_collect_check-preview.html"><i class="bi bi-journal-code"></i>Collect and check metrics for `r params$model` models of training jobs from CHTC for `r params$study` study with version `r params$version` using `r params$cv` CV</a></li></ul></div></nav>
 </div>
@@ -463,12 +464,13 @@ div.csl-indent {
 <p>If successful, this study will contribute both to our ability to both predict and explain lapse in AUD as well as how we approach designing equitable machine learning models. First, it will identify the most predictive features which contribute to lapse from a minimally burdensome and continuously collected data source, geolocation data. These features will be created leveraging modeling techniques from both the substance use and affective science subdisciplines, resulting in broadly relevant transdiagnostic constructs. Furthermore, this study will also provide a critical evaluation of model performance beyond AUC by including examination of algorithmic fairness. Though many fairness metrics have been used in simulated data or in publicly available data sets (e.g., <em>COMPAS</em> recidivism data set; <span class="citation" data-cites="dresselAccuracyFairnessLimits2018">(<a href="#ref-dresselAccuracyFairnessLimits2018" role="doc-biblioref">Dressel and Farid 2018</a>)</span>), few researchers in applied mental health settings have made use of these tools to critically examine their own models <span class="citation" data-cites="timmonsCallActionAssessing2023">(<a href="#ref-timmonsCallActionAssessing2023" role="doc-biblioref">Timmons et al. 2023</a>)</span>. Thus, this study will also advocate for transparency in reporting fairness metrics alongside standard measures of model performance.</p>
 </section>
 </section>
-<section id="results" class="level1 unnumbered">
-
-
+<section id="results" class="level2">
+<h2 class="anchored" data-anchor-id="results">Results</h2>
+<p>{{ &lt; embed notebooks/2_auROC_folds.qmd#fig-auroc-histogram &gt; }}</p>
 </section>
-
-<div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" role="doc-bibliography" id="quarto-bibliography"><h2 class="anchored quarto-appendix-heading">Results</h2><div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list">
+<section id="references" class="level2">
+<h2 class="anchored" data-anchor-id="references">References</h2>
+<div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list">
 <div id="ref-areanMobileTechnologyMental2016" class="csl-entry" role="listitem">
 Areàn, Patricia A., Kien Hoa Ly, and Gerhard Andersson. 2016. <span>“<a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4969703">Mobile Technology for Mental Health Assessment</a>.”</span> <em>Dialogues in Clinical Neuroscience</em> 18 (2): 163–69.
 </div>
@@ -601,7 +603,10 @@ Wyant, Kendra, Sarah June Kittleson Sant’Ana, Gaylen Fronk, and John J. Curtin
 <div id="ref-zafarFairnessConstraintsMechanisms2017" class="csl-entry" role="listitem">
 Zafar, Muhammad Bilal, Isabel Valera, Manuel Gomez Rogriguez, and Krishna P. Gummadi. 2017. <span>“Fairness <span>Constraints</span>: <span>Mechanisms</span> for <span>Fair Classification</span>.”</span> In <em>Proceedings of the 20th <span>International Conference</span> on <span>Artificial Intelligence</span> and <span>Statistics</span></em>, 962–70. PMLR. <a href="https://proceedings.mlr.press/v54/zafar17a.html">https://proceedings.mlr.press/v54/zafar17a.html</a>.
 </div>
-</div></section></div></main>
+</div>
+</section>
+
+</main>
 <!-- /main column -->
 <script id="quarto-html-after-body" type="application/javascript">
 window.document.addEventListener("DOMContentLoaded", function (event) {
