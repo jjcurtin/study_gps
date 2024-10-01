@@ -1,0 +1,126 @@
+---
+title: "Generate INNER calibration"
+author: "John Curtin & Claire Punturieri"
+date: "`r lubridate::today()`"
+output: 
+  html_document:
+    toc: true 
+    toc_depth: 4
+format:
+  html:
+    embed-resources: true
+editor_options: 
+  chunk_output_type: console
+---
+
+Make new script that does calibration analyses and auroc curve (from 3_eval_outer in shared/scripts_parameterized/nested) --> ADD AUROC CURVE
+
+Function conflicts
+```{r, packages_workflow}
+#| message: false
+#| warning: false
+
+# source
+devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/fun_ml.R?raw=true")
+
+# handle conflicts
+options(conflicts.policy = "depends.ok")
+tidymodels_conflictRules()
+```
+
+Packages for script
+```{r, packages_script}
+#| message: false
+#| warning: false
+
+library(tidyverse)
+library(tidymodels)
+library(probably)
+```
+
+Path
+```{r}
+path_processed <- format_path(str_c("studydata/risk/data_processed/", study))
+
+```
+
+## Functions
+```{r}
+get_brier <- function(split_num, df){
+  
+  #filter to split
+  probs_split <- df |> 
+  filter(outer_split_num == split_num)
+
+  raw <- probs_split |>
+    filter(method == "prob_raw") |> 
+    brier_class(label, .pred_Lapse)
+  
+  logi <- probs_split |>
+    filter(method == "prob_logi") |> 
+    brier_class(label, .pred_Lapse)
+  
+  iso <- probs_split |>
+    filter(method == "prob_iso") |> 
+    brier_class(label, .pred_Lapse)
+  
+  beta <- probs_split |>
+    filter(method == "prob_beta") |> 
+    brier_class(label, .pred_Lapse)
+  
+  brier <- tibble(raw = raw$.estimate, 
+                logi = logi$.estimate, 
+                iso = iso$.estimate, 
+                beta = beta$.estimate)
+  return(brier)
+}
+
+```
+
+## Get Probs
+
+```{r}
+probs <- read_rds(file.path(path_processed, str_c("inner_predictions.rds"))) |>
+  mutate(label = truth) |> 
+  pivot_longer(cols = starts_with("prob"), 
+               names_to = "method", 
+               values_to = ".pred_Lapse") |>
+  glimpse()
+```
+
+
+## Brier Scores
+
+```{r}
+
+brier <- 1:30 |> 
+  map(\(split_num) get_brier(split_num, probs)) |> 
+  list_rbind()
+
+brier |> head()
+
+brier |> summarize(across(everything(), list(mean, median)))
+                      
+```
+
+
+
+
+## Explore Plots
+```{r}
+
+probs |> 
+  filter(outer_split_num == 1) |> 
+  cal_plot_breaks(truth = label, 
+                  estimate = .pred_Lapse,
+                  .by = method)
+  
+probs |> 
+  filter(outer_split_num == 1) |> 
+  cal_plot_windowed(truth = label, 
+                  estimate = .pred_Lapse,
+                  .by = method)
+
+```
+
+
