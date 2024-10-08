@@ -59,7 +59,15 @@ knitr::opts_chunk$set(attr.output='style="max-height: 500px;"')
 
 options(tibble.width = Inf)
 options(tibble.print_max = Inf)
+```
+
+### Packages and source
+```{r}
+library(tidyverse)
+
 theme_set(theme_classic())
+
+devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/fun_eda.R?raw=true")
 ```
 
 ### Paths
@@ -70,13 +78,6 @@ path_input <- format_path(str_c("studydata/risk/chtc/", study))
 path_models <- format_path(str_c("studydata/risk/models/", study))
 path_output <- format_path(str_c("studydata/risk/chtc/", study))
 
-```
-
-### Packages and source
-```{r}
-library(tidyverse)
-
-devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/fun_eda.R?raw=true")
 ```
 
 # Data checking

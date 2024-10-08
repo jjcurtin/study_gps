@@ -9,13 +9,12 @@ editor: visual
 
 In progress as of 07/2024.
 
-## Conclusions   
-
-
+## Conclusions
 
 # Set up
 
 ## Environment
+
 ```{r}
 #| message: false
 #| warning: false
@@ -26,6 +25,7 @@ devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/format_p
 ```
 
 ## Paths
+
 ```{r}
 path_shared <- format_path("studydata/risk/data_processed/shared")
 path_gps <- format_path("studydata/risk/data_processed/gps")
@@ -34,6 +34,7 @@ path_notes <- format_path("GitHub/analysis_risk/shared/notes")
 ```
 
 ## Packages and plot settings
+
 ```{r}
 #| message: false
 #| warning: false
@@ -47,19 +48,19 @@ theme_set(theme_classic())
 options(tibble.width = Inf, dplyr.print_max = Inf)
 ```
 
-
 # Examine demographic characteristics
-
 
 ## Load in study dates
 
 Load in study_dates.
+
 ```{r}
 study_dates <- read_csv(file.path(path_gps,"study_dates.csv"),
                         show_col_types = FALSE)
 ```
-Pull list of subject IDs with at least one month data, credible lapse reporting,
-and sufficient GPS data.
+
+Pull list of subject IDs with at least one month data, credible lapse reporting, and sufficient GPS data.
+
 ```{r}
 subids_dates <- study_dates |>  
   pull(subid) |>  
@@ -91,6 +92,7 @@ dem_data <- read_csv(file.path(path_shared, "screen.csv"),
 ```
 
 Filter down demographics file to only include subjects being used in GPS analyses.
+
 ```{r}
 dem_data <-  dem_data |>  
   filter(subid %in% subids_dates)
@@ -144,8 +146,11 @@ income_summary <- dem_data |>
   summarize(mean=scales::dollar(round(mean(income))), sd=scales::dollar(round(sd(income))), min=scales::dollar(min(income)), max=scales::dollar(max(income)))
 income_summary
 ```
+
 ### DSM
+
 Total DSM score
+
 ```{r}
 dsm_summary <- dem_data |>  
   mutate(across(dsm5_1:dsm5_11, ~ recode(., "No" = 0, "Yes" = 1))) |>  
@@ -162,6 +167,7 @@ dsm_summary
 ## Figures
 
 ### Age
+
 ```{r}
 dem_data |> 
   ggplot(aes(x = age)) +
@@ -169,6 +175,7 @@ dem_data |>
 ```
 
 ### Sex
+
 ```{r}
 dem_data |> 
   group_by(sex) |> 
@@ -181,6 +188,7 @@ dem_data |>
 ```
 
 ### Race
+
 ```{r}
 dem_data |> 
   group_by(race) |> 
@@ -195,6 +203,7 @@ dem_data |>
 ```
 
 ### Ethnicity
+
 ```{r}
 dem_data |>
   mutate(hispanic = recode(hispanic,
@@ -210,6 +219,7 @@ dem_data |>
 ```
 
 ### Income
+
 ```{r}
 dem_data |> 
   ggplot(aes(x = income)) +
@@ -217,6 +227,7 @@ dem_data |>
 ```
 
 ### DSM
+
 ```{r}
 dem_data |>
   mutate(across(dsm5_1:dsm5_11, ~ recode(., "No" = 0, "Yes" = 1))) |>  

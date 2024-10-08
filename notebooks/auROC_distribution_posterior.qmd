@@ -1,0 +1,167 @@
+---
+title: "Evaluate inner auROC for `r params$model` models of training jobs from CHTC for `r params$study` study with version `r params$version` using `r params$cv` CV"
+author: "John Curtin & Claire Punturieri"
+date: "`r lubridate::today()`"
+output: 
+  html_document:
+    toc: true 
+    toc_depth: 4
+format:
+  html:
+    embed-resources: true
+params:
+  study: "gps"
+  version: "v5"
+  cv: "nested_1_x_10_3_x_10"
+  algorithms: "xgboost"   # "all" or name of specific algorithm
+  model: "main"
+editor_options: 
+  chunk_output_type: console
+---
+
+# Housekeeping
+
+## Code status
+
+Complete for use in GPS study as of 10/2024.
+
+## Notes
+
+Generates a median auROC histogram for best model configuration.
+
+# Set Up
+
+## Set Up Environment
+
+### Study parameters
+```{r}
+study <- params$study
+cv <- params$cv
+model <- params$model
+algorithms <- params$algorithms
+version <- params$version
+```
+
+### Defaults
+```{r}
+#| message: false
+#| warning: false
+
+# handle conflicts
+options(conflicts.policy = "depends.ok")
+devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/fun_ml.R?raw=true")
+tidymodels_conflictRules()
+
+knitr::opts_chunk$set(attr.output='style="max-height: 500px;"')
+
+options(tibble.width = Inf)
+options(tibble.print_max = Inf)
+```
+
+### Packages for script
+```{r}
+#| message: false
+#| warning: false
+
+library(tidyverse)
+library(tidyposterior)
+library(paletteer)
+
+theme_set(theme_classic())
+
+# EDA
+devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/fun_eda.R?raw=true")
+devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true")
+# CHTC support functions
+devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/chtc/static_files/fun_chtc.R?raw=true")
+```
+
+
+### Absolute paths
+```{r}
+path_models <- format_path(str_c("studydata/risk/models/", study))
+```
+
+# Generate performance metric plot
+
+Load in data.
+```{r}
+metrics <- read_csv(here::here(path_models, str_c("best_config_",
+                                             version, "_",
+                                             cv, "_", model, ".csv")))
+```
+
+Generate plot across all *inner* folds.
+```{r}
+#| label: fig-auroc-histogram
+#| fig-cap: Test caption!
+#| fig-height: 6
+#| fig-width: 6
+
+metrics |> 
+  ggplot(aes(x = roc_auc)) +
+  geom_histogram(bins = 10, fill = c("#af1f21")) +
+  geom_vline(xintercept = median(metrics$roc_auc), color = c("#f29c96"), lwd = 1, linetype="longdash") +
+  labs(x = "auROC", y = "Frequency")
+```
+
+# Posteriors
+
+```{r}
+# from ?perf_mod()
+# Repeated CV (id = repeat, id2 = fold within repeat)
+# with a common variance:  statistic ~ model + (model | id2/id)
+
+if(file.exists(here::here(path_models, str_c("pp_",
+                                    version, "_",
+                                    cv, "_", model, ".rds")))) {
+  
+  message("Model exists! Loading in...")
+  
+  pp <- read_rds(here::here(path_models, str_c("pp_",
+                                    version, "_",
+                                    cv, "_", model, ".rds")))
+} else {
+  
+    message("Model does not exist! Running and saving out...")
+  
+  set.seed(101)
+  
+  pp <- metrics |>
+    select(outer_split_num, inner_split_num, roc_auc) |> 
+    rename(id = outer_split_num,
+           id2 = inner_split_num) |> 
+    perf_mod(formula = statistic ~ 1 + (1 | id/id2),
+             # prior_intercept = rstanarm::student_t(autoscale = TRUE),
+             # prior = rstanarm::student_t(autoscale = TRUE),
+             transform = tidyposterior::logit_trans,  # for skewed & bounded AUC
+             iter = 13000, chains = 4,
+             adapt_delta = .99999999,
+             # cores = 4, seed = 12345,
+             family = gaussian)  
+
+
+  pp |> write_rds(here::here(path_models, str_c("pp_",
+                                                version, "_",
+                                                cv, "_", model, ".rds")))
+}
+```
+
+Posterior graph as density plot
+```{r}
+pp_tidy <- pp |> 
+  tidy(seed = 123)
+
+ci_day <- pp_tidy |> 
+  summary() |> 
+  mutate(y = 30)
+
+# vertical line for the median
+pp_tidy |> 
+  ggplot(aes(x = posterior)) + 
+  geom_density(color = c("#af1f21"), fill = c("#f29c96"), alpha = 1) +
+  geom_segment(mapping = aes(y = y, yend = y, x = lower, xend = upper), color = c("#af1f21"),
+                data = ci_day) +
+  ylab("Posterior Probability Density") +
+  xlab("Area Under ROC Curve")
+```
