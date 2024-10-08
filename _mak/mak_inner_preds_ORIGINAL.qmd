@@ -1,6 +1,6 @@
 ---
 title: "Fits and evaluates best model configs for `r params$study` study across `r params$model` models in outer loop of nested for `r params$window` window and `r params$lead` lead and `r params$version`"
-author: "John Curtin & Kendra Wyant"
+author: "John Curtin & Kendra Wyant, updated by Claire Punturieri for GPS study"
 date: "`r lubridate::today()`"
 output: 
   html_document:
@@ -21,10 +21,12 @@ editor_options:
 
 ### Code Status
 
-In use for EMA study
+Currently being updated for GPS study as of 10/2024.
 
 ### Notes
-This script reads in CHTC performance metrics from the inner loops of CV, selects the best model configuration for each outer loop, trains those models and predicts into the outer held-out folds.  Returns metrics, predictions (probabilities) and SHAPs
+This script reads in CHTC performance metrics from the inner loops of CV, selects the best model configuration for each outer loop, trains those models and predicts into the inner folds.
+
+Returns metrics, predictions (probabilities) and SHAPs
 
 This script creates the following files in the `models` folder
 
@@ -38,19 +40,12 @@ where * = window_lead_version_cv
 
 ### To Do
 
-SHAPS
-
-* We get SHAPS in this script with 30 outer folds (3x10fold).   It will be SHAPS from different models BUT they are currently all XGBoost and regardless, SHAP could work with any algorithm.  We could ALSO average across same person for 3 repeats or just have 3x sample size SHAPs for each feature.  We choose to **average across repeats**.  
-
-* Could get SHAPS when we did simple 3x10-fold on full sample to figure out the ONE best configuration.  First run on CHTC to get best config.  Then use that best config to predict into 30  held out folds and combine.
-
-* Could train that ONE best config on full sample and use it for SHAPS in the full sample.   
 
 
 
 ### Set Up Environment
 
-```{r set_params}
+```{r}
 study <- params$study
 window <- params$window
 version <- params$version
@@ -70,7 +65,7 @@ tidymodels_conflictRules()
 ```
 
 Packages for script
-```{r, packages_script}
+```{r}
 #| message: false
 #| warning: false
 
