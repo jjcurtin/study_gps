@@ -99,8 +99,8 @@ Calculate auROC in each fold
 ```{r}
 auROCs <- probs |>
   group_by(outer_split_num, inner_split_num) |>
-  mutate(auROC = roc_auc_vec(truth = label, estimate = prob)) |> 
-  summarize(auROC = mean(auROC))
+  summarize(auROC = roc_auc_vec(truth = label, estimate = prob),
+            .groups = "drop")
 ```
 
 
