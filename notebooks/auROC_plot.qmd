@@ -11,7 +11,7 @@ format:
     embed-resources: true
 params:
   study: "gps"
-  version: "v5"
+  version: "v6"
   cv: "nested_1_x_10_3_x_10"
   algorithms: "xgboost"   # "all" or name of specific algorithm
   model: "main"
@@ -75,15 +75,15 @@ devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/format_p
 
 ### Absolute paths
 ```{r}
-path_processed <- format_path(str_c("studydata/risk/data_processed/", study))
+path_models <- format_path(str_c("studydata/risk/models/", study))
 ```
 
 > CP these are I think raw probabilities not beta -- issue?
 
 ```{r}
-probs <- read_rds(file.path(path_processed, str_c("inner_predictions.rds"))) |>
-  # cp added mutate, guessing we need this?
-  mutate(label = truth) |> 
+probs <- read_rds(file.path(path_models, str_c("inner_preds_", 
+                                           window, "_", version, "_", 
+                                           cv, "_", model, ".rds"))) |>
   #pivot_longer(cols = starts_with("prob"), 
                #names_to = "method", 
                #values_to = ".pred_Lapse") |>
@@ -92,7 +92,7 @@ probs <- read_rds(file.path(path_processed, str_c("inner_predictions.rds"))) |>
 
 ```{r}
 roc_data <- probs |> 
-  roc_curve(prob, truth = truth)
+  roc_curve(prob_raw, truth = label)
   
 roc_data |>
   mutate(sensitivity = round(sensitivity, 4),
@@ -116,8 +116,8 @@ Add in curves for every outer fold.
 ```{r}
 roc_folds <- probs |> 
   nest(.by = outer_split_num, .key = "preds") |> 
-  mutate(roc = map(preds, \(preds) roc_curve(preds, prob, 
-                                             truth = truth)))
+  mutate(roc = map(preds, \(preds) roc_curve(preds, prob_raw, 
+                                             truth = label)))
 
 fig_roc_folds <- roc_data |>   # plot region from full concatenated data
   ggplot(aes(x = 1 - specificity, y = sensitivity)) + 
