@@ -11,7 +11,7 @@ format:
     embed-resources: true
 params:
   study: "gps"
-  version: "v5"
+  version: "v6"
   cv: "nested_1_x_10_3_x_10"
   algorithms: "xgboost"   # "all" or name of specific algorithm
   model: "main"
@@ -84,8 +84,6 @@ path_models <- format_path(str_c("studydata/risk/models/", study))
 
 # Generate performance metric plot
 
-> CP these are I think raw probabilities not beta -- issue?
-
 ```{r}
 probs <- read_rds(file.path(path_models, str_c("inner_preds_", 
                                            window, "_", version, "_", 
@@ -102,8 +100,7 @@ Calculate auROC in each fold
 auROCs <- probs |>
   group_by(outer_split_num, inner_split_num) |>
   mutate(auROC = roc_auc_vec(truth = label, estimate = prob)) |> 
-  mutate(auROC = mean(auROC),
-         std = sd(auROC))
+  summarize(auROC = mean(auROC))
 ```
 
 
@@ -114,10 +111,10 @@ Generate plot across all *inner* folds.
 #| fig-height: 6
 #| fig-width: 6
 
-metrics |> 
-  ggplot(aes(x = roc_auc)) +
+auROCs |> 
+  ggplot(aes(x = auROC)) +
   geom_histogram(bins = 10, fill = c("#af1f21")) +
-  geom_vline(xintercept = median(metrics$roc_auc), color = c("#f29c96"), lwd = 1, linetype="longdash") +
+  geom_vline(xintercept = median(auROCs$auROC), color = c("#f29c96"), lwd = 1, linetype="longdash") +
   labs(x = "auROC", y = "Frequency")
 ```
 
@@ -143,8 +140,8 @@ if(file.exists(here::here(path_models, str_c("pp_",
   
   set.seed(101)
   
-  pp <- metrics |>
-    select(outer_split_num, inner_split_num, roc_auc) |> 
+  pp <- auROCs |>
+    select(outer_split_num, inner_split_num, auROC) |> 
     rename(id = outer_split_num,
            id2 = inner_split_num) |> 
     perf_mod(formula = statistic ~ 1 + (1 | id/id2),
