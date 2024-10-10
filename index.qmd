@@ -190,6 +190,11 @@ Insert updated auROC plot with new inner preds
 
 Insert calibration plot with new inner preds
 
+global feture importance plot.  This will be features by broad categories
+
+
+Fairness plots.    auROC in subgroups.
+
 
 ### Feature Importance
 

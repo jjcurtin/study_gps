@@ -92,7 +92,7 @@ probs <- read_rds(file.path(path_models, str_c("inner_preds_",
 
 ```{r}
 roc_data <- probs |> 
-  roc_curve(prob_raw, truth = label)
+  roc_curve(prob_logi, truth = label)
   
 roc_data |>
   mutate(sensitivity = round(sensitivity, 4),
@@ -116,7 +116,7 @@ Add in curves for every outer fold.
 ```{r}
 roc_folds <- probs |> 
   nest(.by = outer_split_num, .key = "preds") |> 
-  mutate(roc = map(preds, \(preds) roc_curve(preds, prob_raw, 
+  mutate(roc = map(preds, \(preds) roc_curve(preds, prob_logi, 
                                              truth = label)))
 
 fig_roc_folds <- roc_data |>   # plot region from full concatenated data

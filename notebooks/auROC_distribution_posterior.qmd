@@ -84,12 +84,28 @@ path_models <- format_path(str_c("studydata/risk/models/", study))
 
 # Generate performance metric plot
 
-Load in data.
+> CP these are I think raw probabilities not beta -- issue?
+
 ```{r}
-metrics <- read_csv(here::here(path_models, str_c("best_config_",
-                                             version, "_",
-                                             cv, "_", model, ".csv")))
+probs <- read_rds(file.path(path_models, str_c("inner_preds_", 
+                                           window, "_", version, "_", 
+                                           cv, "_", model, ".rds"))) |>
+  mutate(prob = prob_logi) |> 
+  #pivot_longer(cols = starts_with("prob"), 
+               #names_to = "method", 
+               #values_to = ".pred_Lapse") |>
+  glimpse()
 ```
+
+Calculate auROC in each fold
+```{r}
+auROCs <- probs |>
+  group_by(outer_split_num, inner_split_num) |>
+  mutate(auROC = roc_auc_vec(truth = label, estimate = prob)) |> 
+  mutate(auROC = mean(auROC),
+         std = sd(auROC))
+```
+
 
 Generate plot across all *inner* folds.
 ```{r}
@@ -165,3 +181,10 @@ pp_tidy |>
   ylab("Posterior Probability Density") +
   xlab("Area Under ROC Curve")
 ```
+
+
+
+
+
+
+

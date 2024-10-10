@@ -414,8 +414,6 @@ if(!file.exists(here::here(path_models, str_c("inner_shapsgrp_",
            variable_grp = if_else(str_detect(variable_grp, ".emotion"), "location valence", variable_grp),
            variable_grp = if_else(str_detect(variable_grp, ".drank"), "previous drinking location", variable_grp),
            variable_grp = if_else(str_detect(variable_grp, "variance"), "location variance", variable_grp),
-           # can remove this once we fix typo above !!!!
-           variable_grp = if_else(str_detect(variable_grp, "var_location"), "location variance", variable_grp),
            variable_grp = if_else(str_detect(variable_grp, ".transit"), "transitory movement", variable_grp),
            variable_grp = if_else(str_detect(variable_grp, ".evening"), "out of home in evening", variable_grp),
            ) |> 
