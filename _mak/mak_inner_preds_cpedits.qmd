@@ -76,7 +76,7 @@ library(probably)
 ```
 
 Source support functions
-```{r source_functions}
+```{r}
 # EDA
 devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/fun_eda.R?raw=true")
 devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true")
@@ -86,7 +86,7 @@ devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/chtc/sta
 ```
 
 Absolute paths
-```{r, absolute_paths}
+```{r}
 path_processed <- format_path(str_c("studydata/risk/data_processed/", study))
 path_input <- format_path(str_c("studydata/risk/chtc/", study))
 path_models <- format_path(str_c("studydata/risk/models/", study))
@@ -97,18 +97,19 @@ path_models <- format_path(str_c("studydata/risk/models/", study))
 Function to clean up poor choices for feature names for SHAPs!!
 ```{r}
 clean_feature_names <- function(feat_name){
-  new_name <- gsub("p6.l0.rratesum_duration.", "p6.raw_duration.", new_name)
-  new_name <- gsub("p12.l0.rratesum_duration.", "p12.raw_duration.", new_name)
-  new_name <- gsub("p24.l0.rratesum_duration.", "p24.raw_duration.", new_name)
-  new_name <- gsub("p48.l0.rratesum_duration.", "p48.raw_duration.", new_name)
-  new_name <- gsub("p72.l0.rratesum_duration.", "p72.raw_duration.", new_name)
-  new_name <- gsub("p168.l0.rratesum_duration.", "p168.raw_duration.", new_name)
-  new_name <- gsub("p6.l0.dratesum_duration.", "p6.diff_duration.", new_name)
-  new_name <- gsub("p12.l0.dratesum_duration.", "p12.diff_duration.", new_name)
-  new_name <- gsub("p24.l0.dratesum_duration.", "p24.diff_duration.", new_name)
-  new_name <- gsub("p48.l0.dratesum_duration.", "p48.diff_duration.", new_name)
-  new_name <- gsub("p72.l0.dratesum_duration.", "p72.diff_duration.", new_name)
-  new_name <- gsub("p168.l0.dratesum_duration.", "p168.diff_duration.", new_name)
+  new_name <- gsub(".l0", "", feat_name)
+  new_name <- gsub("p6.rratesum_duration.", "p6.raw_duration.", new_name)
+  new_name <- gsub("p12.rratesum_duration.", "p12.raw_duration.", new_name)
+  new_name <- gsub("p24.rratesum_duration.", "p24.raw_duration.", new_name)
+  new_name <- gsub("p48.rratesum_duration.", "p48.raw_duration.", new_name)
+  new_name <- gsub("p72.rratesum_duration.", "p72.raw_duration.", new_name)
+  new_name <- gsub("p168.rratesum_duration.", "p168.raw_duration.", new_name)
+  new_name <- gsub("p6.dratesum_duration.", "p6.diff_duration.", new_name)
+  new_name <- gsub("p12.dratesum_duration.", "p12.diff_duration.", new_name)
+  new_name <- gsub("p24.dratesum_duration.", "p24.diff_duration.", new_name)
+  new_name <- gsub("p48.dratesum_duration.", "p48.diff_duration.", new_name)
+  new_name <- gsub("p72.dratesum_duration.", "p72.diff_duration.", new_name)
+  new_name <- gsub("p168.dratesum_duration.", "p168.diff_duration.", new_name)
   new_name <- gsub("p6.rvar_location", "p6.raw_location_variance", new_name)
   new_name <- gsub("p12.rvar_location", "p12.raw_location_variance", new_name)
   new_name <- gsub("p24.rvar_location", "p24.raw_location_variance", new_name)
@@ -119,7 +120,7 @@ clean_feature_names <- function(feat_name){
   new_name <- gsub("p12.dvar_location", "p12.diff_location_variance", new_name)
   new_name <- gsub("p24.dvar_location", "p24.diff_location_variance", new_name)
   new_name <- gsub("p48.dvar_location", "p48.diff_location_variance", new_name)
-  new_name <- gsub("p72.drvar_location", "p72.diff_location_variance", new_name)
+  new_name <- gsub("p72.dvar_location", "p72.diff_location_variance", new_name)
   new_name <- gsub("p168.dvar_location", "p168.diff_location_variance", new_name)
   return(new_name) 
 }
@@ -127,8 +128,6 @@ clean_feature_names <- function(feat_name){
 
 Function to fit, predict, and calc metrics, preds, shaps
 ```{r}
-# should this be outer_split_num and inner_split_num?
-# or: should we add this to our dataframe: split_num = 10 * outer_split_num + (inner_split_num - 10)
 fit_predict_eval <- function(outer_split_num, inner_split_num, splits, config_best){
 
   # write tmp file to repo to track progress through loop
@@ -140,7 +139,6 @@ fit_predict_eval <- function(outer_split_num, inner_split_num, splits, config_be
             here::here(path_models, str_c("tmp_metrics_inner_progress_", window)),
             append = TRUE)
   
-  ## this might need to be different???
   d_in <- splits$inner_resamples[[outer_split_num]]$splits[[inner_split_num]] |>
     training() |> 
     select(-id_obs)  # not used for training; only needed in d_out to tag for later joins 
@@ -226,14 +224,14 @@ fit_predict_eval <- function(outer_split_num, inner_split_num, splits, config_be
     cal_apply(logi)
 
   # beta calibration
-  beta <- predict(model_cal, feat_cal_out,
-                 type = "prob") |>
-    mutate(truth = feat_cal_out$y) |>
-    cal_estimate_beta(truth = truth,
-                           estimate = dplyr::starts_with(".pred_"),
-                           smooth = TRUE)
-  preds_prob_beta <- preds_prob |>
-    cal_apply(beta)
+  # beta <- predict(model_cal, feat_cal_out,
+  #                 type = "prob") |>
+  #   mutate(truth = feat_cal_out$y) |>
+  #   cal_estimate_beta(truth = truth,
+  #                     estimate = dplyr::starts_with(".pred_"),
+  #                     smooth = TRUE)
+  #preds_prob_beta <- preds_prob |>
+    #cal_apply(beta)
 
   # combine raw and calibrated probs
   probs_out <- tibble(id_obs = d_out$id_obs,
@@ -242,21 +240,19 @@ fit_predict_eval <- function(outer_split_num, inner_split_num, splits, config_be
                       prob_raw = preds_prob[[str_c(".pred_", y_level_pos)]],
                       prob_iso = preds_prob_iso[[str_c(".pred_", y_level_pos)]],
                       prob_logi = preds_prob_logi[[str_c(".pred_", y_level_pos)]],
-                      prob_beta = preds_prob_beta[[str_c(".pred_", y_level_pos)]],
+                      #prob_beta = preds_prob_beta[[str_c(".pred_", y_level_pos)]],
                       label = d_out$y) 
 
-  # NOTE SHAPS COMMENTED OUT FOR NOW FOR TESTING
   # SHAP in held out fold
-  # shaps_out <- SHAPforxgboost::shap.prep(xgb_model = extract_fit_engine(model_best),
-  #                    X_train = feat_out |> select(-y) |>  as.matrix()) |> 
-  #  # add id_obs by multiple of number of features
-  #   mutate(id_obs = rep(d_out$id_obs, times = ncol(feat_out) - 1),
-  #          split_num = split_num) |>  
-  #   relocate(id_obs, split_num)
+  shaps_out <- SHAPforxgboost::shap.prep(xgb_model = extract_fit_engine(model_best),
+                     X_train = feat_out |> select(-y) |>  as.matrix()) |>
+   # add id_obs by multiple of number of features
+    mutate(id_obs = rep(d_out$id_obs, times = ncol(feat_out) - 1),
+           inner_split_num = inner_split_num, outer_split_num = outer_split_num) |> 
+    relocate(id_obs, outer_split_num, inner_split_num)
 
-  return(list(probs_out = probs_out 
-              ))#, 
-              #shaps_out = shaps_out))
+  return(list(probs_out = probs_out,
+              shaps_out = shaps_out))
 }
 ```
 
@@ -324,17 +320,16 @@ if(!file.exists(here::here(path_models, str_c("inner_preds_",
   splits <- d |> 
     make_splits(cv_resample_type, cv_resample, cv_outer_resample, 
                 cv_inner_resample, cv_group, seed_splits)
-  ## UP TIL HERE WORKS
   
-  # one option with separate inner and outer lists
+  # generate separate inner and outer lists
   inner_split_num_list <- rep(1:10, times = 30)
   outer_split_num_list <- rep(1:30, each = 10)
-  # 
-  all <- map2(inner_split_num_list, outer_split_num_list, \(inner_split_num, outer_split_num)
-       fit_predict_eval(inner_split_num = inner_split_num, outer_split_num = outer_split_num,
+
+  
+  all <- map2(inner_split_num_list, outer_split_num_list, \(inner_split_nums, outer_split_nums)
+       fit_predict_eval(inner_split_num = inner_split_nums, outer_split_num = outer_split_nums,
                         splits = splits, 
-                        config_best = config_best)) |>
-    bind_rows()
+                        config_best = config_best))
   
   
   # # one option with mutate split_num column
@@ -361,7 +356,7 @@ if(!file.exists(here::here(path_models, str_c("inner_preds_",
     map(\(l) pluck(l, "probs_out")) |> 
     list_rbind() |> 
     write_rds(here::here(path_models, str_c("inner_preds_", 
-                                           window, "_", lead, "_", version, "_", 
+                                           window, "_", version, "_", 
                                            cv, "_", model, ".rds")))
 
   write_csv(tibble(stage = "shaps_save",
@@ -383,11 +378,10 @@ if(!file.exists(here::here(path_models, str_c("inner_preds_",
     write_rds(here::here(path_models, str_c("inner_shaps_", 
                                            window, "_", version, "_", 
                                            cv, "_", model, ".rds")))
-    
 } else {
   message("Resampled performance from nested CV previously calculated")
   shaps_out <- read_rds(here::here(path_models, str_c("inner_shaps_", 
-                                                     window, "_", lead, "_", 
+                                                     window, "_", 
                                                      version, "_", 
                                                      cv, "_", model, ".rds")))
 }
@@ -410,68 +404,28 @@ if(!file.exists(here::here(path_models, str_c("inner_shapsgrp_",
             here::here(path_models, str_c("tmp_metrics_inner_progress_",window)),
             append = TRUE)
   
-  shaps_out_grp <- shaps_out |>  
-    # mutate(variable_grp = if_else(str_detect(variable, ".lapse"), 
-    #                        "past use (EMA item)", 
-    #                        variable),
-    #        variable_grp = if_else(str_detect(variable_grp, "ema_2"), 
-    #                        "craving (EMA item)", 
-    #                        variable_grp),
-    #        variable_grp = if_else(str_detect(variable_grp, "ema_3"), 
-    #                        "past risky situation (EMA item)", 
-    #                        variable_grp),
-    #        variable_grp = if_else(str_detect(variable_grp, "ema_4"), 
-    #                        "past stressful event (EMA item)", 
-    #                        variable_grp),
-    #        variable_grp = if_else(str_detect(variable_grp, "ema_5"), 
-    #                        "past pleasant event (EMA item)", 
-    #                        variable_grp),
-    #        variable_grp = if_else(str_detect(variable_grp, "ema_6"), 
-    #                        "valence (EMA item)", 
-    #                        variable_grp),
-    #        variable_grp = if_else(str_detect(variable_grp, "ema_7"), 
-    #                        "arousal (EMA item)", 
-    #                        variable_grp),
-    #        variable_grp = if_else(str_detect(variable_grp, "ema_8"), 
-    #                        "future risky situation (EMA item)",
-    #                        variable_grp),
-    #        variable_grp = if_else(str_detect(variable_grp, "ema_9"), 
-    #                        "future stressful event (EMA item)",
-    #                        variable_grp),
-    #        variable_grp = if_else(str_detect(variable_grp, "ema_10"), 
-    #                        "future efficacy (EMA item)", 
-    #                        variable_grp),
-    #        variable_grp = if_else(str_detect(variable_grp, ".ema$"), 
-    #                        "missing surveys (other)", 
-    #                        variable_grp),
-    #        variable_grp = if_else(str_detect(variable_grp, "day"), 
-    #                        "lapse day (other)", 
-    #                        variable_grp),
-    #        variable_grp = if_else(str_detect(variable_grp, "hour"), 
-    #                        "lapse hour (other)", 
-    #                        variable_grp),
-    #        variable_grp = if_else(str_detect(variable_grp, "age"), 
-    #                        "age (demographic)", 
-    #                        variable_grp),
-    #        variable_grp = if_else(str_detect(variable_grp, "sex"), 
-    #                        "sex (demographic)", 
-    #                        variable_grp),
-    #        variable_grp = if_else(str_detect(variable_grp, "marital"), 
-    #                        "marital (demographic)", 
-    #                        variable_grp),
-    #        variable_grp = if_else(str_detect(variable_grp, "race"), 
-    #                        "race (demographic)", 
-    #                        variable_grp),
-    #        variable_grp = if_else(str_detect(variable_grp, "educ"), 
-    #                        "education (demographic)", 
-    #                        variable_grp)) |> 
+  shaps_out_grp <- shaps_out |> 
+    # collapse across duration and raw + change
+    mutate(variable_grp = if_else(str_detect(variable, ".risk"), "risky location", variable),
+           # maybe this should be stratified by specific types of locations?
+           variable_grp = if_else(str_detect(variable_grp, ".type"), "type of location", variable_grp),
+           variable_grp = if_else(str_detect(variable_grp, ".alcohol"), "alcohol availability at location", variable_grp),
+           variable_grp = if_else(str_detect(variable_grp, ".avoid"), "location to avoid in recovery", variable_grp),
+           variable_grp = if_else(str_detect(variable_grp, ".emotion"), "location valence", variable_grp),
+           variable_grp = if_else(str_detect(variable_grp, ".drank"), "previous drinking location", variable_grp),
+           variable_grp = if_else(str_detect(variable_grp, "variance"), "location variance", variable_grp),
+           # can remove this once we fix typo above !!!!
+           variable_grp = if_else(str_detect(variable_grp, "var_location"), "location variance", variable_grp),
+           variable_grp = if_else(str_detect(variable_grp, ".transit"), "transitory movement", variable_grp),
+           variable_grp = if_else(str_detect(variable_grp, ".evening"), "out of home in evening", variable_grp),
+           ) |> 
     mutate(variable_grp = factor(variable_grp)) |>  
     group_by(id_obs, variable_grp) |>  # values are already averaged across repeats
     summarize(value = sum(value))
   
   shaps_out_grp |>  write_rds(here::here(path_models, 
                                           str_c("inner_shapsgrp_", window, "_", 
-                                                lead, "_", version, "_",
+                                                version, "_",
                                                 cv, "_", model, ".rds")))
 }
 ```
