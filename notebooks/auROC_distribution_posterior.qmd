@@ -183,7 +183,8 @@ Posterior graph as density plot
 
 
 pp_tidy <- pp |> 
-  tidy(seed = 123)
+  tidy(seed = 123) |> 
+  write_csv(here::here("objects", "pp_tidy.csv"))
 
 ci_day <- pp_tidy |> 
   summary() |> 
@@ -199,6 +200,10 @@ pp_tidy |>
   xlab("Area Under ROC Curve")
 ```
 
+```{r}
+pp_tidy |> 
+ summarize(prob = mean(posterior > .5)) 
+```
 
 
 

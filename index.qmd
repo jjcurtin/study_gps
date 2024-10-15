@@ -172,6 +172,17 @@ A Bayesian hierarchical generalized linear model was used to estimate the poster
 
 ## Results
 
+
+```{r}
+#| echo: false
+
+pp_tidy <-  read_csv(here::here("objects", "pp_tidy.csv"),
+                     show_col_types = FALSE)
+
+ci_day <- pp_tidy |> 
+  summary()
+```
+
 ### Demographics
 
 A total of 192 individuals were eligible to participate in the study, of which 191 consented to participate and 169 enrolled in the study. Fifteen participants were excluded prior to the first monthly follow-up visit. One participant was excluded for not maintaining a recovery goal of abstinence during their time on study. Two participants were excluded due to evidence of low compliance and careless responding. A further five individuals were excluded due to poor geolocation data quality as a result of insufficient data (primarily resulting from software incompatibility), resulting in a final sample size of 146.
@@ -201,6 +212,8 @@ Finally, we performed model calibration in order to improve our trust in model p
 
 {{< embed notebooks/calibration_plot.qmd#fig-calibration >}}
 
+
+`r sprintf("%1.3f", ci_day$mean)`
 
 
 ### Feature Importance
