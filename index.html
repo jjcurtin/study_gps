@@ -483,9 +483,9 @@ div.csl-indent {
 <blockquote class="blockquote">
 <p>need to pull stats!</p>
 </blockquote>
-<p>The median auROC across the 300 folds achieved fair performance (Mdn = 0.721, IQR = XX, range = XX-XX). Figure 1 displays a histogram of model performance distribution across all folds. A receiver operating characteristic curve is displayed in Figure 2, representing aggregate predicted lapse probabilities across all 300 folds of the validation set.</p>
-<p>We also used the posterior probability distributions for the auROCs for our best performing validation set model to formally characterize model performance. The median auROC was XX (95% CI [XX-XX]; Figure 3).</p>
-<p>Finally, we performed model calibration in order to improve our trust in model predictions. Results of model calibration are displayed in Figure 4, showing that this model <em>over</em> predicts lapse probability even after calibrating the model. In other words, our model is more likely to predict that an individual will lapse than the true rate of lapse in our sample.</p>
+<p>The median auROC across the 300 folds achieved fair performance (Mdn = 0.721, IQR = XX, range = XX-XX). <a href="#fig-auroc-histogram" class="quarto-xref">Figure&nbsp;1</a> displays a histogram of model performance distribution across all folds. A receiver operating characteristic curve is displayed in <a href="#fig-auroc-plot" class="quarto-xref">Figure&nbsp;2</a>, representing aggregate predicted lapse probabilities across all 300 folds of the validation set.</p>
+<p>We also used the posterior probability distributions for the auROCs for our best performing validation set model to formally characterize model performance. The median auROC was XX (95% CI [XX-XX]; <a href="#fig-pp" class="quarto-xref">Figure&nbsp;3</a>).</p>
+<p>Finally, we performed model calibration in order to improve our trust in model predictions. Results of model calibration are displayed in <a href="#fig-calibration" class="quarto-xref">Figure&nbsp;4</a>, showing that this model <em>over</em> predicts lapse probability even after calibrating the model. In other words, our model is more likely to predict that an individual will lapse than the true rate of lapse in our sample.</p>
 <div class="quarto-embed-nb-cell">
 <div id="cell-fig-auroc-histogram" class="cell" data-fig-height="6" data-fig-width="6">
 <div class="cell-output cell-output-display">
@@ -503,57 +503,57 @@ Figure&nbsp;1: auROC performance across all inner cross-validation folds.
 </div>
 <a class="quarto-notebook-link" id="nblink-1" href="notebooks/auROC_distribution_posterior-preview.html#cell-fig-auroc-histogram">Source: Evaluate inner auROC for `r params$model` models of training jobs from CHTC for `r params$study` study with version `r params$version` using `r params$cv` CV</a></div>
 <div class="quarto-embed-nb-cell">
-<div id="cell-fig-calibration" class="cell" data-fig-height="6" data-fig-width="6">
-<div class="cell-output cell-output-display">
-<div id="fig-calibration" class="quarto-figure quarto-figure-center quarto-float anchored">
-<figure class="quarto-float quarto-float-fig figure">
-<div aria-describedby="fig-calibration-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="index_files/figure-html/notebooks-calibration_plot-fig-calibration-output-1.png" class="lightbox" data-glightbox="description: .lightbox-desc-2" data-gallery="quarto-lightbox-gallery-2"><img src="index_files/figure-html/notebooks-calibration_plot-fig-calibration-output-1.png" class="img-fluid figure-img"></a>
-</div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-calibration-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;2: Comparison between raw (uncalibrated) and logistic (calibrated) probabilities.
-</figcaption>
-</figure>
-</div>
-</div>
-</div>
-<a class="quarto-notebook-link" id="nblink-2" href="notebooks/calibration_plot-preview.html#cell-fig-calibration">Source: Generate INNER calibration</a></div>
-<div class="quarto-embed-nb-cell">
 <div id="cell-fig-auroc-plot" class="cell" data-fig-height="6" data-fig-width="6">
 <div class="cell-output cell-output-display">
 <div id="fig-auroc-plot" class="quarto-figure quarto-figure-center quarto-float anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-auroc-plot-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="index_files/figure-html/notebooks-auROC_plot-fig-auroc-plot-output-2.png" class="lightbox" data-glightbox="description: .lightbox-desc-3" data-gallery="quarto-lightbox-gallery-3"><img src="index_files/figure-html/notebooks-auROC_plot-fig-auroc-plot-output-2.png" class="img-fluid figure-img"></a>
+<a href="index_files/figure-html/notebooks-auROC_plot-fig-auroc-plot-output-2.png" class="lightbox" data-glightbox="description: .lightbox-desc-2" data-gallery="quarto-lightbox-gallery-2"><img src="index_files/figure-html/notebooks-auROC_plot-fig-auroc-plot-output-2.png" class="img-fluid figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-auroc-plot-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;3: auROC for overall validation set performance across thresholds.
+Figure&nbsp;2: auROC for overall validation set performance across thresholds.
 </figcaption>
 </figure>
 </div>
 </div>
 </div>
-<a class="quarto-notebook-link" id="nblink-3" href="notebooks/auROC_plot-preview.html#cell-fig-auroc-plot">Source: Generate auROC plot for `r params$model` models of training jobs from CHTC for `r params$study` study with version `r params$version` using `r params$cv` CV</a></div>
+<a class="quarto-notebook-link" id="nblink-2" href="notebooks/auROC_plot-preview.html#cell-fig-auroc-plot">Source: Generate auROC plot for `r params$model` models of training jobs from CHTC for `r params$study` study with version `r params$version` using `r params$cv` CV</a></div>
 <div class="quarto-embed-nb-cell">
 <div id="cell-fig-pp" class="cell" data-fig-height="6" data-fig-width="6">
 <div class="cell-output cell-output-display">
 <div id="fig-pp" class="quarto-figure quarto-figure-center quarto-float anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-pp-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="index_files/figure-html/notebooks-auROC_distribution_posterior-fig-pp-output-1.png" class="lightbox" data-glightbox="description: .lightbox-desc-4" data-gallery="quarto-lightbox-gallery-4"><img src="index_files/figure-html/notebooks-auROC_distribution_posterior-fig-pp-output-1.png" class="img-fluid figure-img"></a>
+<a href="index_files/figure-html/notebooks-auROC_distribution_posterior-fig-pp-output-1.png" class="lightbox" data-glightbox="description: .lightbox-desc-3" data-gallery="quarto-lightbox-gallery-3"><img src="index_files/figure-html/notebooks-auROC_distribution_posterior-fig-pp-output-1.png" class="img-fluid figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-pp-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;4: Posterior distribution of model performance with 95% credible interval.
+Figure&nbsp;3: Posterior distribution of model performance with 95% credible interval.
 </figcaption>
 </figure>
 </div>
 </div>
 </div>
-<a class="quarto-notebook-link" id="nblink-4" href="notebooks/auROC_distribution_posterior-preview.html#cell-fig-pp">Source: Evaluate inner auROC for `r params$model` models of training jobs from CHTC for `r params$study` study with version `r params$version` using `r params$cv` CV</a></div>
+<a class="quarto-notebook-link" id="nblink-3" href="notebooks/auROC_distribution_posterior-preview.html#cell-fig-pp">Source: Evaluate inner auROC for `r params$model` models of training jobs from CHTC for `r params$study` study with version `r params$version` using `r params$cv` CV</a></div>
+<div class="quarto-embed-nb-cell">
+<div id="cell-fig-calibration" class="cell" data-fig-height="6" data-fig-width="6">
+<div class="cell-output cell-output-display">
+<div id="fig-calibration" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-calibration-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<a href="index_files/figure-html/notebooks-calibration_plot-fig-calibration-output-1.png" class="lightbox" data-glightbox="description: .lightbox-desc-4" data-gallery="quarto-lightbox-gallery-4"><img src="index_files/figure-html/notebooks-calibration_plot-fig-calibration-output-1.png" class="img-fluid figure-img"></a>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-calibration-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;4: Comparison between raw (uncalibrated) and logistic (calibrated) probabilities.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<a class="quarto-notebook-link" id="nblink-4" href="notebooks/calibration_plot-preview.html#cell-fig-calibration">Source: Generate INNER calibration</a></div>
 </section>
 <section id="feature-importance" class="level3">
 <h3 class="anchored" data-anchor-id="feature-importance">Feature Importance</h3>
-<p>Global importance (mean absolute Shapley values) for feature categories is shown in Figure 4. Three features were identified as being particularly important in contributing to model predictions: time spent at risky locations, time spent at different types of location, and time spent at locations with varying levels of alcohol availability. Other features, both context-supplemented and without, did not appear to be strong global contributors to model predictions.</p>
+<p>Global importance (mean absolute Shapley values) for feature categories is shown in <a href="#fig-shaps-group" class="quarto-xref">Figure&nbsp;5</a>. Three features were identified as being particularly important in contributing to model predictions: time spent at risky locations, time spent at different types of location, and time spent at locations with varying levels of alcohol availability. Other features, both context-supplemented and without, did not appear to be strong global contributors to model predictions.</p>
 <div class="quarto-embed-nb-cell">
 <div id="cell-fig-shaps-group" class="cell" data-fig-height="6" data-fig-width="6">
 <div class="cell-output cell-output-display">
@@ -574,7 +574,7 @@ Figure&nbsp;5: Grouped (mean absolute values) SHAP values displaying relative fe
 </section>
 <section id="algorithmic-fairness-1" class="level3">
 <h3 class="anchored" data-anchor-id="algorithmic-fairness-1">Algorithmic Fairness</h3>
-<p>Figure 5 shows the differences in model performance across race (white = 127, non-white = 19), sex (male N = 74, female N = 72), age (younger than 55 = 126, older than or equal to 55 = 20), and income (below federal poverty line = 48, above federal poverty line = 98). No group comparisons were significant (probability &lt; .95) across models, suggesting comparable model performance across subgroups.</p>
+<p><a href="#fig-fairness-subgroups" class="quarto-xref">Figure&nbsp;6</a> shows the differences in model performance across race (white = 127, non-white = 19), sex (male N = 74, female N = 72), age (younger than 55 = 126, older than or equal to 55 = 20), and income (below federal poverty line = 48, above federal poverty line = 98). No group comparisons were significant (probability &lt; .95) across models, suggesting comparable model performance across subgroups.</p>
 <div class="quarto-embed-nb-cell">
 <div id="cell-fig-fairness-subgroups" class="cell" data-fig-height="6" data-fig-width="6">
 <div class="cell-output cell-output-display">
@@ -741,9 +741,9 @@ Witkiewitz, Katie, and G. Alan Marlatt. 2004. <span>“Relapse Prevention for Al
 </div>
 <div class="hidden" aria-hidden="true">
 <span class="glightbox-desc lightbox-desc-1">Figure&nbsp;1: auROC performance across all inner cross-validation folds.</span>
-<span class="glightbox-desc lightbox-desc-2">Figure&nbsp;2: Comparison between raw (uncalibrated) and logistic (calibrated) probabilities.</span>
-<span class="glightbox-desc lightbox-desc-3">Figure&nbsp;3: auROC for overall validation set performance across thresholds.</span>
-<span class="glightbox-desc lightbox-desc-4">Figure&nbsp;4: Posterior distribution of model performance with 95% credible interval.</span>
+<span class="glightbox-desc lightbox-desc-2">Figure&nbsp;2: auROC for overall validation set performance across thresholds.</span>
+<span class="glightbox-desc lightbox-desc-3">Figure&nbsp;3: Posterior distribution of model performance with 95% credible interval.</span>
+<span class="glightbox-desc lightbox-desc-4">Figure&nbsp;4: Comparison between raw (uncalibrated) and logistic (calibrated) probabilities.</span>
 <span class="glightbox-desc lightbox-desc-5">Figure&nbsp;5: Grouped (mean absolute values) SHAP values displaying relative feature importance.</span>
 <span class="glightbox-desc lightbox-desc-6">Figure&nbsp;6: 95% credible intervals across posterior subgroups at differential levels of privilege.</span>
 </div>
@@ -1161,7 +1161,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 });
 </script>
 </div> <!-- /content -->
-<script>var lightboxQuarto = GLightbox({"closeEffect":"zoom","openEffect":"zoom","selector":".lightbox","descPosition":"bottom","loop":false});
+<script>var lightboxQuarto = GLightbox({"openEffect":"zoom","selector":".lightbox","loop":false,"closeEffect":"zoom","descPosition":"bottom"});
 window.onload = () => {
   lightboxQuarto.on('slide_before_load', (data) => {
     const { slideIndex, slideNode, slideConfig, player, trigger } = data;
