@@ -8,7 +8,7 @@
 
 <meta name="author" content="Claire Punturieri">
 <meta name="author" content="John J. Curtin">
-<meta name="dcterms.date" content="2024-10-08">
+<meta name="dcterms.date" content="2024-10-15">
 
 <title>The Feasibility and Equity of Geolocation Data for Lapse Prediction in AUD</title>
 <style>
@@ -64,10 +64,10 @@ div.csl-indent {
 <meta name="citation_title" content="The Feasibility and Equity of Geolocation Data for Lapse Prediction in AUD">
 <meta name="citation_author" content="Claire Punturieri">
 <meta name="citation_author" content="John J. Curtin">
-<meta name="citation_publication_date" content="2024-10-08">
-<meta name="citation_cover_date" content="2024-10-08">
+<meta name="citation_publication_date" content="2024-10-15">
+<meta name="citation_cover_date" content="2024-10-15">
 <meta name="citation_year" content="2024">
-<meta name="citation_online_date" content="2024-10-08">
+<meta name="citation_online_date" content="2024-10-15">
 <meta name="citation_language" content="en">
 <meta name="citation_reference" content="citation_title=Alcohol Treatment in the United States  National Institute on Alcohol Abuse and Alcoholism (NIAAA);,citation_publisher=https://www.niaaa.nih.gov/alcohols-effects-health/alcohol-topics/alcohol-facts-and-statistics/alcohol-treatment-united-states;">
 <meta name="citation_reference" content="citation_title=Mobile technology for mental health assessment;,citation_abstract=Assessment and outcome monitoring are critical for the effective detection and treatment of mental illness. Traditional methods of capturing social, functional, and behavioral data are limited to the information that patients report back to their health care provider at selected points in time. As a result, these data are not accurate accounts of day-to-day functioning, as they are often influenced by biases in self-report. Mobile technology (mobile applications on smartphones, activity bracelets) has the potential to overcome such problems with traditional assessment and provide information about patient symptoms, behavior, and functioning in real time. Although the use of sensors and apps are widespread, several questions remain in the field regarding the reliability of off-the-shelf apps and sensors, use of these tools by consumers, and provider use of these data in clinical decision-making.;,citation_author=Patricia A. Areàn;,citation_author=Kien Hoa Ly;,citation_author=Gerhard Andersson;,citation_publication_date=2016-06;,citation_cover_date=2016-06;,citation_year=2016;,citation_issue=2;,citation_issn=1958-5969;,citation_pmid=27489456;,citation_volume=18;,citation_language=en-US;,citation_journal_title=Dialogues in Clinical Neuroscience;">
@@ -201,7 +201,7 @@ div.csl-indent {
                 <div>
             <div class="quarto-title-meta-heading">Published</div>
             <div class="quarto-title-meta-contents">
-              <p class="date">October 8, 2024</p>
+              <p class="date">October 15, 2024</p>
             </div>
           </div>
           
@@ -253,7 +253,7 @@ div.csl-indent {
   </ul></li>
   <li><a href="#references" id="toc-references" class="nav-link" data-scroll-target="#references">References</a></li>
   </ul>
-<div class="quarto-alternate-notebooks"><h2>Notebooks</h2><ul><li><a href="notebooks/auROC_distribution_posterior-preview.html"><i class="bi bi-journal-code"></i>Evaluate inner auROC for `r params$model` models of training jobs from CHTC for `r params$study` study with version `r params$version` using `r params$cv` CV</a></li></ul></div></nav>
+<div class="quarto-alternate-notebooks"><h2>Notebooks</h2><ul><li><a href="notebooks/shaps-preview.html"><i class="bi bi-journal-code"></i>SHAPs</a></li><li><a href="notebooks/fairness-preview.html"><i class="bi bi-journal-code"></i>Subgroup Analysis</a></li><li><a href="notebooks/auROC_distribution_posterior-preview.html"><i class="bi bi-journal-code"></i>Evaluate inner auROC for `r params$model` models of training jobs from CHTC for `r params$study` study with version `r params$version` using `r params$cv` CV</a></li><li><a href="notebooks/calibration_plot-preview.html"><i class="bi bi-journal-code"></i>Generate INNER calibration</a></li><li><a href="notebooks/auROC_plot-preview.html"><i class="bi bi-journal-code"></i>Generate auROC plot for `r params$model` models of training jobs from CHTC for `r params$study` study with version `r params$version` using `r params$cv` CV</a></li></ul></div></nav>
 </div>
 <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
 </div>
@@ -485,7 +485,7 @@ div.csl-indent {
 <a href="index_files/figure-html/notebooks-auROC_distribution_posterior-fig-auroc-histogram-output-1.png" class="lightbox" data-glightbox="description: .lightbox-desc-1" data-gallery="quarto-lightbox-gallery-1"><img src="index_files/figure-html/notebooks-auROC_distribution_posterior-fig-auroc-histogram-output-1.png" class="img-fluid figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-auroc-histogram-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;1: Test caption!
+Figure&nbsp;1: auROC performance across all inner cross-validation folds.
 </figcaption>
 </figure>
 </div>
@@ -493,29 +493,91 @@ Figure&nbsp;1: Test caption!
 </div>
 <a class="quarto-notebook-link" id="nblink-1" href="notebooks/auROC_distribution_posterior-preview.html#cell-fig-auroc-histogram">Source: Evaluate inner auROC for `r params$model` models of training jobs from CHTC for `r params$study` study with version `r params$version` using `r params$cv` CV</a></div>
 <div class="quarto-embed-nb-cell">
-<div id="cell-fig-pp-density" class="cell" data-fig-height="6" data-fig-width="6">
+<div id="cell-fig-pp" class="cell" data-fig-height="6" data-fig-width="6">
 <div class="cell-output cell-output-display">
-<div id="fig-pp-density" class="quarto-figure quarto-figure-center quarto-float anchored">
+<div id="fig-pp" class="quarto-figure quarto-figure-center quarto-float anchored">
 <figure class="quarto-float quarto-float-fig figure">
-<div aria-describedby="fig-pp-density-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="index_files/figure-html/notebooks-auROC_distribution_posterior-fig-pp-density-output-1.png" class="lightbox" data-glightbox="description: .lightbox-desc-2" data-gallery="quarto-lightbox-gallery-2"><img src="index_files/figure-html/notebooks-auROC_distribution_posterior-fig-pp-density-output-1.png" class="img-fluid figure-img"></a>
+<div aria-describedby="fig-pp-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<a href="index_files/figure-html/notebooks-auROC_distribution_posterior-fig-pp-output-1.png" class="lightbox" data-glightbox="description: .lightbox-desc-2" data-gallery="quarto-lightbox-gallery-2"><img src="index_files/figure-html/notebooks-auROC_distribution_posterior-fig-pp-output-1.png" class="img-fluid figure-img"></a>
 </div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-pp-density-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;2: Test caption!
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-pp-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;2: Posterior distribution of model performance with 95% credible interval.
 </figcaption>
 </figure>
 </div>
 </div>
 </div>
-<a class="quarto-notebook-link" id="nblink-2" href="notebooks/auROC_distribution_posterior-preview.html#cell-fig-pp-density">Source: Evaluate inner auROC for `r params$model` models of training jobs from CHTC for `r params$study` study with version `r params$version` using `r params$cv` CV</a></div>
-<p>Insert updated auROC plot with new inner preds</p>
-<p>Insert calibration plot with new inner preds</p>
+<a class="quarto-notebook-link" id="nblink-2" href="notebooks/auROC_distribution_posterior-preview.html#cell-fig-pp">Source: Evaluate inner auROC for `r params$model` models of training jobs from CHTC for `r params$study` study with version `r params$version` using `r params$cv` CV</a></div>
+<div class="quarto-embed-nb-cell">
+<div id="cell-fig-auroc-plot" class="cell" data-fig-height="6" data-fig-width="6">
+<div class="cell-output cell-output-display">
+<div id="fig-auroc-plot" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-auroc-plot-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<a href="index_files/figure-html/notebooks-auROC_plot-fig-auroc-plot-output-2.png" class="lightbox" data-glightbox="description: .lightbox-desc-3" data-gallery="quarto-lightbox-gallery-3"><img src="index_files/figure-html/notebooks-auROC_plot-fig-auroc-plot-output-2.png" class="img-fluid figure-img"></a>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-auroc-plot-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;3: auROC for overall validation set performance across thresholds.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<a class="quarto-notebook-link" id="nblink-3" href="notebooks/auROC_plot-preview.html#cell-fig-auroc-plot">Source: Generate auROC plot for `r params$model` models of training jobs from CHTC for `r params$study` study with version `r params$version` using `r params$cv` CV</a></div>
+<div class="quarto-embed-nb-cell">
+<div id="cell-fig-calibration" class="cell" data-fig-height="6" data-fig-width="6">
+<div class="cell-output cell-output-display">
+<div id="fig-calibration" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-calibration-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<a href="index_files/figure-html/notebooks-calibration_plot-fig-calibration-output-1.png" class="lightbox" data-glightbox="description: .lightbox-desc-4" data-gallery="quarto-lightbox-gallery-4"><img src="index_files/figure-html/notebooks-calibration_plot-fig-calibration-output-1.png" class="img-fluid figure-img"></a>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-calibration-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;4: Comparison between raw (uncalibrated) and logistic (calibrated) probabilities.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<a class="quarto-notebook-link" id="nblink-4" href="notebooks/calibration_plot-preview.html#cell-fig-calibration">Source: Generate INNER calibration</a></div>
 </section>
 <section id="feature-importance" class="level3">
 <h3 class="anchored" data-anchor-id="feature-importance">Feature Importance</h3>
+<div class="quarto-embed-nb-cell">
+<div id="cell-fig-shaps-group" class="cell" data-fig-height="6" data-fig-width="6">
+<div class="cell-output cell-output-display">
+<div id="fig-shaps-group" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-shaps-group-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<a href="index_files/figure-html/notebooks-shaps-fig-shaps-group-output-1.png" class="lightbox" data-glightbox="description: .lightbox-desc-5" data-gallery="quarto-lightbox-gallery-5"><img src="index_files/figure-html/notebooks-shaps-fig-shaps-group-output-1.png" class="img-fluid figure-img"></a>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-shaps-group-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;5: Grouped (mean absolute values) SHAP values displaying relative feature importance.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<a class="quarto-notebook-link" id="nblink-5" href="notebooks/shaps-preview.html#cell-fig-shaps-group">Source: SHAPs</a></div>
 </section>
 <section id="algorithmic-fairness-1" class="level3">
 <h3 class="anchored" data-anchor-id="algorithmic-fairness-1">Algorithmic Fairness</h3>
+<div class="quarto-embed-nb-cell">
+<div id="cell-fig-fairness-subgroups" class="cell" data-fig-height="6" data-fig-width="6">
+<div class="cell-output cell-output-display">
+<div id="fig-fairness-subgroups" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-fairness-subgroups-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<a href="index_files/figure-html/notebooks-fairness-fig-fairness-subgroups-output-1.png" class="lightbox" data-glightbox="description: .lightbox-desc-6" data-gallery="quarto-lightbox-gallery-6"><img src="index_files/figure-html/notebooks-fairness-fig-fairness-subgroups-output-1.png" class="img-fluid figure-img"></a>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-fairness-subgroups-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;6: 95% credible intervals across posterior subgroups at differential levels of privilege.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<a class="quarto-notebook-link" id="nblink-6" href="notebooks/fairness-preview.html#cell-fig-fairness-subgroups">Source: Subgroup Analysis</a></div>
 </section>
 </section>
 <section id="conclusion" class="level2">
@@ -636,8 +698,12 @@ Witkiewitz, Katie, and G. Alan Marlatt. 2004. <span>“Relapse Prevention for Al
 </div>
 </div>
 <div class="hidden" aria-hidden="true">
-<span class="glightbox-desc lightbox-desc-1">Figure&nbsp;1: Test caption!</span>
-<span class="glightbox-desc lightbox-desc-2">Figure&nbsp;2: Test caption!</span>
+<span class="glightbox-desc lightbox-desc-1">Figure&nbsp;1: auROC performance across all inner cross-validation folds.</span>
+<span class="glightbox-desc lightbox-desc-2">Figure&nbsp;2: Posterior distribution of model performance with 95% credible interval.</span>
+<span class="glightbox-desc lightbox-desc-3">Figure&nbsp;3: auROC for overall validation set performance across thresholds.</span>
+<span class="glightbox-desc lightbox-desc-4">Figure&nbsp;4: Comparison between raw (uncalibrated) and logistic (calibrated) probabilities.</span>
+<span class="glightbox-desc lightbox-desc-5">Figure&nbsp;5: Grouped (mean absolute values) SHAP values displaying relative feature importance.</span>
+<span class="glightbox-desc lightbox-desc-6">Figure&nbsp;6: 95% credible intervals across posterior subgroups at differential levels of privilege.</span>
 </div>
 </section>
 
@@ -1053,7 +1119,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 });
 </script>
 </div> <!-- /content -->
-<script>var lightboxQuarto = GLightbox({"openEffect":"zoom","selector":".lightbox","descPosition":"bottom","loop":false,"closeEffect":"zoom"});
+<script>var lightboxQuarto = GLightbox({"selector":".lightbox","closeEffect":"zoom","loop":false,"descPosition":"bottom","openEffect":"zoom"});
 window.onload = () => {
   lightboxQuarto.on('slide_before_load', (data) => {
     const { slideIndex, slideNode, slideConfig, player, trigger } = data;
