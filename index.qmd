@@ -168,7 +168,7 @@ Finally, a Bayesian hierarchical generalized linear model was used to estimate t
 
 Subgroups were defined on the basis of personal individual characteristics (in the machine learning fairness literature, "sensitive attributes") that are specifically associated with treatment disparities in AUD.
 
-A Bayesian hierarchical generalized linear model was used to estimate the posterior probability distributions and 95% Bayesian CIs for auROC across different subgroups.
+A Bayesian hierarchical generalized linear model was used to estimate the posterior probability distributions and 95% Bayesian CIs for auROC across four subgroups of participants: white versus non-white, younger than 55 versus equal to and older than 55, below or above the federal poverty line (citation), and sex (male versus female).
 
 ## Results
 
@@ -182,26 +182,64 @@ The average age of the final sample was 40.9 years (SD = 12 years, range = 21-72
 
 ### Model Evaluation
 
-{{< embed notebooks/auROC_distribution_posterior.qmd#fig-auroc-histogram >}}
+We selected and evaluated the best performing XGBoost model from our validation set. This may result in a slight optimism bias in our model performance, though we believe this is largely offset through our use of 10 x 30 cross-validation (which averages model performance across 300 folds). However, evaluating the validation set was important to do because model development is still in progress, and as such it would not have been appropriate to examine independent test set performance at this stage.
 
-{{< embed notebooks/auROC_distribution_posterior.qmd#fig-pp >}}
+> need to pull stats!
+
+The median auROC across the 300 folds achieved fair performance (Mdn = 0.721, IQR = XX, range = XX-XX). @fig-auroc-histogram displays a histogram of model performance distribution across all folds. A receiver operating characteristic curve is displayed in @fig-auroc-plot, representing aggregate predicted lapse probabilities across all 300 folds of the validation set.
+
+We also used the posterior probability distributions for the auROCs for our best performing validation set model to formally characterize model performance. The median auROC was XX (95% CI [XX-XX]; @fig-pp).
+
+
+Finally, we performed model calibration in order to improve our trust in model predictions. Results of model calibration are displayed in @fig-calibration, showing that this model *over* predicts lapse probability even after calibrating the model. In other words, our model is more likely to predict that an individual will lapse than the true rate of lapse in our sample.
+
+{{< embed notebooks/auROC_distribution_posterior.qmd#fig-auroc-histogram >}}
 
 {{< embed notebooks/auROC_plot.qmd#fig-auroc-plot >}}
 
-{{< embed notebooks/auROC_plot.qmd#fig-calibration >}}
+{{< embed notebooks/auROC_distribution_posterior.qmd#fig-pp >}}
+
+{{< embed notebooks/calibration_plot.qmd#fig-calibration >}}
+
 
 
 ### Feature Importance
 
-{{< embed notebooks/auROC_plot.qmd#fig-shaps-group >}}
+Global importance (mean absolute Shapley values) for feature categories is shown in @fig-shaps-group. Three features were identified as being particularly important in contributing to model predictions: time spent at risky locations, time spent at different types of location, and time spent at locations with varying levels of alcohol availability. Other features, both context-supplemented and without, did not appear to be strong global contributors to model predictions.
+
+{{< embed notebooks/shaps.qmd#fig-shaps-group >}}
+
+SINA plot?
 
 ### Algorithmic Fairness
 
-{{< embed notebooks/auROC_plot.qmd#fig-fairness-subgroups >}}
+@fig-fairness-subgroups shows the differences in model performance across race (white = 127, non-white = 19), sex (male N = 74, female N = 72), age (younger than 55 = 126, older than or equal to 55 = 20), and income (below federal poverty line = 48, above federal poverty line = 98). No group comparisons were significant (probability < .95) across models, suggesting comparable model performance across subgroups.
 
-## Conclusion
+{{< embed notebooks/fairness.qmd#fig-fairness-subgroups >}}
 
-Brief overview goes here. Mention validation set.
+## Discussion
+
+### Model Performance
+
+- Our day-level model of lapse prediction using geolocation data performs adequately well. Models which perform at around the .7 threshold are considered to have "fair" performance. This suggests that, while there is still substantial room for improvement in model performance, geolocation data can predict future alcohol lapse in the next day with fair sensitivity and specificity.
+
+- Calibration is more sensitive than true lapse rate in sample, suggesting that it overpredicts occurrence of lapses
+- This is not necessarily an issue if we are trying to quantify relative risk to individuals using a risk monitoring system
+
+- Top performing Shapley values were time spent at risky locations, time spent at different types of location, and time spent at locations with varying levels of alcohol availability.
+- These features were all generated utilizing additional context supplied by participants after a given location was identified as frequently visited (> 2x in the previous month).
+- It should be noted that these features have potential to be generated without user feedback (i.e., using consumer and other publicly available data to identify establishments that sell alcohol, etc.)
+- This could potentially reduce burden further by not requiring individual input
+- However, self-classifying locations as risky might be encoding nuance that could not be feasibly obtained using public data. For example, a location might be labeled as risky from user input because it is a person-specific triggering location (e.g., scene of a traumatic event).
+- Interestingly, location valence (i.e., the emotion tied to a given location) is the fourth-highest Shapley value, yet appears to be minimally contributing to model predictions. This may be because participants were asked retrospectively about these locations at one month follow-up visits, and so our measures of emotional quality of a location may be too distal to be meaningful (particularly when compared to daily EMA).
+- Location to avoid in recovery and previous drinking location -- poor insight so low predictive ability?
+- Transitory movement, location variance, time spent out of home in the evening -- lacking individual input from participants, not easily tied to meaningful lapse risk factors
+
+### Model Fairness
+
+- Performance appears to be comparable across subgroups, but may be due to only fair performance of the model
+- We could be more sure of the conclusions from this comparison if we had a model with excellent performance
+- Fairness analyses will need to be repeated on the final sample
 
 ### Future directions
 
@@ -210,6 +248,12 @@ Brief overview goes here. Mention validation set.
 - Add in risk-terrain modeling features
 - Add in other important features that could contribute to movement patterns like day of the week and weather
 - Test final model
+- Further calibration
+- Break down three top performing features into their subcomponents (i.e., high risk locations, medium risk locations, and low risk locations; yes there is alcohol available here or no there is not alcohol available here) to obtain a more nuanced understanding of model performance.
+
+### Conclusion
+
+This study demonstrates that it is feasible to predict lapse with a fair level of accuracy using geolocation data, suggesting that geolocation data is a viable supplement for risk prediction monitoring systems. Moreover, our model demonstrates similar performance across vulnerable subgroups. Moving forward, additional risk-relevant features will be added to the model in an effort to improve prediction and the final model will be evaluated.
 
 ## References
 
