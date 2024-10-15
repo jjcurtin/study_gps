@@ -78,7 +78,6 @@ devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/format_p
 path_models <- format_path(str_c("studydata/risk/models/", study))
 ```
 
-> CP these are I think raw probabilities not beta -- issue?
 
 ```{r}
 probs <- read_rds(file.path(path_models, str_c("inner_preds_", 
@@ -91,6 +90,11 @@ probs <- read_rds(file.path(path_models, str_c("inner_preds_",
 ```
 
 ```{r}
+#| label: fig-auroc-plot
+#| fig-cap: auROC for overall validation set performance across thresholds.
+#| fig-height: 6
+#| fig-width: 6
+
 roc_data <- probs |> 
   roc_curve(prob_logi, truth = label)
   

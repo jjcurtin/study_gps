@@ -122,20 +122,22 @@ brier |> summarize(across(everything(), list(mean, median)))
 ```
 
 ## Explore Plots
+Raw and logi
 ```{r}
+#| label: fig-calibration
+#| fig-cap: Comparison between raw (uncalibrated) and logistic (calibrated) probabilities.
+#| fig-height: 6
+#| fig-width: 6
+cols <- c("prob_raw" = "#FF9898FF", "prob_logi" = "#A91E45FF")
 
 probs |>
-  mutate(.pred_lapse = .pred_Lapse) |> 
-  filter(outer_split_num == 1) |>
+  mutate(.pred_lapse = .pred_Lapse) |>
+  filter(method == "prob_raw" | method == "prob_logi") |> 
+  #filter(outer_split_num == 1) |>
   cal_plot_breaks(truth = label, 
                   estimate = .pred_lapse,
-                  .by = method)
-  
-probs |>
-  mutate(.pred_lapse = .pred_Lapse) |> 
-  filter(outer_split_num == 1) |> 
-  cal_plot_windowed(truth = label, 
-                  estimate = .pred_lapse,
-                  .by = method)
-
+                  .by = method) +
+  scale_color_manual(values = cols,
+                     aesthetics = c("color", "fill")) +
+  theme_classic()
 ```

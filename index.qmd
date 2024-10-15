@@ -184,21 +184,20 @@ The average age of the final sample was 40.9 years (SD = 12 years, range = 21-72
 
 {{< embed notebooks/auROC_distribution_posterior.qmd#fig-auroc-histogram >}}
 
-{{< embed notebooks/auROC_distribution_posterior.qmd#fig-pp-density >}}
+{{< embed notebooks/auROC_distribution_posterior.qmd#fig-pp >}}
 
-Insert updated auROC plot with new inner preds
+{{< embed notebooks/auROC_plot.qmd#fig-auroc-plot >}}
 
-Insert calibration plot with new inner preds
-
-global feture importance plot.  This will be features by broad categories
-
-
-Fairness plots.    auROC in subgroups.
+{{< embed notebooks/auROC_plot.qmd#fig-calibration >}}
 
 
 ### Feature Importance
 
+{{< embed notebooks/auROC_plot.qmd#fig-shaps-group >}}
+
 ### Algorithmic Fairness
+
+{{< embed notebooks/auROC_plot.qmd#fig-fairness-subgroups >}}
 
 ## Conclusion
 
