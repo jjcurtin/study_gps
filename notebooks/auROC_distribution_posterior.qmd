@@ -85,16 +85,16 @@ path_models <- format_path(str_c("studydata/risk/models/", study))
 # Generate performance metric plot
 
 ```{r}
-probs_local <- read_rds(file.path(path_models, str_c("inner_preds_", 
-                                            window, "_", version, "_", 
-                                            cv, "_", model, ".rds"))) |>
-   mutate(prob = prob_logi) |> 
-#   #pivot_longer(cols = starts_with("prob"), 
-#                #names_to = "method", 
-#                #values_to = ".pred_Lapse") |>
-   glimpse()
+# probs_local <- read_rds(file.path(path_models, str_c("inner_preds_", 
+#                                             window, "_", version, "_", 
+#                                             cv, "_", model, ".rds"))) |>
+#    mutate(prob = prob_logi) |> 
+# #   #pivot_longer(cols = starts_with("prob"), 
+# #                #names_to = "method", 
+# #                #values_to = ".pred_Lapse") |>
+#    glimpse()
 
-probs_chtc <- read_csv(here::here(path_models, str_c("best_config_",
+probs <- read_csv(here::here(path_models, str_c("best_config_",
                                              version, "_",
                                              cv, "_", model, ".csv"))) |> 
   glimpse()
@@ -102,12 +102,12 @@ probs_chtc <- read_csv(here::here(path_models, str_c("best_config_",
 
 Calculate auROC in each fold
 ```{r}
-auROCs <- probs_local |>
-  group_by(outer_split_num, inner_split_num) |>
-  summarize(auROC = roc_auc_vec(truth = label, estimate = prob),
-            .groups = "drop")
-
-auROCs |> pull(auROC) |> median()
+# auROCs <- probs |>
+#   group_by(outer_split_num, inner_split_num) |>
+#   summarize(auROC = roc_auc_vec(truth = label, estimate = prob),
+#             .groups = "drop")
+# 
+# auROCs |> pull(auROC) |> median()
 ```
 
 
@@ -123,10 +123,10 @@ Generate plot across all *inner* folds.
 #   geom_histogram(bins = 10, fill = c("#af1f21")) +
 #   geom_vline(xintercept = median(auROCs$auROC), color = c("#f29c96"), lwd = 1, linetype="longdash") +
 #   labs(x = "auROC", y = "Frequency")
-probs_chtc |> 
+probs |> 
   ggplot(aes(x = roc_auc)) +
   geom_histogram(bins = 10, fill = c("#af1f21")) +
-  geom_vline(xintercept = median(probs_chtc$roc_auc), color = c("#f29c96"), lwd = 1, linetype="longdash") +
+  geom_vline(xintercept = median(probs$roc_auc), color = c("#f29c96"), lwd = 1, linetype="longdash") +
   labs(x = "auROC", y = "Frequency")
 ```
 
@@ -153,7 +153,7 @@ if(file.exists(here::here(path_models, str_c("pp_",
   
   set.seed(101)
   
-  pp <- probs_chtc |> #auROCs |>
+  pp <- probs |> #auROCs |>
     select(outer_split_num, inner_split_num, roc_auc) |> 
            #auROC) |> 
     rename(id = outer_split_num,

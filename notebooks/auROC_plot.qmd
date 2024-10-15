@@ -15,6 +15,7 @@ params:
   cv: "nested_1_x_10_3_x_10"
   algorithms: "xgboost"   # "all" or name of specific algorithm
   model: "main"
+  window: "1day"
 editor_options: 
   chunk_output_type: console
 ---
@@ -40,6 +41,7 @@ cv <- params$cv
 model <- params$model
 algorithms <- params$algorithms
 version <- params$version
+window <- params$window
 ```
 
 ### Defaults

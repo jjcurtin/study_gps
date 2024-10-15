@@ -1,8 +1,33 @@
 ---
-title: "shaps"
+title: "SHAPs"
+author: "John Curtin, modified by Claire Punturieri"
+date: "`r lubridate::today()`"
+output: 
+  html_document:
+    toc: true 
+    toc_depth: 4
+format:
+  html:
+    embed-resources: true
+params:
+  study: "gps"
+  window: "1day"
+  version: "v6"
+  cv: "nested_1_x_10_3_x_10"
+  algorithms: "xgboost"   # "all" or name of specific algorithm
+  model: "main"
 editor_options: 
   chunk_output_type: console
 ---
+
+```{r}
+study <- params$study
+cv <- params$cv
+algorithms <- params$algorithms
+version <- params$version
+window <- params$window
+model <- params$model
+```
 
 # Set up environment
 ```{r}
@@ -11,8 +36,8 @@ theme_set(theme_classic())
 devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true",
                      sha1 = "a58e57da996d1b70bb9a5b58241325d6fd78890f")
 path_models <- format_path(str_c("studydata/risk/models/", study))
-#path_mak <- "mak/risk"
 ```
+
 
 ```{r}
 #source(here::here(path_mak, "mak_ema_shaps.R"))

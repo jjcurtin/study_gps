@@ -15,6 +15,7 @@ params:
   cv: "nested_1_x_10_3_x_10"
   algorithms: "xgboost"   # "all" or name of specific algorithm
   model: "main"
+  window: "1day"
 editor_options: 
   chunk_output_type: console
 ---
@@ -25,6 +26,7 @@ cv <- params$cv
 model <- params$model
 algorithms <- params$algorithms
 version <- params$version
+window <- params$window
 ```
 
 Function conflicts
@@ -53,7 +55,7 @@ library(probably)
 
 Path
 ```{r}
-path_processed <- format_path(str_c("studydata/risk/models/", study))
+path_models <- format_path(str_c("studydata/risk/models/", study))
 
 ```
 
@@ -96,9 +98,9 @@ get_brier <- function(split, df){
 ## Get Probs
 
 ```{r}
-probs <- read_rds(file.path(path_models, str_c("inner_preds_", 
-                                           window, "_", version, "_", 
-                                           cv, "_", model, ".rds"))) |>
+probs <- read_rds(here::here(path_models,
+                             str_c("inner_preds_", window, "_", version, "_",
+                                         cv, "_", model, ".rds"))) |>
   mutate(split_num = 10 * outer_split_num + (inner_split_num - 10)) |> 
   pivot_longer(cols = starts_with("prob"), 
                names_to = "method", 
