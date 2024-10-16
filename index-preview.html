@@ -1005,48 +1005,57 @@ lgl  (1): split_num
 <section id="demographics" class="level3">
 <h3 class="anchored" data-anchor-id="demographics">Demographics</h3>
 <p>A total of 192 individuals were eligible to participate in the study, of which 191 consented to participate and 169 enrolled in the study. Fifteen participants were excluded prior to the first monthly follow-up visit. One participant was excluded for not maintaining a recovery goal of abstinence during their time on study. Two participants were excluded due to evidence of low compliance and careless responding. A further five individuals were excluded due to poor geolocation data quality as a result of insufficient data (resulting from software incompatibility and/or very limited mobility), resulting in a final sample size of 146.</p>
-<p>The average age of the final sample was 40.9 years (SD = 12 years, range = 21-72 years). There was an approximately equal number of men (n = 74, 50.7%) and women (n = 72, 49.3%). The majority of the sample was White/Caucasian (n = 127, 86.99%) and non-Hispanic (n = 142, n = 97%). The mean income of participants was $34,408 (SD = $32,259, range = $0-$200,000). On average, participants self-reported a mean number of 8.9 DSM-V symptoms of AUD (range = 4-11). A detailed breakdown of participant characteristics is presented in tbl-demo-2. output: true label: tbl-demo-2</p>
+<p>The average age of the final sample was 40.9 years (SD = 12 years, range = 21-72 years). There was an approximately equal number of men (n = 74, 50.7%) and women (n = 72, 49.3%). The majority of the sample was White/Caucasian (n = 127, 86.99%) and non-Hispanic (n = 142, n = 97%). The mean income of participants was $34,408 (SD = $32,259, range = $0-$200,000). On average, participants self-reported a mean number of 8.9 DSM-V symptoms of AUD (range = 4-11). A detailed breakdown of participant characteristics is presented in <strong>?@tbl-demo-2</strong>.</p>
+<p>output: true label: tbl-demo-2</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><a href="objects/table.png" class="lightbox" data-gallery="quarto-lightbox-gallery-1" data-glightbox="description: .lightbox-desc-1" title="Test"><img src="objects/table.png" class="img-fluid figure-img" alt="Test"></a></p>
+<figcaption>Test</figcaption>
+</figure>
+</div>
 <div class="cell-container"><div class="cell-decorator"><pre>In [3]:</pre></div><div class="cell">
-<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co"># options(knitr.kable.NA = "—")</span></span>
-<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="co"># options(knitr.table.format = "latex")</span></span>
-<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="co"># </span></span>
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="co"># options(knitr.kable.NA = "—")</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="co"># #options(knitr.table.format = "markdown")</span></span>
 <span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="co"># </span></span>
-<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="co"># footnote_table_dem_a &lt;- "N = 146"</span></span>
-<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a><span class="co"># </span></span>
-<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a><span class="co"># footnote_table_dem_b &lt;- "Two participants reported 100 or more quit attempts. We removed these outliers prior"</span></span>
-<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a><span class="co"># </span></span>
-<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a><span class="co"># footnote_table_dem_c &lt;- "to calculating the mean (M), standard deviation (SD), and range."</span></span>
-<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a><span class="co"># </span></span>
-<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a><span class="co"># dem  |&gt;  </span></span>
-<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a><span class="co">#   bind_rows(auh |&gt;  </span></span>
-<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a><span class="co">#               mutate(across(mean:max, ~round(.x, 1))) |&gt;  </span></span>
-<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a><span class="co">#               mutate(across(mean:max, ~as.character(.x)))) |&gt;  </span></span>
-<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a><span class="co">#   bind_rows(lapse_info |&gt;  </span></span>
-<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a><span class="co">#               mutate(across(mean:max, ~round(.x, 1))) |&gt;  </span></span>
-<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a><span class="co">#               mutate(across(mean:max, ~as.character(.x)))) |&gt;  </span></span>
-<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a><span class="co">#   mutate(range = str_c(min, "-", max)) |&gt; </span></span>
-<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a><span class="co">#   select(-c(min, max)) |&gt;  </span></span>
-<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a><span class="co">#   kbl(longtable = TRUE,</span></span>
-<span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a><span class="co">#       booktabs = TRUE,</span></span>
-<span id="cb10-22"><a href="#cb10-22" aria-hidden="true" tabindex="-1"></a><span class="co">#       col.names = c("", "N", "%", "M", "SD", "Range"),</span></span>
-<span id="cb10-23"><a href="#cb10-23" aria-hidden="true" tabindex="-1"></a><span class="co">#       align = c("l", "c", "c", "c", "c", "c"),</span></span>
-<span id="cb10-24"><a href="#cb10-24" aria-hidden="true" tabindex="-1"></a><span class="co">#       digits = 1,</span></span>
-<span id="cb10-25"><a href="#cb10-25" aria-hidden="true" tabindex="-1"></a><span class="co">#       caption = "Demographics and clinical characteristics") |&gt; </span></span>
-<span id="cb10-26"><a href="#cb10-26" aria-hidden="true" tabindex="-1"></a><span class="co">#   kable_styling(position = "l") |&gt;</span></span>
-<span id="cb10-27"><a href="#cb10-27" aria-hidden="true" tabindex="-1"></a><span class="co">#   row_spec(row = 0, align = "c", italic = TRUE) |&gt;  </span></span>
-<span id="cb10-28"><a href="#cb10-28" aria-hidden="true" tabindex="-1"></a><span class="co">#   column_spec(column = 1, width = "18em") |&gt; </span></span>
-<span id="cb10-29"><a href="#cb10-29" aria-hidden="true" tabindex="-1"></a><span class="co">#   pack_rows("Sex", 2, 3, bold = FALSE) |&gt;  </span></span>
-<span id="cb10-30"><a href="#cb10-30" aria-hidden="true" tabindex="-1"></a><span class="co">#   pack_rows("Race", 4, 8, bold = FALSE) |&gt;  </span></span>
-<span id="cb10-31"><a href="#cb10-31" aria-hidden="true" tabindex="-1"></a><span class="co">#   pack_rows("Hispanic, Latino, or Spanish Origin", 9, 10, bold = FALSE) |&gt;  </span></span>
-<span id="cb10-32"><a href="#cb10-32" aria-hidden="true" tabindex="-1"></a><span class="co">#   pack_rows("Education", 11, 16, bold = FALSE) |&gt;  </span></span>
-<span id="cb10-33"><a href="#cb10-33" aria-hidden="true" tabindex="-1"></a><span class="co">#   pack_rows("Employment", 17, 25, bold = FALSE) |&gt;  </span></span>
-<span id="cb10-34"><a href="#cb10-34" aria-hidden="true" tabindex="-1"></a><span class="co">#   pack_rows("Marital Status", 27, 31, bold = FALSE) |&gt;  </span></span>
-<span id="cb10-35"><a href="#cb10-35" aria-hidden="true" tabindex="-1"></a><span class="co">#   pack_rows("Alcohol Use Disorder Milestones", 32, 35, bold = FALSE) |&gt;  </span></span>
-<span id="cb10-36"><a href="#cb10-36" aria-hidden="true" tabindex="-1"></a><span class="co">#   pack_rows("Lifetime History of Treatment (Can choose more than 1)", 37, 43, bold = FALSE) |&gt;  </span></span>
-<span id="cb10-37"><a href="#cb10-37" aria-hidden="true" tabindex="-1"></a><span class="co">#   pack_rows("Received Medication for Alcohol Use Disorder", 44, 45, bold = FALSE) |&gt;  </span></span>
-<span id="cb10-38"><a href="#cb10-38" aria-hidden="true" tabindex="-1"></a><span class="co">#   pack_rows("Current (Past 3 Month) Drug Use", 47, 54, bold = FALSE) |&gt;  </span></span>
-<span id="cb10-39"><a href="#cb10-39" aria-hidden="true" tabindex="-1"></a><span class="co">#   pack_rows("Reported 1 or More Lapse During Study Period", 55, 56, bold = FALSE) |&gt; </span></span>
-<span id="cb10-40"><a href="#cb10-40" aria-hidden="true" tabindex="-1"></a><span class="co">#   kableExtra::footnote(general = c(footnote_table_dem_a, footnote_table_dem_b, footnote_table_dem_c), escape=FALSE)</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a><span class="co"># footnote_table_dem_a &lt;- "N = 146"</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a><span class="co"># footnote_table_dem_b &lt;- "Two participants reported 100 or more quit attempts. We removed these outliers prior"</span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a><span class="co"># footnote_table_dem_c &lt;- "to calculating the mean (M), standard deviation (SD), and range."</span></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a><span class="co"># dem  |&gt;</span></span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a><span class="co">#   bind_rows(auh |&gt;</span></span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a><span class="co">#               mutate(across(mean:max, ~round(.x, 1))) |&gt;</span></span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a><span class="co">#               mutate(across(mean:max, ~as.character(.x)))) |&gt;</span></span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a><span class="co">#   bind_rows(lapse_info |&gt;</span></span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a><span class="co">#               mutate(across(mean:max, ~round(.x, 1))) |&gt;</span></span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a><span class="co">#               mutate(across(mean:max, ~as.character(.x)))) |&gt;</span></span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a><span class="co">#   mutate(range = str_c(min, "-", max)) |&gt;</span></span>
+<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a><span class="co">#   select(-c(min, max)) |&gt;</span></span>
+<span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a><span class="co">#   kbl(longtable = TRUE,</span></span>
+<span id="cb10-22"><a href="#cb10-22" aria-hidden="true" tabindex="-1"></a><span class="co">#       booktabs = TRUE,</span></span>
+<span id="cb10-23"><a href="#cb10-23" aria-hidden="true" tabindex="-1"></a><span class="co">#       col.names = c("", "N", "%", "M", "SD", "Range"),</span></span>
+<span id="cb10-24"><a href="#cb10-24" aria-hidden="true" tabindex="-1"></a><span class="co">#       align = c("l", "c", "c", "c", "c", "c"),</span></span>
+<span id="cb10-25"><a href="#cb10-25" aria-hidden="true" tabindex="-1"></a><span class="co">#       digits = 1,</span></span>
+<span id="cb10-26"><a href="#cb10-26" aria-hidden="true" tabindex="-1"></a><span class="co">#       caption = "Demographics and clinical characteristics") |&gt;</span></span>
+<span id="cb10-27"><a href="#cb10-27" aria-hidden="true" tabindex="-1"></a><span class="co">#   kable_styling(position = "l") |&gt;</span></span>
+<span id="cb10-28"><a href="#cb10-28" aria-hidden="true" tabindex="-1"></a><span class="co">#   row_spec(row = 0, align = "c", italic = TRUE) |&gt;</span></span>
+<span id="cb10-29"><a href="#cb10-29" aria-hidden="true" tabindex="-1"></a><span class="co">#   column_spec(column = 1, width = "18em") |&gt;</span></span>
+<span id="cb10-30"><a href="#cb10-30" aria-hidden="true" tabindex="-1"></a><span class="co">#   pack_rows("Sex", 2, 3, bold = FALSE) |&gt;</span></span>
+<span id="cb10-31"><a href="#cb10-31" aria-hidden="true" tabindex="-1"></a><span class="co">#   pack_rows("Race", 4, 8, bold = FALSE) |&gt;</span></span>
+<span id="cb10-32"><a href="#cb10-32" aria-hidden="true" tabindex="-1"></a><span class="co">#   pack_rows("Hispanic, Latino, or Spanish Origin", 9, 10, bold = FALSE) |&gt;</span></span>
+<span id="cb10-33"><a href="#cb10-33" aria-hidden="true" tabindex="-1"></a><span class="co">#   pack_rows("Education", 11, 16, bold = FALSE) |&gt;</span></span>
+<span id="cb10-34"><a href="#cb10-34" aria-hidden="true" tabindex="-1"></a><span class="co">#   pack_rows("Employment", 17, 25, bold = FALSE) |&gt;</span></span>
+<span id="cb10-35"><a href="#cb10-35" aria-hidden="true" tabindex="-1"></a><span class="co">#   pack_rows("Marital Status", 27, 31, bold = FALSE) |&gt;</span></span>
+<span id="cb10-36"><a href="#cb10-36" aria-hidden="true" tabindex="-1"></a><span class="co">#   pack_rows("Alcohol Use Disorder Milestones", 32, 35, bold = FALSE) |&gt;</span></span>
+<span id="cb10-37"><a href="#cb10-37" aria-hidden="true" tabindex="-1"></a><span class="co">#   pack_rows("Lifetime History of Treatment (Can choose more than 1)", 37, 43, bold = FALSE) |&gt;</span></span>
+<span id="cb10-38"><a href="#cb10-38" aria-hidden="true" tabindex="-1"></a><span class="co">#   pack_rows("Received Medication for Alcohol Use Disorder", 44, 45, bold = FALSE) |&gt;</span></span>
+<span id="cb10-39"><a href="#cb10-39" aria-hidden="true" tabindex="-1"></a><span class="co">#   pack_rows("Current (Past 3 Month) Drug Use", 47, 54, bold = FALSE) |&gt;</span></span>
+<span id="cb10-40"><a href="#cb10-40" aria-hidden="true" tabindex="-1"></a><span class="co">#   pack_rows("Reported 1 or More Lapse During Study Period", 55, 56, bold = FALSE) |&gt;</span></span>
+<span id="cb10-41"><a href="#cb10-41" aria-hidden="true" tabindex="-1"></a><span class="co">#   kableExtra::footnote(general = c(footnote_table_dem_a, footnote_table_dem_b, footnote_table_dem_c), escape=FALSE) |&gt; </span></span>
+<span id="cb10-42"><a href="#cb10-42" aria-hidden="true" tabindex="-1"></a><span class="co">#   save_kable(file = "objects/table.png")</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div></div>
 </section>
 <section id="model-evaluation-1" class="level3">
@@ -1074,7 +1083,7 @@ lgl  (1): split_num
 <div id="fig-auroc-histogram" class="quarto-figure quarto-figure-center quarto-float anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-auroc-histogram-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca" class="">
-<a href="index_files/figure-html/notebooks-auROC_distribution_posterior-fig-auroc-histogram-output-1.png" class="lightbox" data-glightbox="description: .lightbox-desc-1" data-gallery="quarto-lightbox-gallery-1"><img src="index_files/figure-html/notebooks-auROC_distribution_posterior-fig-auroc-histogram-output-1.png" class="img-fluid figure-img"></a>
+<a href="index_files/figure-html/notebooks-auROC_distribution_posterior-fig-auroc-histogram-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-2" data-glightbox="description: .lightbox-desc-2"><img src="index_files/figure-html/notebooks-auROC_distribution_posterior-fig-auroc-histogram-output-1.png" class="img-fluid figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-auroc-histogram-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Figure&nbsp;1: auROC performance across all inner cross-validation folds.
@@ -1125,7 +1134,7 @@ Figure&nbsp;1: auROC performance across all inner cross-validation folds.
 <div id="fig-auroc-plot" class="quarto-figure quarto-figure-center quarto-float anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-auroc-plot-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca" class="">
-<a href="index_files/figure-html/notebooks-auROC_plot-fig-auroc-plot-output-2.png" class="lightbox" data-glightbox="description: .lightbox-desc-2" data-gallery="quarto-lightbox-gallery-2"><img src="index_files/figure-html/notebooks-auROC_plot-fig-auroc-plot-output-2.png" class="img-fluid figure-img"></a>
+<a href="index_files/figure-html/notebooks-auROC_plot-fig-auroc-plot-output-2.png" class="lightbox" data-gallery="quarto-lightbox-gallery-3" data-glightbox="description: .lightbox-desc-3"><img src="index_files/figure-html/notebooks-auROC_plot-fig-auroc-plot-output-2.png" class="img-fluid figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-auroc-plot-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Figure&nbsp;2: auROC for overall validation set performance across thresholds.
@@ -1164,7 +1173,7 @@ Figure&nbsp;2: auROC for overall validation set performance across thresholds.
 <div id="fig-pp" class="quarto-figure quarto-figure-center quarto-float anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-pp-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca" class="">
-<a href="index_files/figure-html/notebooks-auROC_distribution_posterior-fig-pp-output-1.png" class="lightbox" data-glightbox="description: .lightbox-desc-3" data-gallery="quarto-lightbox-gallery-3"><img src="index_files/figure-html/notebooks-auROC_distribution_posterior-fig-pp-output-1.png" class="img-fluid figure-img"></a>
+<a href="index_files/figure-html/notebooks-auROC_distribution_posterior-fig-pp-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-4" data-glightbox="description: .lightbox-desc-4"><img src="index_files/figure-html/notebooks-auROC_distribution_posterior-fig-pp-output-1.png" class="img-fluid figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-pp-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Figure&nbsp;3: Posterior distribution of model performance with 95% credible interval.
@@ -1207,7 +1216,7 @@ Adding another scale for x, which will replace the existing scale.</code></pre>
 <div id="fig-calibration" class="quarto-figure quarto-figure-center quarto-float anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-calibration-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca" class="">
-<a href="index_files/figure-html/notebooks-calibration_plot-fig-calibration-output-2.png" class="lightbox" data-glightbox="description: .lightbox-desc-4" data-gallery="quarto-lightbox-gallery-4"><img src="index_files/figure-html/notebooks-calibration_plot-fig-calibration-output-2.png" class="img-fluid figure-img"></a>
+<a href="index_files/figure-html/notebooks-calibration_plot-fig-calibration-output-2.png" class="lightbox" data-gallery="quarto-lightbox-gallery-5" data-glightbox="description: .lightbox-desc-5"><img src="index_files/figure-html/notebooks-calibration_plot-fig-calibration-output-2.png" class="img-fluid figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-calibration-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Figure&nbsp;4: Comparison between raw (uncalibrated) and logistic (calibrated) probabilities.
@@ -1237,7 +1246,7 @@ Figure&nbsp;4: Comparison between raw (uncalibrated) and logistic (calibrated) p
 <div id="fig-shaps-group" class="quarto-figure quarto-figure-center quarto-float anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-shaps-group-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca" class="">
-<a href="index_files/figure-html/notebooks-shaps-fig-shaps-group-output-1.png" class="lightbox" data-glightbox="description: .lightbox-desc-5" data-gallery="quarto-lightbox-gallery-5"><img src="index_files/figure-html/notebooks-shaps-fig-shaps-group-output-1.png" class="img-fluid figure-img"></a>
+<a href="index_files/figure-html/notebooks-shaps-fig-shaps-group-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-6" data-glightbox="description: .lightbox-desc-6"><img src="index_files/figure-html/notebooks-shaps-fig-shaps-group-output-1.png" class="img-fluid figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-shaps-group-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Figure&nbsp;5: Grouped (mean absolute values) SHAP values displaying relative feature importance.
@@ -1258,7 +1267,7 @@ Figure&nbsp;5: Grouped (mean absolute values) SHAP values displaying relative fe
 <div id="fig-fairness-subgroups" class="quarto-figure quarto-figure-center quarto-float anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-fairness-subgroups-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca" class="">
-<a href="index_files/figure-html/notebooks-fairness-fig-fairness-subgroups-output-1.png" class="lightbox" data-glightbox="description: .lightbox-desc-6" data-gallery="quarto-lightbox-gallery-6"><img src="index_files/figure-html/notebooks-fairness-fig-fairness-subgroups-output-1.png" class="img-fluid figure-img"></a>
+<a href="index_files/figure-html/notebooks-fairness-fig-fairness-subgroups-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-7" data-glightbox="description: .lightbox-desc-7"><img src="index_files/figure-html/notebooks-fairness-fig-fairness-subgroups-output-1.png" class="img-fluid figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-fairness-subgroups-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Figure&nbsp;6: 95% credible intervals across posterior subgroups at differential levels of privilege.
@@ -1412,12 +1421,13 @@ Witkiewitz, Katie, and G. Alan Marlatt. 2004. <span>“Relapse Prevention for Al
 </div>
 </div>
 <div class="hidden" aria-hidden="true">
-<span class="glightbox-desc lightbox-desc-1">Figure&nbsp;1: auROC performance across all inner cross-validation folds.</span>
-<span class="glightbox-desc lightbox-desc-2">Figure&nbsp;2: auROC for overall validation set performance across thresholds.</span>
-<span class="glightbox-desc lightbox-desc-3">Figure&nbsp;3: Posterior distribution of model performance with 95% credible interval.</span>
-<span class="glightbox-desc lightbox-desc-4">Figure&nbsp;4: Comparison between raw (uncalibrated) and logistic (calibrated) probabilities.</span>
-<span class="glightbox-desc lightbox-desc-5">Figure&nbsp;5: Grouped (mean absolute values) SHAP values displaying relative feature importance.</span>
-<span class="glightbox-desc lightbox-desc-6">Figure&nbsp;6: 95% credible intervals across posterior subgroups at differential levels of privilege.</span>
+<span class="glightbox-desc lightbox-desc-1">Test</span>
+<span class="glightbox-desc lightbox-desc-2">Figure&nbsp;1: auROC performance across all inner cross-validation folds.</span>
+<span class="glightbox-desc lightbox-desc-3">Figure&nbsp;2: auROC for overall validation set performance across thresholds.</span>
+<span class="glightbox-desc lightbox-desc-4">Figure&nbsp;3: Posterior distribution of model performance with 95% credible interval.</span>
+<span class="glightbox-desc lightbox-desc-5">Figure&nbsp;4: Comparison between raw (uncalibrated) and logistic (calibrated) probabilities.</span>
+<span class="glightbox-desc lightbox-desc-6">Figure&nbsp;5: Grouped (mean absolute values) SHAP values displaying relative feature importance.</span>
+<span class="glightbox-desc lightbox-desc-7">Figure&nbsp;6: 95% credible intervals across posterior subgroups at differential levels of privilege.</span>
 </div>
 </section>
      </main>
@@ -1829,7 +1839,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
     }
   }
 });
-</script>  </div> <!-- /content -->  <script>var lightboxQuarto = GLightbox({"openEffect":"zoom","selector":".lightbox","closeEffect":"zoom","descPosition":"bottom","loop":false});
+</script>  </div> <!-- /content -->  <script>var lightboxQuarto = GLightbox({"openEffect":"zoom","selector":".lightbox","descPosition":"bottom","closeEffect":"zoom","loop":false});
 window.onload = () => {
   lightboxQuarto.on('slide_before_load', (data) => {
     const { slideIndex, slideNode, slideConfig, player, trigger } = data;

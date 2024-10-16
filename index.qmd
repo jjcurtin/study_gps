@@ -529,12 +529,17 @@ lapse_info <- lapses_per_subid |>
 
 A total of 192 individuals were eligible to participate in the study, of which 191 consented to participate and 169 enrolled in the study. Fifteen participants were excluded prior to the first monthly follow-up visit. One participant was excluded for not maintaining a recovery goal of abstinence during their time on study. Two participants were excluded due to evidence of low compliance and careless responding. A further five individuals were excluded due to poor geolocation data quality as a result of insufficient data (resulting from software incompatibility and/or very limited mobility), resulting in a final sample size of 146.
 
-The average age of the final sample was 40.9 years (SD = 12 years, range = 21-72 years). There was an approximately equal number of men (n = 74, 50.7%) and women (n = 72, 49.3%). The majority of the sample was White/Caucasian (n = 127, 86.99%) and non-Hispanic (n = 142, n = 97%). The mean income of participants was \$34,408 (SD = \$32,259, range = \$0-\$200,000). On average, participants self-reported a mean number of 8.9 DSM-V symptoms of AUD (range = 4-11). A detailed breakdown of participant characteristics is presented in tbl-demo-2. output: true label: tbl-demo-2
+The average age of the final sample was 40.9 years (SD = 12 years, range = 21-72 years). There was an approximately equal number of men (n = 74, 50.7%) and women (n = 72, 49.3%). The majority of the sample was White/Caucasian (n = 127, 86.99%) and non-Hispanic (n = 142, n = 97%). The mean income of participants was \$34,408 (SD = \$32,259, range = \$0-\$200,000). On average, participants self-reported a mean number of 8.9 DSM-V symptoms of AUD (range = 4-11). A detailed breakdown of participant characteristics is presented in @tbl-demo-2.
+
+output: true
+label: tbl-demo-2
+
+![Test](objects/table.png)
 
 ```{r}
-
+# 
 # options(knitr.kable.NA = "—")
-# options(knitr.table.format = "latex")
+# #options(knitr.table.format = "markdown")
 # 
 # 
 # footnote_table_dem_a <- "N = 146"
@@ -543,36 +548,37 @@ The average age of the final sample was 40.9 years (SD = 12 years, range = 21-72
 # 
 # footnote_table_dem_c <- "to calculating the mean (M), standard deviation (SD), and range."
 # 
-# dem  |>  
-#   bind_rows(auh |>  
-#               mutate(across(mean:max, ~round(.x, 1))) |>  
-#               mutate(across(mean:max, ~as.character(.x)))) |>  
-#   bind_rows(lapse_info |>  
-#               mutate(across(mean:max, ~round(.x, 1))) |>  
-#               mutate(across(mean:max, ~as.character(.x)))) |>  
-#   mutate(range = str_c(min, "-", max)) |> 
-#   select(-c(min, max)) |>  
+# dem  |>
+#   bind_rows(auh |>
+#               mutate(across(mean:max, ~round(.x, 1))) |>
+#               mutate(across(mean:max, ~as.character(.x)))) |>
+#   bind_rows(lapse_info |>
+#               mutate(across(mean:max, ~round(.x, 1))) |>
+#               mutate(across(mean:max, ~as.character(.x)))) |>
+#   mutate(range = str_c(min, "-", max)) |>
+#   select(-c(min, max)) |>
 #   kbl(longtable = TRUE,
 #       booktabs = TRUE,
 #       col.names = c("", "N", "%", "M", "SD", "Range"),
 #       align = c("l", "c", "c", "c", "c", "c"),
 #       digits = 1,
-#       caption = "Demographics and clinical characteristics") |> 
+#       caption = "Demographics and clinical characteristics") |>
 #   kable_styling(position = "l") |>
-#   row_spec(row = 0, align = "c", italic = TRUE) |>  
-#   column_spec(column = 1, width = "18em") |> 
-#   pack_rows("Sex", 2, 3, bold = FALSE) |>  
-#   pack_rows("Race", 4, 8, bold = FALSE) |>  
-#   pack_rows("Hispanic, Latino, or Spanish Origin", 9, 10, bold = FALSE) |>  
-#   pack_rows("Education", 11, 16, bold = FALSE) |>  
-#   pack_rows("Employment", 17, 25, bold = FALSE) |>  
-#   pack_rows("Marital Status", 27, 31, bold = FALSE) |>  
-#   pack_rows("Alcohol Use Disorder Milestones", 32, 35, bold = FALSE) |>  
-#   pack_rows("Lifetime History of Treatment (Can choose more than 1)", 37, 43, bold = FALSE) |>  
-#   pack_rows("Received Medication for Alcohol Use Disorder", 44, 45, bold = FALSE) |>  
-#   pack_rows("Current (Past 3 Month) Drug Use", 47, 54, bold = FALSE) |>  
-#   pack_rows("Reported 1 or More Lapse During Study Period", 55, 56, bold = FALSE) |> 
-#   kableExtra::footnote(general = c(footnote_table_dem_a, footnote_table_dem_b, footnote_table_dem_c), escape=FALSE)
+#   row_spec(row = 0, align = "c", italic = TRUE) |>
+#   column_spec(column = 1, width = "18em") |>
+#   pack_rows("Sex", 2, 3, bold = FALSE) |>
+#   pack_rows("Race", 4, 8, bold = FALSE) |>
+#   pack_rows("Hispanic, Latino, or Spanish Origin", 9, 10, bold = FALSE) |>
+#   pack_rows("Education", 11, 16, bold = FALSE) |>
+#   pack_rows("Employment", 17, 25, bold = FALSE) |>
+#   pack_rows("Marital Status", 27, 31, bold = FALSE) |>
+#   pack_rows("Alcohol Use Disorder Milestones", 32, 35, bold = FALSE) |>
+#   pack_rows("Lifetime History of Treatment (Can choose more than 1)", 37, 43, bold = FALSE) |>
+#   pack_rows("Received Medication for Alcohol Use Disorder", 44, 45, bold = FALSE) |>
+#   pack_rows("Current (Past 3 Month) Drug Use", 47, 54, bold = FALSE) |>
+#   pack_rows("Reported 1 or More Lapse During Study Period", 55, 56, bold = FALSE) |>
+#   kableExtra::footnote(general = c(footnote_table_dem_a, footnote_table_dem_b, footnote_table_dem_c), escape=FALSE) |> 
+#   save_kable(file = "objects/table.png")
 ```
 
 ### Model Evaluation
