@@ -1069,7 +1069,7 @@ Figure&nbsp;1: Test
 <p>Posterior probability distributions for the auROCs for our best performing validation set model were used to formally characterize model performance. The median auROC was 0.714 (95% CI [0.70-0.73]), indicating that there is a probability &gt; .95 that our model is performing above chance (i.e., auROC &gt; .5; <a href="#fig-pp" class="quarto-xref">Figure&nbsp;4</a>).</p>
 <p>Finally, we performed model calibration in order to improve our trust in model predictions. Results of model calibration are displayed in <a href="#fig-calibration" class="quarto-xref">Figure&nbsp;5</a>, showing that this model <em>over</em> predicts lapse probability even after calibrating the model. In other words, our model is more likely to predict that an individual will lapse than the true rate of lapse in our sample.</p>
 <div class="quarto-embed-nb-cell" data-notebook="/Users/punturierice/Documents/GitHub/study_gps/notebooks/auROC_distribution_posterior.qmd" data-notebook-title="Evaluate inner auROC for main models of training jobs from CHTC for" data-notebook-cellid="cell-fig-auroc-histogram">
-<div class="cell-container"><div class="cell-decorator"><pre>In [4]:</pre></div><div id="cell-fig-auroc-histogram" class="cell" data-fig-height="6" data-fig-width="6">
+<div class="cell-container"><div class="cell-decorator"><pre>In [4]:</pre></div><div id="cell-fig-auroc-histogram" class="cell" data-fig-height="4" data-fig-width="5">
 <div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co"># auROCs |&gt; </span></span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="co">#   ggplot(aes(x = auROC)) +</span></span>
 <span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="co">#   geom_histogram(bins = 10, fill = c("#af1f21")) +</span></span>
@@ -1090,7 +1090,7 @@ Figure&nbsp;1: Test
 <a href="index_files/figure-html/notebooks-auROC_distribution_posterior-fig-auroc-histogram-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-2" data-glightbox="description: .lightbox-desc-2"><img src="index_files/figure-html/notebooks-auROC_distribution_posterior-fig-auroc-histogram-output-1.png" class="img-fluid figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-auroc-histogram-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;2: auROC performance across all inner cross-validation folds.
+Figure&nbsp;2: Area under the receiver operating characteristic (auROC) curves for each of 300 (10 x 30) cross validation splits. The dashed line represents the median auROC across all 300 splits.
 </figcaption>
 </figure>
 </div>
@@ -1127,7 +1127,7 @@ Figure&nbsp;2: auROC performance across all inner cross-validation folds.
 <span id="cb12-26"><a href="#cb12-26" aria-hidden="true" tabindex="-1"></a>       y <span class="op">=</span> <span class="st">"True Positive Rate"</span>) <span class="op">+</span></span>
 <span id="cb12-27"><a href="#cb12-27" aria-hidden="true" tabindex="-1"></a>  scale_x_continuous(breaks <span class="op">=</span> seq(<span class="dv">0</span>,<span class="dv">1</span>,<span class="fl">.25</span>),</span>
 <span id="cb12-28"><a href="#cb12-28" aria-hidden="true" tabindex="-1"></a>    labels <span class="op">=</span> sprintf(<span class="st">"</span><span class="sc">%.2f</span><span class="st">"</span>, seq(<span class="dv">0</span>,<span class="dv">1</span>,<span class="fl">.25</span>))) <span class="op">+</span> <span class="co"># to flip axis</span></span>
-<span id="cb12-29"><a href="#cb12-29" aria-hidden="true" tabindex="-1"></a>  scale_color_gradient(low<span class="op">=</span><span class="st">"blue"</span>, high <span class="op">=</span> <span class="st">"red"</span>) <span class="op">+</span></span>
+<span id="cb12-29"><a href="#cb12-29" aria-hidden="true" tabindex="-1"></a>  scale_color_gradient(low<span class="op">=</span><span class="st">"blue"</span>, high <span class="op">=</span> <span class="st">"red"</span>, name <span class="op">=</span> <span class="st">"Threshold"</span>) <span class="op">+</span></span>
 <span id="cb12-30"><a href="#cb12-30" aria-hidden="true" tabindex="-1"></a>  theme(axis.text <span class="op">=</span> element_text(size <span class="op">=</span> rel(<span class="fl">1.50</span>)), </span>
 <span id="cb12-31"><a href="#cb12-31" aria-hidden="true" tabindex="-1"></a>        axis.title <span class="op">=</span> element_text(size <span class="op">=</span> rel(<span class="fl">1.75</span>)))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
@@ -1141,7 +1141,7 @@ Figure&nbsp;2: auROC performance across all inner cross-validation folds.
 <a href="index_files/figure-html/notebooks-auROC_plot-fig-auroc-plot-output-2.png" class="lightbox" data-gallery="quarto-lightbox-gallery-3" data-glightbox="description: .lightbox-desc-3"><img src="index_files/figure-html/notebooks-auROC_plot-fig-auroc-plot-output-2.png" class="img-fluid figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-auroc-plot-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;3: auROC for overall validation set performance across thresholds.
+Figure&nbsp;3: Area under the receiver operating characteristic (auROC) curve for overall validation set performance across all possible classification thresholds.
 </figcaption>
 </figure>
 </div>
@@ -1149,7 +1149,7 @@ Figure&nbsp;3: auROC for overall validation set performance across thresholds.
 </div></div>
 </div>
 <div class="quarto-embed-nb-cell" data-notebook="/Users/punturierice/Documents/GitHub/study_gps/notebooks/auROC_distribution_posterior.qmd" data-notebook-title="Evaluate inner auROC for main models of training jobs from CHTC for" data-notebook-cellid="cell-fig-pp">
-<div class="cell-container"><div class="cell-decorator"><pre>In [6]:</pre></div><div id="cell-fig-pp" class="cell" data-fig-height="6" data-fig-width="6">
+<div class="cell-container"><div class="cell-decorator"><pre>In [6]:</pre></div><div id="cell-fig-pp" class="cell" data-fig-height="3" data-fig-width="5">
 <div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>pp_tidy <span class="op">&lt;-</span> pp <span class="op">|&gt;</span> </span>
 <span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>  tidy(seed <span class="op">=</span> <span class="dv">123</span>)</span>
 <span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -1167,7 +1167,7 @@ Figure&nbsp;3: auROC for overall validation set performance across thresholds.
 <span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a>  <span class="co">#geom_segment(mapping = aes(y = y, yend = y, x = lower, xend = upper), color = c("#af1f21"),</span></span>
 <span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a>                <span class="co">#data = ci_day, lwd = 1) +</span></span>
 <span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a>  geom_errorbar(aes(y <span class="op">=</span> ci_day$y, xmin <span class="op">=</span> ci_day$lower, xmax <span class="op">=</span> ci_day$upper), color <span class="op">=</span> c(<span class="st">"darkblue"</span>), lwd <span class="op">=</span> <span class="dv">1</span>) <span class="op">+</span></span>
-<span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a>  geom_vline(xintercept <span class="op">=</span> ci_day$median, color <span class="op">=</span> c(<span class="st">"darkblue"</span>), lwd <span class="op">=</span> <span class="dv">1</span>, linetype<span class="op">=</span><span class="st">"dotted"</span>) <span class="op">+</span></span>
+<span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a>  geom_vline(xintercept <span class="op">=</span> ci_day$median, color <span class="op">=</span> c(<span class="st">"darkblue"</span>), lwd <span class="op">=</span> <span class="dv">1</span>, linetype<span class="op">=</span><span class="st">"dashed"</span>) <span class="op">+</span></span>
 <span id="cb14-19"><a href="#cb14-19" aria-hidden="true" tabindex="-1"></a>  geom_vline(xintercept <span class="op">=</span> <span class="fl">.5</span>, color <span class="op">=</span> <span class="st">"darkblue"</span>, lwd <span class="op">=</span> <span class="dv">1</span>, linetype<span class="op">=</span><span class="st">"dotted"</span>) <span class="op">+</span></span>
 <span id="cb14-20"><a href="#cb14-20" aria-hidden="true" tabindex="-1"></a>  scale_x_continuous(limits<span class="op">=</span>c(<span class="fl">0.49</span>,<span class="fl">.76</span>)) <span class="op">+</span></span>
 <span id="cb14-21"><a href="#cb14-21" aria-hidden="true" tabindex="-1"></a>  scale_y_continuous(expand <span class="op">=</span> c(<span class="dv">0</span>,<span class="dv">0</span>)) <span class="op">+</span></span>
@@ -1180,7 +1180,7 @@ Figure&nbsp;3: auROC for overall validation set performance across thresholds.
 <a href="index_files/figure-html/notebooks-auROC_distribution_posterior-fig-pp-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-4" data-glightbox="description: .lightbox-desc-4"><img src="index_files/figure-html/notebooks-auROC_distribution_posterior-fig-pp-output-1.png" class="img-fluid figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-pp-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;4: Posterior distribution of model performance with 95% credible interval.
+Figure&nbsp;4: Posterior probability distribution of model performance with a 95% credible interval. The dashed line represents median auROC across the sampling distribution, while the dotted line represents chance performance (auROC = 0.50).
 </figcaption>
 </figure>
 </div>
@@ -1188,7 +1188,7 @@ Figure&nbsp;4: Posterior distribution of model performance with 95% credible int
 </div></div>
 </div>
 <div class="quarto-embed-nb-cell" data-notebook="/Users/punturierice/Documents/GitHub/study_gps/notebooks/calibration_plot.qmd" data-notebook-title="Generate INNER calibration" data-notebook-cellid="cell-fig-calibration">
-<div class="cell-container"><div class="cell-decorator"><pre>In [7]:</pre></div><div id="cell-fig-calibration" class="cell" data-fig-height="6" data-fig-width="6">
+<div class="cell-container"><div class="cell-decorator"><pre>In [7]:</pre></div><div id="cell-fig-calibration" class="cell" data-fig-height="4" data-fig-width="6">
 <div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>cols <span class="op">&lt;-</span> c(<span class="st">"prob_raw"</span> <span class="op">=</span> <span class="st">"#FF9898FF"</span>, <span class="st">"prob_logi"</span> <span class="op">=</span> <span class="st">"#A91E45FF"</span>)</span>
 <span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>probs <span class="op">|&gt;</span></span>
@@ -1223,7 +1223,7 @@ Adding another scale for x, which will replace the existing scale.</code></pre>
 <a href="index_files/figure-html/notebooks-calibration_plot-fig-calibration-output-2.png" class="lightbox" data-gallery="quarto-lightbox-gallery-5" data-glightbox="description: .lightbox-desc-5"><img src="index_files/figure-html/notebooks-calibration_plot-fig-calibration-output-2.png" class="img-fluid figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-calibration-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;5: Comparison between raw (uncalibrated) and logistic (calibrated) probabilities.
+Figure&nbsp;5: Comparison between raw (uncalibrated) and logistic (calibrated) probabilities. Predicted lapse probability represents the predicted probabilities derived from the model, whereas observed lapse rate reflects the true rate of lapses in the data. The dashed y = x line represents perfect performance, where predicted probabilities reflect true probabilities. Each point represents the midpoint of a given bin, which increase by 10% (i.e., 5% represents the midpoint from 0-10%).
 </figcaption>
 </figure>
 </div>
@@ -1235,7 +1235,7 @@ Figure&nbsp;5: Comparison between raw (uncalibrated) and logistic (calibrated) p
 <h3 class="anchored" data-anchor-id="feature-importance">Feature Importance</h3>
 <p>Global importance (mean absolute Shapley values) for feature categories is shown in <a href="#fig-shaps-group" class="quarto-xref">Figure&nbsp;6</a>. Three aggregated feature categories were identified as being particularly important in contributing to model predictions: time spent at risky locations, time spent at different types of location, and time spent at locations with varying levels of alcohol availability. Other aggregated feature groups, both context-supplemented and without, did not appear to be strong and unique global contributors to model predictions.</p>
 <div class="quarto-embed-nb-cell" data-notebook="/Users/punturierice/Documents/GitHub/study_gps/notebooks/shaps.qmd" data-notebook-title="SHAPs" data-notebook-cellid="cell-fig-shaps-group">
-<div class="cell-container"><div class="cell-decorator"><pre>In [8]:</pre></div><div id="cell-fig-shaps-group" class="cell" data-fig-height="6" data-fig-width="6">
+<div class="cell-container"><div class="cell-decorator"><pre>In [8]:</pre></div><div id="cell-fig-shaps-group" class="cell" data-fig-height="5" data-fig-width="5">
 <div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>shaps_grp <span class="op">|&gt;</span></span>
 <span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>  group_by(variable_grp) <span class="op">|&gt;</span></span>
 <span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>  summarize(mean_value <span class="op">=</span> (mean(<span class="bu">abs</span>(value)))) <span class="op">|&gt;</span> </span>
@@ -1253,7 +1253,7 @@ Figure&nbsp;5: Comparison between raw (uncalibrated) and logistic (calibrated) p
 <a href="index_files/figure-html/notebooks-shaps-fig-shaps-group-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-6" data-glightbox="description: .lightbox-desc-6"><img src="index_files/figure-html/notebooks-shaps-fig-shaps-group-output-1.png" class="img-fluid figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-shaps-group-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;6: Grouped (mean absolute values) SHAP values displaying relative feature importance.
+Figure&nbsp;6: Grouped SHAP values displaying relative feature importance calculated using mean absolute values. Larger log-odds values indicate greater contribution to predictions in the model.
 </figcaption>
 </figure>
 </div>
@@ -1265,7 +1265,7 @@ Figure&nbsp;6: Grouped (mean absolute values) SHAP values displaying relative fe
 <h3 class="anchored" data-anchor-id="algorithmic-fairness-1">Algorithmic Fairness</h3>
 <p><a href="#fig-fairness-subgroups" class="quarto-xref">Figure&nbsp;7</a> shows differences in model performance across race (<em>N</em> white = 127, <em>N</em> non-white = 19), sex (<em>N</em> male = 74, <em>N</em> female = 72), age (<em>N</em> younger than 55 = 126, <em>N</em> older than or equal to 55 = 20), and income (<em>N</em> below federal poverty line = 48, <em>N</em> above federal poverty line = 98). All group comparisons were reliably different (probability &gt; .95) across models, such that identities with higher assumed privilege were associated with improved model performance. White, non-Hispanic participants demonstrated 0.055 greater model performance than Hispanic and/or non-white participants (range=0.026-0.083, probability=1.000). Male participants demonstrated 0.036 greater model performance than female participants (range=0.012-0.060, probability=0.999). Younger participants demonstrated 0.106 greater model performance than older participants (range=0.080-0.133, probability=1.000). Finally, participants above the poverty line demonstrated 0.056 greater model performance than those below the poverty line (range=0.033-0.079, probability=1.000).</p>
 <div class="quarto-embed-nb-cell" data-notebook="/Users/punturierice/Documents/GitHub/study_gps/notebooks/fairness.qmd" data-notebook-title="Subgroup Analysis" data-notebook-cellid="cell-fig-fairness-subgroups">
-<div class="cell-container"><div class="cell-decorator"><pre>In [9]:</pre></div><div id="cell-fig-fairness-subgroups" class="cell" data-fig-height="6" data-fig-width="6">
+<div class="cell-container"><div class="cell-decorator"><pre>In [9]:</pre></div><div id="cell-fig-fairness-subgroups" class="cell" data-fig-height="4" data-fig-width="6">
 <div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>cowplot::plot_grid(fig_race, fig_sex, fig_age, fig_income, align<span class="op">=</span><span class="st">"v"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
 <div id="fig-fairness-subgroups" class="quarto-figure quarto-figure-center quarto-float anchored">
@@ -1274,7 +1274,7 @@ Figure&nbsp;6: Grouped (mean absolute values) SHAP values displaying relative fe
 <a href="index_files/figure-html/notebooks-fairness-fig-fairness-subgroups-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-7" data-glightbox="description: .lightbox-desc-7"><img src="index_files/figure-html/notebooks-fairness-fig-fairness-subgroups-output-1.png" class="img-fluid figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-fairness-subgroups-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;7: 95% credible intervals across posterior subgroups at differential levels of privilege.
+Figure&nbsp;7: 95% credible intervals across posterior probability distributions by subgroup at differential levels of privilege.
 </figcaption>
 </figure>
 </div>
@@ -1426,12 +1426,12 @@ Witkiewitz, Katie, and G. Alan Marlatt. 2004. <span>“Relapse Prevention for Al
 </div>
 <div class="hidden" aria-hidden="true">
 <span class="glightbox-desc lightbox-desc-1">Figure&nbsp;1: Test</span>
-<span class="glightbox-desc lightbox-desc-2">Figure&nbsp;2: auROC performance across all inner cross-validation folds.</span>
-<span class="glightbox-desc lightbox-desc-3">Figure&nbsp;3: auROC for overall validation set performance across thresholds.</span>
-<span class="glightbox-desc lightbox-desc-4">Figure&nbsp;4: Posterior distribution of model performance with 95% credible interval.</span>
-<span class="glightbox-desc lightbox-desc-5">Figure&nbsp;5: Comparison between raw (uncalibrated) and logistic (calibrated) probabilities.</span>
-<span class="glightbox-desc lightbox-desc-6">Figure&nbsp;6: Grouped (mean absolute values) SHAP values displaying relative feature importance.</span>
-<span class="glightbox-desc lightbox-desc-7">Figure&nbsp;7: 95% credible intervals across posterior subgroups at differential levels of privilege.</span>
+<span class="glightbox-desc lightbox-desc-2">Figure&nbsp;2: Area under the receiver operating characteristic (auROC) curves for each of 300 (10 x 30) cross validation splits. The dashed line represents the median auROC across all 300 splits.</span>
+<span class="glightbox-desc lightbox-desc-3">Figure&nbsp;3: Area under the receiver operating characteristic (auROC) curve for overall validation set performance across all possible classification thresholds.</span>
+<span class="glightbox-desc lightbox-desc-4">Figure&nbsp;4: Posterior probability distribution of model performance with a 95% credible interval. The dashed line represents median auROC across the sampling distribution, while the dotted line represents chance performance (auROC = 0.50).</span>
+<span class="glightbox-desc lightbox-desc-5">Figure&nbsp;5: Comparison between raw (uncalibrated) and logistic (calibrated) probabilities. Predicted lapse probability represents the predicted probabilities derived from the model, whereas observed lapse rate reflects the true rate of lapses in the data. The dashed y = x line represents perfect performance, where predicted probabilities reflect true probabilities. Each point represents the midpoint of a given bin, which increase by 10% (i.e., 5% represents the midpoint from 0-10%).</span>
+<span class="glightbox-desc lightbox-desc-6">Figure&nbsp;6: Grouped SHAP values displaying relative feature importance calculated using mean absolute values. Larger log-odds values indicate greater contribution to predictions in the model.</span>
+<span class="glightbox-desc lightbox-desc-7">Figure&nbsp;7: 95% credible intervals across posterior probability distributions by subgroup at differential levels of privilege.</span>
 </div>
 </section>
      </main>
@@ -1843,7 +1843,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
     }
   }
 });
-</script>  </div> <!-- /content -->  <script>var lightboxQuarto = GLightbox({"loop":false,"descPosition":"bottom","closeEffect":"zoom","selector":".lightbox","openEffect":"zoom"});
+</script>  </div> <!-- /content -->  <script>var lightboxQuarto = GLightbox({"selector":".lightbox","openEffect":"zoom","loop":false,"descPosition":"bottom","closeEffect":"zoom"});
 window.onload = () => {
   lightboxQuarto.on('slide_before_load', (data) => {
     const { slideIndex, slideNode, slideConfig, player, trigger } = data;
