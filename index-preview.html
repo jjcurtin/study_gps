@@ -1604,7 +1604,7 @@ Table&nbsp;4: Demographics and clinical characteristics
 <section id="model-evaluation-1" class="level3">
 <h3 class="anchored" data-anchor-id="model-evaluation-1">Model Evaluation</h3>
 <p>We selected and evaluated the best performing XGBoost model from our validation set. This may result in a slight optimism bias in our model performance, though we believe this is largely offset through our use of 10 x 30 cross-validation (which averages model performance across 300 folds). However, evaluating the validation set was important to do because model development is still in progress, and as such it would not have been appropriate to examine independent test set performance at this stage.</p>
-<p>The median auROC across the 300 folds achieved fair performance (<em>Mdn</em> = ). <a href="#fig-auroc-histogram" class="quarto-xref">Figure&nbsp;1</a> displays a histogram of model performance distribution across all folds. A receiver operating characteristic curve is displayed in <a href="#fig-auroc-plot" class="quarto-xref">Figure&nbsp;2</a>, representing aggregate predicted lapse probabilities across all 300 folds of the validation set.</p>
+<p>The median auROC across the 300 folds achieved fair performance (<em>Mdn</em> = 0.712). <a href="#fig-auroc-histogram" class="quarto-xref">Figure&nbsp;1</a> displays a histogram of model performance distribution across all folds. A receiver operating characteristic curve is displayed in <a href="#fig-auroc-plot" class="quarto-xref">Figure&nbsp;2</a>, representing aggregate predicted lapse probabilities across all 300 folds of the validation set.</p>
 <p>Posterior probability distributions for the auROCs for our best performing validation set model were used to formally characterize model performance. The median auROC was 0.714 (95% CI [0.70-0.73]), indicating that there is a probability &gt; .95 that our model is performing above chance (i.e., auROC &gt; .5; <a href="#fig-pp" class="quarto-xref">Figure&nbsp;3</a>).</p>
 <p>Finally, we performed model calibration in order to improve our trust in model predictions. Results of model calibration are displayed in <a href="#fig-calibration" class="quarto-xref">Figure&nbsp;4</a>, showing that this model <em>over</em> predicts lapse probability even after calibrating the model. In other words, our model is more likely to predict that an individual will lapse than the true rate of lapse in our sample.</p>
 <div class="quarto-embed-nb-cell" data-notebook="/Users/punturierice/Documents/GitHub/study_gps/notebooks/auROC_distribution_posterior.qmd" data-notebook-title="Evaluate inner auROC for main models of training jobs from CHTC for" data-notebook-cellid="cell-fig-auroc-histogram">
@@ -2381,7 +2381,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
     }
   }
 });
-</script>  </div> <!-- /content -->  <script>var lightboxQuarto = GLightbox({"closeEffect":"zoom","selector":".lightbox","openEffect":"zoom","loop":false,"descPosition":"bottom"});
+</script>  </div> <!-- /content -->  <script>var lightboxQuarto = GLightbox({"descPosition":"bottom","closeEffect":"zoom","loop":false,"selector":".lightbox","openEffect":"zoom"});
 window.onload = () => {
   lightboxQuarto.on('slide_before_load', (data) => {
     const { slideIndex, slideNode, slideConfig, player, trigger } = data;

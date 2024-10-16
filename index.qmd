@@ -581,7 +581,7 @@ dem  |>
 
 We selected and evaluated the best performing XGBoost model from our validation set. This may result in a slight optimism bias in our model performance, though we believe this is largely offset through our use of 10 x 30 cross-validation (which averages model performance across 300 folds). However, evaluating the validation set was important to do because model development is still in progress, and as such it would not have been appropriate to examine independent test set performance at this stage.
 
-The median auROC across the 300 folds achieved fair performance (*Mdn* = `r sprintf("%1.3f", probs$median)`). @fig-auroc-histogram displays a histogram of model performance distribution across all folds. A receiver operating characteristic curve is displayed in @fig-auroc-plot, representing aggregate predicted lapse probabilities across all 300 folds of the validation set.
+The median auROC across the 300 folds achieved fair performance (*Mdn* = `r sprintf("%1.3f", probs |> pull(roc_auc) |> median())`). @fig-auroc-histogram displays a histogram of model performance distribution across all folds. A receiver operating characteristic curve is displayed in @fig-auroc-plot, representing aggregate predicted lapse probabilities across all 300 folds of the validation set.
 
 Posterior probability distributions for the auROCs for our best performing validation set model were used to formally characterize model performance. The median auROC was `r sprintf("%1.3f", pp_tidy$median)` (95% CI [`r sprintf("%1.2f", pp_tidy$lower)`-`r sprintf("%1.2f", pp_tidy$upper)`]), indicating that there is a probability \> .95 that our model is performing above chance (i.e., auROC \> .5; @fig-pp).
 
