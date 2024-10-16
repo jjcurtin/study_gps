@@ -696,318 +696,327 @@ lgl  (1): split_num
 </div>
 </div></div>
 <div class="cell-container"><div class="cell-decorator"><pre>In [2]:</pre></div><div class="cell">
-<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co"># study_dates &lt;- read_csv(here::here(path_gps, "study_dates.csv"),</span></span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="co">#                           show_col_types = FALSE) </span></span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="co"># </span></span>
-<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="co"># subids_dates &lt;- study_dates |&gt;</span></span>
-<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="co">#     pull(subid) |&gt;  </span></span>
-<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a><span class="co">#     unique()</span></span>
-<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a><span class="co"># </span></span>
-<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a><span class="co"># screen &lt;- read_csv(file.path(path_shared, "screen.csv"), </span></span>
-<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a><span class="co">#                    col_types = cols()) |&gt;</span></span>
-<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a><span class="co">#   filter(subid %in% subids_dates) |&gt; </span></span>
-<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a><span class="co">#   mutate(across(dsm5_1:dsm5_11, ~ recode(., "No" = 0, "Yes" = 1))) |&gt;  </span></span>
-<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a><span class="co">#   rowwise() |&gt;  </span></span>
-<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a><span class="co">#   mutate(dsm5_total = sum(c(dsm5_1, dsm5_2, dsm5_3, dsm5_4, dsm5_5, dsm5_6, dsm5_7, </span></span>
-<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a><span class="co">#                               dsm5_8, dsm5_9, dsm5_10, dsm5_11))) |&gt;  </span></span>
-<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a><span class="co">#   ungroup()</span></span>
-<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a><span class="co"># </span></span>
-<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a><span class="co"># lapses &lt;- read_csv(file.path(path_shared, "lapses_day.csv"), col_types = cols()) |&gt;</span></span>
-<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a><span class="co">#   filter(exclude == FALSE)</span></span>
-<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a><span class="co"># </span></span>
-<span id="cb9-20"><a href="#cb9-20" aria-hidden="true" tabindex="-1"></a><span class="co"># n_total &lt;- 146</span></span>
-<span id="cb9-21"><a href="#cb9-21" aria-hidden="true" tabindex="-1"></a><span class="co"># </span></span>
-<span id="cb9-22"><a href="#cb9-22" aria-hidden="true" tabindex="-1"></a><span class="co"># dem &lt;- screen |&gt;</span></span>
-<span id="cb9-23"><a href="#cb9-23" aria-hidden="true" tabindex="-1"></a><span class="co">#   summarise(mean = as.character(round(mean(dem_1, na.rm = TRUE), 1)),</span></span>
-<span id="cb9-24"><a href="#cb9-24" aria-hidden="true" tabindex="-1"></a><span class="co">#             SD = as.character(round(sd(dem_1, na.rm = TRUE), 1)),</span></span>
-<span id="cb9-25"><a href="#cb9-25" aria-hidden="true" tabindex="-1"></a><span class="co">#             min = as.character(min(dem_1, na.rm = TRUE)),</span></span>
-<span id="cb9-26"><a href="#cb9-26" aria-hidden="true" tabindex="-1"></a><span class="co">#             max = as.character(max(dem_1, na.rm = TRUE))) |&gt;</span></span>
-<span id="cb9-27"><a href="#cb9-27" aria-hidden="true" tabindex="-1"></a><span class="co">#   mutate(var = "Age",</span></span>
-<span id="cb9-28"><a href="#cb9-28" aria-hidden="true" tabindex="-1"></a><span class="co">#          n = as.numeric(""),</span></span>
-<span id="cb9-29"><a href="#cb9-29" aria-hidden="true" tabindex="-1"></a><span class="co">#          perc = as.numeric("")) |&gt;</span></span>
-<span id="cb9-30"><a href="#cb9-30" aria-hidden="true" tabindex="-1"></a><span class="co">#   select(var, n, perc, everything()) |&gt;</span></span>
-<span id="cb9-31"><a href="#cb9-31" aria-hidden="true" tabindex="-1"></a><span class="co">#   full_join(screen |&gt;</span></span>
-<span id="cb9-32"><a href="#cb9-32" aria-hidden="true" tabindex="-1"></a><span class="co">#   select(var = dem_2) |&gt;</span></span>
-<span id="cb9-33"><a href="#cb9-33" aria-hidden="true" tabindex="-1"></a><span class="co">#   group_by(var) |&gt;</span></span>
-<span id="cb9-34"><a href="#cb9-34" aria-hidden="true" tabindex="-1"></a><span class="co">#   summarise(n = n()) |&gt;</span></span>
-<span id="cb9-35"><a href="#cb9-35" aria-hidden="true" tabindex="-1"></a><span class="co">#   mutate(perc = (n / sum(n)) * 100), by = c("var", "n", "perc")) |&gt;</span></span>
-<span id="cb9-36"><a href="#cb9-36" aria-hidden="true" tabindex="-1"></a><span class="co">#   full_join(screen |&gt;</span></span>
-<span id="cb9-37"><a href="#cb9-37" aria-hidden="true" tabindex="-1"></a><span class="co">#   select(var = dem_3) |&gt;</span></span>
-<span id="cb9-38"><a href="#cb9-38" aria-hidden="true" tabindex="-1"></a><span class="co">#   mutate(var = fct_relevel(factor(var,</span></span>
-<span id="cb9-39"><a href="#cb9-39" aria-hidden="true" tabindex="-1"></a><span class="co">#                          c("American Indian/Alaska Native", "Asian", "Black/African American",</span></span>
-<span id="cb9-40"><a href="#cb9-40" aria-hidden="true" tabindex="-1"></a><span class="co">#                            "White/Caucasian", "Other/Multiracial")))) |&gt;</span></span>
-<span id="cb9-41"><a href="#cb9-41" aria-hidden="true" tabindex="-1"></a><span class="co">#   group_by(var) |&gt;</span></span>
-<span id="cb9-42"><a href="#cb9-42" aria-hidden="true" tabindex="-1"></a><span class="co">#   summarise(n = n()) |&gt;</span></span>
-<span id="cb9-43"><a href="#cb9-43" aria-hidden="true" tabindex="-1"></a><span class="co">#   mutate(perc = (n / sum(n)) * 100), by = c("var", "n", "perc")) |&gt;</span></span>
-<span id="cb9-44"><a href="#cb9-44" aria-hidden="true" tabindex="-1"></a><span class="co">#   full_join(screen |&gt;</span></span>
-<span id="cb9-45"><a href="#cb9-45" aria-hidden="true" tabindex="-1"></a><span class="co">#   select(var = dem_4) |&gt;</span></span>
-<span id="cb9-46"><a href="#cb9-46" aria-hidden="true" tabindex="-1"></a><span class="co">#   mutate(var = case_when(var == "No, I am not of Hispanic, Latino, or Spanish origin" ~ "No",</span></span>
-<span id="cb9-47"><a href="#cb9-47" aria-hidden="true" tabindex="-1"></a><span class="co">#                          TRUE ~ "Yes"),</span></span>
-<span id="cb9-48"><a href="#cb9-48" aria-hidden="true" tabindex="-1"></a><span class="co">#          var = fct_relevel(factor(var, c("Yes", "No")))) |&gt;</span></span>
-<span id="cb9-49"><a href="#cb9-49" aria-hidden="true" tabindex="-1"></a><span class="co">#   group_by(var) |&gt;</span></span>
-<span id="cb9-50"><a href="#cb9-50" aria-hidden="true" tabindex="-1"></a><span class="co">#   summarise(n = n()) |&gt;</span></span>
-<span id="cb9-51"><a href="#cb9-51" aria-hidden="true" tabindex="-1"></a><span class="co">#   mutate(perc = (n / sum(n)) * 100), by = c("var", "n", "perc")) |&gt;</span></span>
-<span id="cb9-52"><a href="#cb9-52" aria-hidden="true" tabindex="-1"></a><span class="co">#   full_join(screen |&gt;</span></span>
-<span id="cb9-53"><a href="#cb9-53" aria-hidden="true" tabindex="-1"></a><span class="co">#   select(var = dem_5) |&gt;</span></span>
-<span id="cb9-54"><a href="#cb9-54" aria-hidden="true" tabindex="-1"></a><span class="co">#   mutate(var = fct_relevel(factor(var,</span></span>
-<span id="cb9-55"><a href="#cb9-55" aria-hidden="true" tabindex="-1"></a><span class="co">#                          c("Less than high school or GED degree", "High school or GED",</span></span>
-<span id="cb9-56"><a href="#cb9-56" aria-hidden="true" tabindex="-1"></a><span class="co">#                            "Some college", "2-Year degree", "College degree", "Advanced degree")))) |&gt;</span></span>
-<span id="cb9-57"><a href="#cb9-57" aria-hidden="true" tabindex="-1"></a><span class="co">#   group_by(var) |&gt;</span></span>
-<span id="cb9-58"><a href="#cb9-58" aria-hidden="true" tabindex="-1"></a><span class="co">#   summarise(n = n()) |&gt;</span></span>
-<span id="cb9-59"><a href="#cb9-59" aria-hidden="true" tabindex="-1"></a><span class="co">#   mutate(perc = (n / sum(n)) * 100), by = c("var", "n", "perc")) |&gt;</span></span>
-<span id="cb9-60"><a href="#cb9-60" aria-hidden="true" tabindex="-1"></a><span class="co">#   full_join(screen |&gt;</span></span>
-<span id="cb9-61"><a href="#cb9-61" aria-hidden="true" tabindex="-1"></a><span class="co">#   select(var = dem_6, dem_6_1) |&gt;</span></span>
-<span id="cb9-62"><a href="#cb9-62" aria-hidden="true" tabindex="-1"></a><span class="co">#   mutate(var = case_when(dem_6_1 == "Full-time" ~ "Employed full-time",</span></span>
-<span id="cb9-63"><a href="#cb9-63" aria-hidden="true" tabindex="-1"></a><span class="co">#                          dem_6_1 == "Part-time" ~ "Employed part-time",</span></span>
-<span id="cb9-64"><a href="#cb9-64" aria-hidden="true" tabindex="-1"></a><span class="co">#                          TRUE ~ var)) |&gt;</span></span>
-<span id="cb9-65"><a href="#cb9-65" aria-hidden="true" tabindex="-1"></a><span class="co">#   mutate(var = fct_relevel(factor(var,</span></span>
-<span id="cb9-66"><a href="#cb9-66" aria-hidden="true" tabindex="-1"></a><span class="co">#                          c("Employed full-time", "Employed part-time", "Full-time student",</span></span>
-<span id="cb9-67"><a href="#cb9-67" aria-hidden="true" tabindex="-1"></a><span class="co">#                            "Homemaker", "Disabled", "Retired", "Unemployed",</span></span>
-<span id="cb9-68"><a href="#cb9-68" aria-hidden="true" tabindex="-1"></a><span class="co">#                            "Temporarily laid off, sick leave, or maternity leave",</span></span>
-<span id="cb9-69"><a href="#cb9-69" aria-hidden="true" tabindex="-1"></a><span class="co">#                            "Other, not otherwise specified")))) |&gt;</span></span>
-<span id="cb9-70"><a href="#cb9-70" aria-hidden="true" tabindex="-1"></a><span class="co">#   group_by(var) |&gt;</span></span>
-<span id="cb9-71"><a href="#cb9-71" aria-hidden="true" tabindex="-1"></a><span class="co">#   summarise(n = n()) |&gt;</span></span>
-<span id="cb9-72"><a href="#cb9-72" aria-hidden="true" tabindex="-1"></a><span class="co">#   mutate(perc = (n / sum(n)) * 100), by = c("var", "n", "perc")) |&gt;</span></span>
-<span id="cb9-73"><a href="#cb9-73" aria-hidden="true" tabindex="-1"></a><span class="co">#   full_join(screen |&gt;</span></span>
-<span id="cb9-74"><a href="#cb9-74" aria-hidden="true" tabindex="-1"></a><span class="co">#   summarise(mean = format(round(mean(dem_7, na.rm = TRUE), 0), big.mark = ","),</span></span>
-<span id="cb9-75"><a href="#cb9-75" aria-hidden="true" tabindex="-1"></a><span class="co">#             SD = format(round(sd(dem_7, na.rm = TRUE), 0), big.mark = ","),</span></span>
-<span id="cb9-76"><a href="#cb9-76" aria-hidden="true" tabindex="-1"></a><span class="co">#             min =format(round(min(dem_7, na.rm = TRUE), 0), big.mark = ","),</span></span>
-<span id="cb9-77"><a href="#cb9-77" aria-hidden="true" tabindex="-1"></a><span class="co">#             max = format(round(max(dem_7, na.rm = TRUE), 0), scientific = FALSE, big.mark = ",")) |&gt;</span></span>
-<span id="cb9-78"><a href="#cb9-78" aria-hidden="true" tabindex="-1"></a><span class="co">#   mutate(var = "Personal Income",</span></span>
-<span id="cb9-79"><a href="#cb9-79" aria-hidden="true" tabindex="-1"></a><span class="co">#         n = as.numeric(""),</span></span>
-<span id="cb9-80"><a href="#cb9-80" aria-hidden="true" tabindex="-1"></a><span class="co">#         perc = as.numeric(""),</span></span>
-<span id="cb9-81"><a href="#cb9-81" aria-hidden="true" tabindex="-1"></a><span class="co">#         mean = str_c("$", as.character(mean)),</span></span>
-<span id="cb9-82"><a href="#cb9-82" aria-hidden="true" tabindex="-1"></a><span class="co">#         SD = str_c("$", as.character(SD)),</span></span>
-<span id="cb9-83"><a href="#cb9-83" aria-hidden="true" tabindex="-1"></a><span class="co">#         min = str_c("$", as.character(min)),</span></span>
-<span id="cb9-84"><a href="#cb9-84" aria-hidden="true" tabindex="-1"></a><span class="co">#         max = as.character(max)) |&gt;</span></span>
-<span id="cb9-85"><a href="#cb9-85" aria-hidden="true" tabindex="-1"></a><span class="co">#   select(var, n, perc, everything()), by = c("var", "n", "perc", "mean", "SD", "min", "max")) |&gt;</span></span>
-<span id="cb9-86"><a href="#cb9-86" aria-hidden="true" tabindex="-1"></a><span class="co">#   full_join(screen |&gt;</span></span>
-<span id="cb9-87"><a href="#cb9-87" aria-hidden="true" tabindex="-1"></a><span class="co">#   select(var = dem_8) |&gt;</span></span>
-<span id="cb9-88"><a href="#cb9-88" aria-hidden="true" tabindex="-1"></a><span class="co">#   mutate(var = case_when(var == "Never Married" ~ "Never married",</span></span>
-<span id="cb9-89"><a href="#cb9-89" aria-hidden="true" tabindex="-1"></a><span class="co">#                          TRUE ~ var)) |&gt;</span></span>
-<span id="cb9-90"><a href="#cb9-90" aria-hidden="true" tabindex="-1"></a><span class="co">#   mutate(var = fct_relevel(factor(var,</span></span>
-<span id="cb9-91"><a href="#cb9-91" aria-hidden="true" tabindex="-1"></a><span class="co">#                          c("Never married", "Married", "Divorced", "Separated",</span></span>
-<span id="cb9-92"><a href="#cb9-92" aria-hidden="true" tabindex="-1"></a><span class="co">#                            "Widowed")))) |&gt;</span></span>
-<span id="cb9-93"><a href="#cb9-93" aria-hidden="true" tabindex="-1"></a><span class="co">#   group_by(var) |&gt;</span></span>
-<span id="cb9-94"><a href="#cb9-94" aria-hidden="true" tabindex="-1"></a><span class="co">#   summarise(n = n()) |&gt;</span></span>
-<span id="cb9-95"><a href="#cb9-95" aria-hidden="true" tabindex="-1"></a><span class="co">#   mutate(perc = (n / sum(n)) * 100), by = c("var", "n", "perc"))</span></span>
-<span id="cb9-96"><a href="#cb9-96" aria-hidden="true" tabindex="-1"></a><span class="co"># </span></span>
-<span id="cb9-97"><a href="#cb9-97" aria-hidden="true" tabindex="-1"></a><span class="co"># auh &lt;- screen |&gt;</span></span>
-<span id="cb9-98"><a href="#cb9-98" aria-hidden="true" tabindex="-1"></a><span class="co">#   summarise(mean = mean(auh_1, na.rm = TRUE),</span></span>
-<span id="cb9-99"><a href="#cb9-99" aria-hidden="true" tabindex="-1"></a><span class="co">#             SD = sd(auh_1, na.rm = TRUE),</span></span>
-<span id="cb9-100"><a href="#cb9-100" aria-hidden="true" tabindex="-1"></a><span class="co">#             min = min(auh_1, na.rm = TRUE),</span></span>
-<span id="cb9-101"><a href="#cb9-101" aria-hidden="true" tabindex="-1"></a><span class="co">#             max = max(auh_1, na.rm = TRUE)) |&gt;</span></span>
-<span id="cb9-102"><a href="#cb9-102" aria-hidden="true" tabindex="-1"></a><span class="co">#   mutate(var = "Age of first drink",</span></span>
-<span id="cb9-103"><a href="#cb9-103" aria-hidden="true" tabindex="-1"></a><span class="co">#         n = as.numeric(""),</span></span>
-<span id="cb9-104"><a href="#cb9-104" aria-hidden="true" tabindex="-1"></a><span class="co">#         perc = as.numeric("")) |&gt;</span></span>
-<span id="cb9-105"><a href="#cb9-105" aria-hidden="true" tabindex="-1"></a><span class="co">#   select(var, n, perc, everything()) |&gt;</span></span>
-<span id="cb9-106"><a href="#cb9-106" aria-hidden="true" tabindex="-1"></a><span class="co">#   full_join(screen |&gt;</span></span>
-<span id="cb9-107"><a href="#cb9-107" aria-hidden="true" tabindex="-1"></a><span class="co">#   summarise(mean = mean(auh_2, na.rm = TRUE),</span></span>
-<span id="cb9-108"><a href="#cb9-108" aria-hidden="true" tabindex="-1"></a><span class="co">#             SD = sd(auh_2, na.rm = TRUE),</span></span>
-<span id="cb9-109"><a href="#cb9-109" aria-hidden="true" tabindex="-1"></a><span class="co">#             min = min(auh_2, na.rm = TRUE),</span></span>
-<span id="cb9-110"><a href="#cb9-110" aria-hidden="true" tabindex="-1"></a><span class="co">#             max = max(auh_2, na.rm = TRUE)) |&gt;</span></span>
-<span id="cb9-111"><a href="#cb9-111" aria-hidden="true" tabindex="-1"></a><span class="co">#   mutate(var = "Age of regular drinking",</span></span>
-<span id="cb9-112"><a href="#cb9-112" aria-hidden="true" tabindex="-1"></a><span class="co">#         n = as.numeric(""),</span></span>
-<span id="cb9-113"><a href="#cb9-113" aria-hidden="true" tabindex="-1"></a><span class="co">#         perc = as.numeric("")) |&gt;</span></span>
-<span id="cb9-114"><a href="#cb9-114" aria-hidden="true" tabindex="-1"></a><span class="co">#   select(var, n, perc, everything()), by = c("var", "n", "perc", "mean", "SD",</span></span>
-<span id="cb9-115"><a href="#cb9-115" aria-hidden="true" tabindex="-1"></a><span class="co">#                                              "min", "max")) |&gt;</span></span>
-<span id="cb9-116"><a href="#cb9-116" aria-hidden="true" tabindex="-1"></a><span class="co">#   full_join(screen |&gt;</span></span>
-<span id="cb9-117"><a href="#cb9-117" aria-hidden="true" tabindex="-1"></a><span class="co">#   summarise(mean = mean(auh_3, na.rm = TRUE),</span></span>
-<span id="cb9-118"><a href="#cb9-118" aria-hidden="true" tabindex="-1"></a><span class="co">#             SD = sd(auh_3, na.rm = TRUE),</span></span>
-<span id="cb9-119"><a href="#cb9-119" aria-hidden="true" tabindex="-1"></a><span class="co">#             min = min(auh_3, na.rm = TRUE),</span></span>
-<span id="cb9-120"><a href="#cb9-120" aria-hidden="true" tabindex="-1"></a><span class="co">#             max = max(auh_3, na.rm = TRUE)) |&gt;</span></span>
-<span id="cb9-121"><a href="#cb9-121" aria-hidden="true" tabindex="-1"></a><span class="co">#   mutate(var = "Age at which drinking became problematic",</span></span>
-<span id="cb9-122"><a href="#cb9-122" aria-hidden="true" tabindex="-1"></a><span class="co">#         n = as.numeric(""),</span></span>
-<span id="cb9-123"><a href="#cb9-123" aria-hidden="true" tabindex="-1"></a><span class="co">#         perc = as.numeric("")) |&gt;</span></span>
-<span id="cb9-124"><a href="#cb9-124" aria-hidden="true" tabindex="-1"></a><span class="co">#   select(var, n, perc, everything()), by = c("var", "n", "perc", "mean", "SD",</span></span>
-<span id="cb9-125"><a href="#cb9-125" aria-hidden="true" tabindex="-1"></a><span class="co">#                                              "min", "max")) |&gt;</span></span>
-<span id="cb9-126"><a href="#cb9-126" aria-hidden="true" tabindex="-1"></a><span class="co">#   full_join(screen |&gt;</span></span>
-<span id="cb9-127"><a href="#cb9-127" aria-hidden="true" tabindex="-1"></a><span class="co">#   summarise(mean = mean(auh_4, na.rm = TRUE),</span></span>
-<span id="cb9-128"><a href="#cb9-128" aria-hidden="true" tabindex="-1"></a><span class="co">#             SD = sd(auh_4, na.rm = TRUE),</span></span>
-<span id="cb9-129"><a href="#cb9-129" aria-hidden="true" tabindex="-1"></a><span class="co">#             min = min(auh_4, na.rm = TRUE),</span></span>
-<span id="cb9-130"><a href="#cb9-130" aria-hidden="true" tabindex="-1"></a><span class="co">#             max = max(auh_4, na.rm = TRUE)) |&gt;</span></span>
-<span id="cb9-131"><a href="#cb9-131" aria-hidden="true" tabindex="-1"></a><span class="co">#   mutate(var = "Age of first quit attempt",</span></span>
-<span id="cb9-132"><a href="#cb9-132" aria-hidden="true" tabindex="-1"></a><span class="co">#         n = as.numeric(""),</span></span>
-<span id="cb9-133"><a href="#cb9-133" aria-hidden="true" tabindex="-1"></a><span class="co">#         perc = as.numeric("")) |&gt;</span></span>
-<span id="cb9-134"><a href="#cb9-134" aria-hidden="true" tabindex="-1"></a><span class="co">#   select(var, n, perc, everything()), by = c("var", "n", "perc", "mean", "SD",</span></span>
-<span id="cb9-135"><a href="#cb9-135" aria-hidden="true" tabindex="-1"></a><span class="co">#                                              "min", "max")) |&gt;</span></span>
-<span id="cb9-136"><a href="#cb9-136" aria-hidden="true" tabindex="-1"></a><span class="co">#   full_join(screen |&gt;</span></span>
-<span id="cb9-137"><a href="#cb9-137" aria-hidden="true" tabindex="-1"></a><span class="co">#   # filter out 2 people with 100 and 365 reported quit attempts - will make footnote in table</span></span>
-<span id="cb9-138"><a href="#cb9-138" aria-hidden="true" tabindex="-1"></a><span class="co">#   filter(auh_5 &lt; 100) |&gt;</span></span>
-<span id="cb9-139"><a href="#cb9-139" aria-hidden="true" tabindex="-1"></a><span class="co">#   summarise(mean = mean(auh_5, na.rm = TRUE),</span></span>
-<span id="cb9-140"><a href="#cb9-140" aria-hidden="true" tabindex="-1"></a><span class="co">#             SD = sd(auh_5, na.rm = TRUE),</span></span>
-<span id="cb9-141"><a href="#cb9-141" aria-hidden="true" tabindex="-1"></a><span class="co">#             min = min(auh_5, na.rm = TRUE),</span></span>
-<span id="cb9-142"><a href="#cb9-142" aria-hidden="true" tabindex="-1"></a><span class="co">#             max = max(auh_5, na.rm = TRUE)) |&gt;</span></span>
-<span id="cb9-143"><a href="#cb9-143" aria-hidden="true" tabindex="-1"></a><span class="co">#   mutate(var = "Number of Quit Attempts*",</span></span>
-<span id="cb9-144"><a href="#cb9-144" aria-hidden="true" tabindex="-1"></a><span class="co">#         n = as.numeric(""),</span></span>
-<span id="cb9-145"><a href="#cb9-145" aria-hidden="true" tabindex="-1"></a><span class="co">#         perc = as.numeric("")) |&gt;</span></span>
-<span id="cb9-146"><a href="#cb9-146" aria-hidden="true" tabindex="-1"></a><span class="co">#   select(var, n, perc, everything()), by = c("var", "n", "perc", "mean", "SD",</span></span>
-<span id="cb9-147"><a href="#cb9-147" aria-hidden="true" tabindex="-1"></a><span class="co">#                                              "min", "max")) |&gt;</span></span>
-<span id="cb9-148"><a href="#cb9-148" aria-hidden="true" tabindex="-1"></a><span class="co">#   full_join(screen |&gt;</span></span>
-<span id="cb9-149"><a href="#cb9-149" aria-hidden="true" tabindex="-1"></a><span class="co">#   select(var = auh_6_1) |&gt;</span></span>
-<span id="cb9-150"><a href="#cb9-150" aria-hidden="true" tabindex="-1"></a><span class="co">#   mutate(var = case_when(var == "Long-Term Residential Treatment (more than 6 months)" ~ "Long-term residential (6+ months)",</span></span>
-<span id="cb9-151"><a href="#cb9-151" aria-hidden="true" tabindex="-1"></a><span class="co">#                          TRUE ~ var)) |&gt;</span></span>
-<span id="cb9-152"><a href="#cb9-152" aria-hidden="true" tabindex="-1"></a><span class="co">#   group_by(var) |&gt;</span></span>
-<span id="cb9-153"><a href="#cb9-153" aria-hidden="true" tabindex="-1"></a><span class="co">#   drop_na() |&gt;</span></span>
-<span id="cb9-154"><a href="#cb9-154" aria-hidden="true" tabindex="-1"></a><span class="co">#   summarise(n = n()) |&gt;</span></span>
-<span id="cb9-155"><a href="#cb9-155" aria-hidden="true" tabindex="-1"></a><span class="co">#   mutate(perc = (n / n_total) * 100), by = c("var", "n", "perc")) |&gt;</span></span>
-<span id="cb9-156"><a href="#cb9-156" aria-hidden="true" tabindex="-1"></a><span class="co">#   full_join(screen |&gt;</span></span>
-<span id="cb9-157"><a href="#cb9-157" aria-hidden="true" tabindex="-1"></a><span class="co">#   select(var = auh_6_2) |&gt;</span></span>
-<span id="cb9-158"><a href="#cb9-158" aria-hidden="true" tabindex="-1"></a><span class="co">#   mutate(var = case_when(var == "Short-Term Residential Treatment (less than 6 months)" ~ "Short-term residential (&lt; 6 months)",</span></span>
-<span id="cb9-159"><a href="#cb9-159" aria-hidden="true" tabindex="-1"></a><span class="co">#                          TRUE ~ var)) |&gt;</span></span>
-<span id="cb9-160"><a href="#cb9-160" aria-hidden="true" tabindex="-1"></a><span class="co">#   group_by(var) |&gt;</span></span>
-<span id="cb9-161"><a href="#cb9-161" aria-hidden="true" tabindex="-1"></a><span class="co">#   drop_na() |&gt;</span></span>
-<span id="cb9-162"><a href="#cb9-162" aria-hidden="true" tabindex="-1"></a><span class="co">#   summarise(n = n()) |&gt;</span></span>
-<span id="cb9-163"><a href="#cb9-163" aria-hidden="true" tabindex="-1"></a><span class="co">#   mutate(perc = (n / n_total) * 100), by = c("var", "n", "perc")) |&gt;</span></span>
-<span id="cb9-164"><a href="#cb9-164" aria-hidden="true" tabindex="-1"></a><span class="co">#   full_join(screen |&gt;</span></span>
-<span id="cb9-165"><a href="#cb9-165" aria-hidden="true" tabindex="-1"></a><span class="co">#   select(var = auh_6_3) |&gt;</span></span>
-<span id="cb9-166"><a href="#cb9-166" aria-hidden="true" tabindex="-1"></a><span class="co">#   mutate(var = case_when(var == "Outpatient Treatment" ~ "Outpatient",</span></span>
-<span id="cb9-167"><a href="#cb9-167" aria-hidden="true" tabindex="-1"></a><span class="co">#                          TRUE ~ var)) |&gt;</span></span>
-<span id="cb9-168"><a href="#cb9-168" aria-hidden="true" tabindex="-1"></a><span class="co">#   group_by(var) |&gt;</span></span>
-<span id="cb9-169"><a href="#cb9-169" aria-hidden="true" tabindex="-1"></a><span class="co">#   drop_na() |&gt;</span></span>
-<span id="cb9-170"><a href="#cb9-170" aria-hidden="true" tabindex="-1"></a><span class="co">#   summarise(n = n()) |&gt;</span></span>
-<span id="cb9-171"><a href="#cb9-171" aria-hidden="true" tabindex="-1"></a><span class="co">#   mutate(perc = (n / n_total) * 100), by = c("var", "n", "perc")) |&gt;</span></span>
-<span id="cb9-172"><a href="#cb9-172" aria-hidden="true" tabindex="-1"></a><span class="co">#   full_join(screen |&gt;</span></span>
-<span id="cb9-173"><a href="#cb9-173" aria-hidden="true" tabindex="-1"></a><span class="co">#   select(var = auh_6_4) |&gt;</span></span>
-<span id="cb9-174"><a href="#cb9-174" aria-hidden="true" tabindex="-1"></a><span class="co">#   mutate(var = case_when(var == "Individual Counseling" ~ "Individual counseling",</span></span>
-<span id="cb9-175"><a href="#cb9-175" aria-hidden="true" tabindex="-1"></a><span class="co">#                          TRUE ~ var)) |&gt;</span></span>
-<span id="cb9-176"><a href="#cb9-176" aria-hidden="true" tabindex="-1"></a><span class="co">#   group_by(var) |&gt;</span></span>
-<span id="cb9-177"><a href="#cb9-177" aria-hidden="true" tabindex="-1"></a><span class="co">#   drop_na() |&gt;</span></span>
-<span id="cb9-178"><a href="#cb9-178" aria-hidden="true" tabindex="-1"></a><span class="co">#   summarise(n = n()) |&gt;</span></span>
-<span id="cb9-179"><a href="#cb9-179" aria-hidden="true" tabindex="-1"></a><span class="co">#   mutate(perc = (n / n_total) * 100), by = c("var", "n", "perc")) |&gt;</span></span>
-<span id="cb9-180"><a href="#cb9-180" aria-hidden="true" tabindex="-1"></a><span class="co">#   full_join(screen |&gt;</span></span>
-<span id="cb9-181"><a href="#cb9-181" aria-hidden="true" tabindex="-1"></a><span class="co">#   select(var = auh_6_5) |&gt;</span></span>
-<span id="cb9-182"><a href="#cb9-182" aria-hidden="true" tabindex="-1"></a><span class="co">#   mutate(var = case_when(var == "Group Counseling" ~ "Group counseling",</span></span>
-<span id="cb9-183"><a href="#cb9-183" aria-hidden="true" tabindex="-1"></a><span class="co">#                          TRUE ~ var)) |&gt;</span></span>
-<span id="cb9-184"><a href="#cb9-184" aria-hidden="true" tabindex="-1"></a><span class="co">#   group_by(var) |&gt;</span></span>
-<span id="cb9-185"><a href="#cb9-185" aria-hidden="true" tabindex="-1"></a><span class="co">#   drop_na() |&gt;</span></span>
-<span id="cb9-186"><a href="#cb9-186" aria-hidden="true" tabindex="-1"></a><span class="co">#   summarise(n = n()) |&gt;</span></span>
-<span id="cb9-187"><a href="#cb9-187" aria-hidden="true" tabindex="-1"></a><span class="co">#   mutate(perc = (n / n_total) * 100), by = c("var", "n", "perc")) |&gt;</span></span>
-<span id="cb9-188"><a href="#cb9-188" aria-hidden="true" tabindex="-1"></a><span class="co">#   full_join(screen |&gt;</span></span>
-<span id="cb9-189"><a href="#cb9-189" aria-hidden="true" tabindex="-1"></a><span class="co">#   select(var = auh_6_6) |&gt;</span></span>
-<span id="cb9-190"><a href="#cb9-190" aria-hidden="true" tabindex="-1"></a><span class="co">#   group_by(var) |&gt;</span></span>
-<span id="cb9-191"><a href="#cb9-191" aria-hidden="true" tabindex="-1"></a><span class="co">#   drop_na() |&gt;</span></span>
-<span id="cb9-192"><a href="#cb9-192" aria-hidden="true" tabindex="-1"></a><span class="co">#   summarise(n = n()) |&gt;</span></span>
-<span id="cb9-193"><a href="#cb9-193" aria-hidden="true" tabindex="-1"></a><span class="co">#   mutate(perc = (n / n_total) * 100), by = c("var", "n", "perc")) |&gt;</span></span>
-<span id="cb9-194"><a href="#cb9-194" aria-hidden="true" tabindex="-1"></a><span class="co">#   full_join(screen |&gt;</span></span>
-<span id="cb9-195"><a href="#cb9-195" aria-hidden="true" tabindex="-1"></a><span class="co">#   select(var = auh_6_7) |&gt;</span></span>
-<span id="cb9-196"><a href="#cb9-196" aria-hidden="true" tabindex="-1"></a><span class="co">#   group_by(var) |&gt;</span></span>
-<span id="cb9-197"><a href="#cb9-197" aria-hidden="true" tabindex="-1"></a><span class="co">#   drop_na() |&gt;</span></span>
-<span id="cb9-198"><a href="#cb9-198" aria-hidden="true" tabindex="-1"></a><span class="co">#   summarise(n = n()) |&gt;</span></span>
-<span id="cb9-199"><a href="#cb9-199" aria-hidden="true" tabindex="-1"></a><span class="co">#   mutate(perc = (n / n_total) * 100), by = c("var", "n", "perc")) |&gt;</span></span>
-<span id="cb9-200"><a href="#cb9-200" aria-hidden="true" tabindex="-1"></a><span class="co">#   full_join(screen |&gt;</span></span>
-<span id="cb9-201"><a href="#cb9-201" aria-hidden="true" tabindex="-1"></a><span class="co">#   select(var = auh_7) |&gt;</span></span>
-<span id="cb9-202"><a href="#cb9-202" aria-hidden="true" tabindex="-1"></a><span class="co">#   mutate(var = fct_relevel(factor(var, c("Yes", "No")))) |&gt;</span></span>
-<span id="cb9-203"><a href="#cb9-203" aria-hidden="true" tabindex="-1"></a><span class="co">#   group_by(var) |&gt;</span></span>
-<span id="cb9-204"><a href="#cb9-204" aria-hidden="true" tabindex="-1"></a><span class="co">#   summarise(n = n()) |&gt;</span></span>
-<span id="cb9-205"><a href="#cb9-205" aria-hidden="true" tabindex="-1"></a><span class="co">#   mutate(perc = (n / sum(n)) * 100), by = c("var", "n", "perc")) |&gt;</span></span>
-<span id="cb9-206"><a href="#cb9-206" aria-hidden="true" tabindex="-1"></a><span class="co">#   full_join(screen |&gt;</span></span>
-<span id="cb9-207"><a href="#cb9-207" aria-hidden="true" tabindex="-1"></a><span class="co">#   summarise(mean = mean(dsm5_total),</span></span>
-<span id="cb9-208"><a href="#cb9-208" aria-hidden="true" tabindex="-1"></a><span class="co">#             SD = sd(dsm5_total),</span></span>
-<span id="cb9-209"><a href="#cb9-209" aria-hidden="true" tabindex="-1"></a><span class="co">#             min = min(dsm5_total, na.rm = TRUE),</span></span>
-<span id="cb9-210"><a href="#cb9-210" aria-hidden="true" tabindex="-1"></a><span class="co">#             max = max(dsm5_total, na.rm = TRUE)) |&gt;</span></span>
-<span id="cb9-211"><a href="#cb9-211" aria-hidden="true" tabindex="-1"></a><span class="co">#   mutate(var = "DSM-5 Alcohol Use Disorder Symptom Count",</span></span>
-<span id="cb9-212"><a href="#cb9-212" aria-hidden="true" tabindex="-1"></a><span class="co">#         n = as.numeric(""),</span></span>
-<span id="cb9-213"><a href="#cb9-213" aria-hidden="true" tabindex="-1"></a><span class="co">#         perc = as.numeric("")) |&gt;</span></span>
-<span id="cb9-214"><a href="#cb9-214" aria-hidden="true" tabindex="-1"></a><span class="co">#   select(var, n, perc, everything()), by = c("var", "n", "perc", "mean", "SD",</span></span>
-<span id="cb9-215"><a href="#cb9-215" aria-hidden="true" tabindex="-1"></a><span class="co">#                                              "min", "max")) |&gt;</span></span>
-<span id="cb9-216"><a href="#cb9-216" aria-hidden="true" tabindex="-1"></a><span class="co">#   full_join(screen |&gt;</span></span>
-<span id="cb9-217"><a href="#cb9-217" aria-hidden="true" tabindex="-1"></a><span class="co">#   select(var = assist_2_1) |&gt;</span></span>
-<span id="cb9-218"><a href="#cb9-218" aria-hidden="true" tabindex="-1"></a><span class="co">#   filter(var != "Never" &amp; !is.na(var)) |&gt;</span></span>
-<span id="cb9-219"><a href="#cb9-219" aria-hidden="true" tabindex="-1"></a><span class="co">#   mutate(var = "Tobacco products (cigarettes, chewing tobacco, cigars, etc.)") |&gt;</span></span>
-<span id="cb9-220"><a href="#cb9-220" aria-hidden="true" tabindex="-1"></a><span class="co">#   group_by(var) |&gt;</span></span>
-<span id="cb9-221"><a href="#cb9-221" aria-hidden="true" tabindex="-1"></a><span class="co">#   drop_na() |&gt;</span></span>
-<span id="cb9-222"><a href="#cb9-222" aria-hidden="true" tabindex="-1"></a><span class="co">#   summarise(n = n()) |&gt;</span></span>
-<span id="cb9-223"><a href="#cb9-223" aria-hidden="true" tabindex="-1"></a><span class="co">#   mutate(perc = (n / n_total) * 100), by = c("var", "n", "perc")) |&gt;</span></span>
-<span id="cb9-224"><a href="#cb9-224" aria-hidden="true" tabindex="-1"></a><span class="co">#   full_join(screen |&gt;</span></span>
-<span id="cb9-225"><a href="#cb9-225" aria-hidden="true" tabindex="-1"></a><span class="co">#   select(var = assist_2_2) |&gt;</span></span>
-<span id="cb9-226"><a href="#cb9-226" aria-hidden="true" tabindex="-1"></a><span class="co">#   filter(var != "Never" &amp; !is.na(var)) |&gt;</span></span>
-<span id="cb9-227"><a href="#cb9-227" aria-hidden="true" tabindex="-1"></a><span class="co">#   mutate(var = "Cannabis (marijuana, pot, grass, hash, etc.)") |&gt;</span></span>
-<span id="cb9-228"><a href="#cb9-228" aria-hidden="true" tabindex="-1"></a><span class="co">#   group_by(var) |&gt;</span></span>
-<span id="cb9-229"><a href="#cb9-229" aria-hidden="true" tabindex="-1"></a><span class="co">#   drop_na() |&gt;</span></span>
-<span id="cb9-230"><a href="#cb9-230" aria-hidden="true" tabindex="-1"></a><span class="co">#   summarise(n = n()) |&gt;</span></span>
-<span id="cb9-231"><a href="#cb9-231" aria-hidden="true" tabindex="-1"></a><span class="co">#   mutate(perc = (n / n_total) * 100), by = c("var", "n", "perc")) |&gt;</span></span>
-<span id="cb9-232"><a href="#cb9-232" aria-hidden="true" tabindex="-1"></a><span class="co">#   full_join(screen |&gt;</span></span>
-<span id="cb9-233"><a href="#cb9-233" aria-hidden="true" tabindex="-1"></a><span class="co">#   select(var = assist_2_3) |&gt;</span></span>
-<span id="cb9-234"><a href="#cb9-234" aria-hidden="true" tabindex="-1"></a><span class="co">#   filter(var != "Never" &amp; !is.na(var)) |&gt;</span></span>
-<span id="cb9-235"><a href="#cb9-235" aria-hidden="true" tabindex="-1"></a><span class="co">#   mutate(var = "Cocaine (coke, crack, etc.)") |&gt;</span></span>
-<span id="cb9-236"><a href="#cb9-236" aria-hidden="true" tabindex="-1"></a><span class="co">#   group_by(var) |&gt;</span></span>
-<span id="cb9-237"><a href="#cb9-237" aria-hidden="true" tabindex="-1"></a><span class="co">#   drop_na() |&gt;</span></span>
-<span id="cb9-238"><a href="#cb9-238" aria-hidden="true" tabindex="-1"></a><span class="co">#   summarise(n = n()) |&gt;</span></span>
-<span id="cb9-239"><a href="#cb9-239" aria-hidden="true" tabindex="-1"></a><span class="co">#   mutate(perc = (n / n_total) * 100), by = c("var", "n", "perc")) |&gt;</span></span>
-<span id="cb9-240"><a href="#cb9-240" aria-hidden="true" tabindex="-1"></a><span class="co">#   full_join(screen |&gt;</span></span>
-<span id="cb9-241"><a href="#cb9-241" aria-hidden="true" tabindex="-1"></a><span class="co">#   select(var = assist_2_4) |&gt;</span></span>
-<span id="cb9-242"><a href="#cb9-242" aria-hidden="true" tabindex="-1"></a><span class="co">#   filter(var != "Never" &amp; !is.na(var)) |&gt;</span></span>
-<span id="cb9-243"><a href="#cb9-243" aria-hidden="true" tabindex="-1"></a><span class="co">#   mutate(var = "Amphetamine type stimulants (speed, diet pills, ecstasy, etc.)") |&gt;</span></span>
-<span id="cb9-244"><a href="#cb9-244" aria-hidden="true" tabindex="-1"></a><span class="co">#   group_by(var) |&gt;</span></span>
-<span id="cb9-245"><a href="#cb9-245" aria-hidden="true" tabindex="-1"></a><span class="co">#   drop_na() |&gt;</span></span>
-<span id="cb9-246"><a href="#cb9-246" aria-hidden="true" tabindex="-1"></a><span class="co">#   summarise(n = n()) |&gt;</span></span>
-<span id="cb9-247"><a href="#cb9-247" aria-hidden="true" tabindex="-1"></a><span class="co">#   mutate(perc = (n / n_total) * 100), by = c("var", "n", "perc")) |&gt;</span></span>
-<span id="cb9-248"><a href="#cb9-248" aria-hidden="true" tabindex="-1"></a><span class="co">#   full_join(screen |&gt;</span></span>
-<span id="cb9-249"><a href="#cb9-249" aria-hidden="true" tabindex="-1"></a><span class="co">#   select(var = assist_2_5) |&gt;</span></span>
-<span id="cb9-250"><a href="#cb9-250" aria-hidden="true" tabindex="-1"></a><span class="co">#   filter(var != "Never" &amp; !is.na(var)) |&gt;</span></span>
-<span id="cb9-251"><a href="#cb9-251" aria-hidden="true" tabindex="-1"></a><span class="co">#   mutate(var = "Inhalants (nitrous, glue, petrol, paint thinner, etc.)") |&gt;</span></span>
-<span id="cb9-252"><a href="#cb9-252" aria-hidden="true" tabindex="-1"></a><span class="co">#   group_by(var) |&gt;</span></span>
-<span id="cb9-253"><a href="#cb9-253" aria-hidden="true" tabindex="-1"></a><span class="co">#   drop_na() |&gt;</span></span>
-<span id="cb9-254"><a href="#cb9-254" aria-hidden="true" tabindex="-1"></a><span class="co">#   summarise(n = n()) |&gt;</span></span>
-<span id="cb9-255"><a href="#cb9-255" aria-hidden="true" tabindex="-1"></a><span class="co">#   mutate(perc = (n / n_total) * 100), by = c("var", "n", "perc")) |&gt;</span></span>
-<span id="cb9-256"><a href="#cb9-256" aria-hidden="true" tabindex="-1"></a><span class="co">#   full_join(screen |&gt;</span></span>
-<span id="cb9-257"><a href="#cb9-257" aria-hidden="true" tabindex="-1"></a><span class="co">#   select(var = assist_2_6) |&gt;</span></span>
-<span id="cb9-258"><a href="#cb9-258" aria-hidden="true" tabindex="-1"></a><span class="co">#   filter(var != "Never" &amp; !is.na(var)) |&gt;</span></span>
-<span id="cb9-259"><a href="#cb9-259" aria-hidden="true" tabindex="-1"></a><span class="co">#   mutate(var = "Sedatives or sleeping pills (Valium, Serepax, Rohypnol, etc.)") |&gt;</span></span>
-<span id="cb9-260"><a href="#cb9-260" aria-hidden="true" tabindex="-1"></a><span class="co">#   group_by(var) |&gt;</span></span>
-<span id="cb9-261"><a href="#cb9-261" aria-hidden="true" tabindex="-1"></a><span class="co">#   drop_na() |&gt;</span></span>
-<span id="cb9-262"><a href="#cb9-262" aria-hidden="true" tabindex="-1"></a><span class="co">#   summarise(n = n()) |&gt;</span></span>
-<span id="cb9-263"><a href="#cb9-263" aria-hidden="true" tabindex="-1"></a><span class="co">#   mutate(perc = (n / n_total) * 100), by = c("var", "n", "perc")) |&gt;</span></span>
-<span id="cb9-264"><a href="#cb9-264" aria-hidden="true" tabindex="-1"></a><span class="co">#   full_join(screen |&gt;</span></span>
-<span id="cb9-265"><a href="#cb9-265" aria-hidden="true" tabindex="-1"></a><span class="co">#   select(var = assist_2_7) |&gt;</span></span>
-<span id="cb9-266"><a href="#cb9-266" aria-hidden="true" tabindex="-1"></a><span class="co">#   filter(var != "Never" &amp; !is.na(var)) |&gt;</span></span>
-<span id="cb9-267"><a href="#cb9-267" aria-hidden="true" tabindex="-1"></a><span class="co">#   mutate(var = "Hallucinogens (LSD, acid, mushrooms, PCP, Special K, etc.)") |&gt;</span></span>
-<span id="cb9-268"><a href="#cb9-268" aria-hidden="true" tabindex="-1"></a><span class="co">#   group_by(var) |&gt;</span></span>
-<span id="cb9-269"><a href="#cb9-269" aria-hidden="true" tabindex="-1"></a><span class="co">#   drop_na() |&gt;</span></span>
-<span id="cb9-270"><a href="#cb9-270" aria-hidden="true" tabindex="-1"></a><span class="co">#   summarise(n = n()) |&gt;</span></span>
-<span id="cb9-271"><a href="#cb9-271" aria-hidden="true" tabindex="-1"></a><span class="co">#   mutate(perc = (n / n_total) * 100), by = c("var", "n", "perc")) |&gt;</span></span>
-<span id="cb9-272"><a href="#cb9-272" aria-hidden="true" tabindex="-1"></a><span class="co">#   full_join(screen |&gt;</span></span>
-<span id="cb9-273"><a href="#cb9-273" aria-hidden="true" tabindex="-1"></a><span class="co">#   select(var = assist_2_8) |&gt;</span></span>
-<span id="cb9-274"><a href="#cb9-274" aria-hidden="true" tabindex="-1"></a><span class="co">#   filter(var != "Never" &amp; !is.na(var)) |&gt;</span></span>
-<span id="cb9-275"><a href="#cb9-275" aria-hidden="true" tabindex="-1"></a><span class="co">#   mutate(var = "Opioids (heroin, morphine, methadone, codeine, etc.)") |&gt;</span></span>
-<span id="cb9-276"><a href="#cb9-276" aria-hidden="true" tabindex="-1"></a><span class="co">#   group_by(var) |&gt;</span></span>
-<span id="cb9-277"><a href="#cb9-277" aria-hidden="true" tabindex="-1"></a><span class="co">#   drop_na() |&gt;</span></span>
-<span id="cb9-278"><a href="#cb9-278" aria-hidden="true" tabindex="-1"></a><span class="co">#   summarise(n = n()) |&gt;</span></span>
-<span id="cb9-279"><a href="#cb9-279" aria-hidden="true" tabindex="-1"></a><span class="co">#   mutate(perc = (n / n_total) * 100), by = c("var", "n", "perc"))</span></span>
-<span id="cb9-280"><a href="#cb9-280" aria-hidden="true" tabindex="-1"></a><span class="co"># </span></span>
-<span id="cb9-281"><a href="#cb9-281" aria-hidden="true" tabindex="-1"></a><span class="co"># lapses_per_subid &lt;- screen |&gt;</span></span>
-<span id="cb9-282"><a href="#cb9-282" aria-hidden="true" tabindex="-1"></a><span class="co">#   select(subid) |&gt;</span></span>
-<span id="cb9-283"><a href="#cb9-283" aria-hidden="true" tabindex="-1"></a><span class="co">#   left_join(lapses |&gt;</span></span>
-<span id="cb9-284"><a href="#cb9-284" aria-hidden="true" tabindex="-1"></a><span class="co">#   tabyl(subid) |&gt;</span></span>
-<span id="cb9-285"><a href="#cb9-285" aria-hidden="true" tabindex="-1"></a><span class="co">#   select(-percent), by = "subid") |&gt;</span></span>
-<span id="cb9-286"><a href="#cb9-286" aria-hidden="true" tabindex="-1"></a><span class="co">#   mutate(n = if_else(is.na(n), 0, n),</span></span>
-<span id="cb9-287"><a href="#cb9-287" aria-hidden="true" tabindex="-1"></a><span class="co">#          lapse = if_else(n &gt; 0, "yes", "no"))</span></span>
-<span id="cb9-288"><a href="#cb9-288" aria-hidden="true" tabindex="-1"></a><span class="co"># </span></span>
-<span id="cb9-289"><a href="#cb9-289" aria-hidden="true" tabindex="-1"></a><span class="co"># lapse_info &lt;- lapses_per_subid |&gt;</span></span>
-<span id="cb9-290"><a href="#cb9-290" aria-hidden="true" tabindex="-1"></a><span class="co">#   group_by(lapse) |&gt;</span></span>
-<span id="cb9-291"><a href="#cb9-291" aria-hidden="true" tabindex="-1"></a><span class="co">#   rename(var = lapse) |&gt;</span></span>
-<span id="cb9-292"><a href="#cb9-292" aria-hidden="true" tabindex="-1"></a><span class="co">#   mutate(var = factor(var, levels = c("yes", "no"), labels = c("Yes", "No"))) |&gt;</span></span>
-<span id="cb9-293"><a href="#cb9-293" aria-hidden="true" tabindex="-1"></a><span class="co">#   summarise(n = n()) |&gt;</span></span>
-<span id="cb9-294"><a href="#cb9-294" aria-hidden="true" tabindex="-1"></a><span class="co">#   mutate(perc = (n / n_total) * 100,</span></span>
-<span id="cb9-295"><a href="#cb9-295" aria-hidden="true" tabindex="-1"></a><span class="co">#          mean = NA_real_,</span></span>
-<span id="cb9-296"><a href="#cb9-296" aria-hidden="true" tabindex="-1"></a><span class="co">#          SD = NA_real_,</span></span>
-<span id="cb9-297"><a href="#cb9-297" aria-hidden="true" tabindex="-1"></a><span class="co">#          min = NA_real_,</span></span>
-<span id="cb9-298"><a href="#cb9-298" aria-hidden="true" tabindex="-1"></a><span class="co">#          max = NA_real_) |&gt;</span></span>
-<span id="cb9-299"><a href="#cb9-299" aria-hidden="true" tabindex="-1"></a><span class="co">#   full_join(lapses_per_subid |&gt;</span></span>
-<span id="cb9-300"><a href="#cb9-300" aria-hidden="true" tabindex="-1"></a><span class="co">#   summarise(mean = mean(n),</span></span>
-<span id="cb9-301"><a href="#cb9-301" aria-hidden="true" tabindex="-1"></a><span class="co">#             SD = sd(n),</span></span>
-<span id="cb9-302"><a href="#cb9-302" aria-hidden="true" tabindex="-1"></a><span class="co">#             min = min(n),</span></span>
-<span id="cb9-303"><a href="#cb9-303" aria-hidden="true" tabindex="-1"></a><span class="co">#             max = max(n)) |&gt;</span></span>
-<span id="cb9-304"><a href="#cb9-304" aria-hidden="true" tabindex="-1"></a><span class="co">#   mutate(var = "Number of reported lapses"),</span></span>
-<span id="cb9-305"><a href="#cb9-305" aria-hidden="true" tabindex="-1"></a><span class="co">#   by = c("var", "mean", "SD", "min", "max"))</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>study_dates <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(here<span class="sc">::</span><span class="fu">here</span>(path_gps, <span class="st">"study_dates.csv"</span>),</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>                          <span class="at">show_col_types =</span> <span class="cn">FALSE</span>) </span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>subids_dates <span class="ot">&lt;-</span> study_dates <span class="sc">|&gt;</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">pull</span>(subid) <span class="sc">|&gt;</span>  </span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">unique</span>()</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>screen <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="fu">file.path</span>(path_shared, <span class="st">"screen.csv"</span>), </span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>                   <span class="at">col_types =</span> <span class="fu">cols</span>()) <span class="sc">|&gt;</span></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(subid <span class="sc">%in%</span> subids_dates) <span class="sc">|&gt;</span> </span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="fu">across</span>(dsm5_1<span class="sc">:</span>dsm5_11, <span class="sc">~</span> <span class="fu">recode</span>(., <span class="st">"No"</span> <span class="ot">=</span> <span class="dv">0</span>, <span class="st">"Yes"</span> <span class="ot">=</span> <span class="dv">1</span>))) <span class="sc">|&gt;</span>  </span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rowwise</span>() <span class="sc">|&gt;</span>  </span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">dsm5_total =</span> <span class="fu">sum</span>(<span class="fu">c</span>(dsm5_1, dsm5_2, dsm5_3, dsm5_4, dsm5_5, dsm5_6, dsm5_7, </span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>                              dsm5_8, dsm5_9, dsm5_10, dsm5_11))) <span class="sc">|&gt;</span>  </span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>()</span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a>lapses <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="fu">file.path</span>(path_shared, <span class="st">"lapses_day.csv"</span>), <span class="at">col_types =</span> <span class="fu">cols</span>()) <span class="sc">|&gt;</span></span>
+<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(exclude <span class="sc">==</span> <span class="cn">FALSE</span>)</span>
+<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-20"><a href="#cb9-20" aria-hidden="true" tabindex="-1"></a>n_total <span class="ot">&lt;-</span> <span class="dv">146</span></span>
+<span id="cb9-21"><a href="#cb9-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-22"><a href="#cb9-22" aria-hidden="true" tabindex="-1"></a>dem <span class="ot">&lt;-</span> screen <span class="sc">|&gt;</span></span>
+<span id="cb9-23"><a href="#cb9-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">mean =</span> <span class="fu">as.character</span>(<span class="fu">round</span>(<span class="fu">mean</span>(dem_1, <span class="at">na.rm =</span> <span class="cn">TRUE</span>), <span class="dv">1</span>)),</span>
+<span id="cb9-24"><a href="#cb9-24" aria-hidden="true" tabindex="-1"></a>            <span class="at">SD =</span> <span class="fu">as.character</span>(<span class="fu">round</span>(<span class="fu">sd</span>(dem_1, <span class="at">na.rm =</span> <span class="cn">TRUE</span>), <span class="dv">1</span>)),</span>
+<span id="cb9-25"><a href="#cb9-25" aria-hidden="true" tabindex="-1"></a>            <span class="at">min =</span> <span class="fu">as.character</span>(<span class="fu">min</span>(dem_1, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)),</span>
+<span id="cb9-26"><a href="#cb9-26" aria-hidden="true" tabindex="-1"></a>            <span class="at">max =</span> <span class="fu">as.character</span>(<span class="fu">max</span>(dem_1, <span class="at">na.rm =</span> <span class="cn">TRUE</span>))) <span class="sc">|&gt;</span></span>
+<span id="cb9-27"><a href="#cb9-27" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">var =</span> <span class="st">"Age"</span>,</span>
+<span id="cb9-28"><a href="#cb9-28" aria-hidden="true" tabindex="-1"></a>         <span class="at">n =</span> <span class="fu">as.numeric</span>(<span class="st">""</span>),</span>
+<span id="cb9-29"><a href="#cb9-29" aria-hidden="true" tabindex="-1"></a>         <span class="at">perc =</span> <span class="fu">as.numeric</span>(<span class="st">""</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb9-30"><a href="#cb9-30" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(var, n, perc, <span class="fu">everything</span>()) <span class="sc">|&gt;</span></span>
+<span id="cb9-31"><a href="#cb9-31" aria-hidden="true" tabindex="-1"></a>  <span class="fu">full_join</span>(screen <span class="sc">|&gt;</span></span>
+<span id="cb9-32"><a href="#cb9-32" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="at">var =</span> dem_2) <span class="sc">|&gt;</span></span>
+<span id="cb9-33"><a href="#cb9-33" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(var) <span class="sc">|&gt;</span></span>
+<span id="cb9-34"><a href="#cb9-34" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">n =</span> <span class="fu">n</span>()) <span class="sc">|&gt;</span></span>
+<span id="cb9-35"><a href="#cb9-35" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">perc =</span> (n <span class="sc">/</span> <span class="fu">sum</span>(n)) <span class="sc">*</span> <span class="dv">100</span>), <span class="at">by =</span> <span class="fu">c</span>(<span class="st">"var"</span>, <span class="st">"n"</span>, <span class="st">"perc"</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb9-36"><a href="#cb9-36" aria-hidden="true" tabindex="-1"></a>  <span class="fu">full_join</span>(screen <span class="sc">|&gt;</span></span>
+<span id="cb9-37"><a href="#cb9-37" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="at">var =</span> dem_3) <span class="sc">|&gt;</span></span>
+<span id="cb9-38"><a href="#cb9-38" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">var =</span> <span class="fu">fct_relevel</span>(<span class="fu">factor</span>(var,</span>
+<span id="cb9-39"><a href="#cb9-39" aria-hidden="true" tabindex="-1"></a>                         <span class="fu">c</span>(<span class="st">"American Indian/Alaska Native"</span>, <span class="st">"Asian"</span>, <span class="st">"Black/African American"</span>,</span>
+<span id="cb9-40"><a href="#cb9-40" aria-hidden="true" tabindex="-1"></a>                           <span class="st">"White/Caucasian"</span>, <span class="st">"Other/Multiracial"</span>)))) <span class="sc">|&gt;</span></span>
+<span id="cb9-41"><a href="#cb9-41" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(var) <span class="sc">|&gt;</span></span>
+<span id="cb9-42"><a href="#cb9-42" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">n =</span> <span class="fu">n</span>()) <span class="sc">|&gt;</span></span>
+<span id="cb9-43"><a href="#cb9-43" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">perc =</span> (n <span class="sc">/</span> <span class="fu">sum</span>(n)) <span class="sc">*</span> <span class="dv">100</span>), <span class="at">by =</span> <span class="fu">c</span>(<span class="st">"var"</span>, <span class="st">"n"</span>, <span class="st">"perc"</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb9-44"><a href="#cb9-44" aria-hidden="true" tabindex="-1"></a>  <span class="fu">full_join</span>(screen <span class="sc">|&gt;</span></span>
+<span id="cb9-45"><a href="#cb9-45" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="at">var =</span> dem_4) <span class="sc">|&gt;</span></span>
+<span id="cb9-46"><a href="#cb9-46" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">var =</span> <span class="fu">case_when</span>(var <span class="sc">==</span> <span class="st">"No, I am not of Hispanic, Latino, or Spanish origin"</span> <span class="sc">~</span> <span class="st">"No"</span>,</span>
+<span id="cb9-47"><a href="#cb9-47" aria-hidden="true" tabindex="-1"></a>                         <span class="cn">TRUE</span> <span class="sc">~</span> <span class="st">"Yes"</span>),</span>
+<span id="cb9-48"><a href="#cb9-48" aria-hidden="true" tabindex="-1"></a>         <span class="at">var =</span> <span class="fu">fct_relevel</span>(<span class="fu">factor</span>(var, <span class="fu">c</span>(<span class="st">"Yes"</span>, <span class="st">"No"</span>)))) <span class="sc">|&gt;</span></span>
+<span id="cb9-49"><a href="#cb9-49" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(var) <span class="sc">|&gt;</span></span>
+<span id="cb9-50"><a href="#cb9-50" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">n =</span> <span class="fu">n</span>()) <span class="sc">|&gt;</span></span>
+<span id="cb9-51"><a href="#cb9-51" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">perc =</span> (n <span class="sc">/</span> <span class="fu">sum</span>(n)) <span class="sc">*</span> <span class="dv">100</span>), <span class="at">by =</span> <span class="fu">c</span>(<span class="st">"var"</span>, <span class="st">"n"</span>, <span class="st">"perc"</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb9-52"><a href="#cb9-52" aria-hidden="true" tabindex="-1"></a>  <span class="fu">full_join</span>(screen <span class="sc">|&gt;</span></span>
+<span id="cb9-53"><a href="#cb9-53" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="at">var =</span> dem_5) <span class="sc">|&gt;</span></span>
+<span id="cb9-54"><a href="#cb9-54" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">var =</span> <span class="fu">fct_relevel</span>(<span class="fu">factor</span>(var,</span>
+<span id="cb9-55"><a href="#cb9-55" aria-hidden="true" tabindex="-1"></a>                         <span class="fu">c</span>(<span class="st">"Less than high school or GED degree"</span>, <span class="st">"High school or GED"</span>,</span>
+<span id="cb9-56"><a href="#cb9-56" aria-hidden="true" tabindex="-1"></a>                           <span class="st">"Some college"</span>, <span class="st">"2-Year degree"</span>, <span class="st">"College degree"</span>, <span class="st">"Advanced degree"</span>)))) <span class="sc">|&gt;</span></span>
+<span id="cb9-57"><a href="#cb9-57" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(var) <span class="sc">|&gt;</span></span>
+<span id="cb9-58"><a href="#cb9-58" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">n =</span> <span class="fu">n</span>()) <span class="sc">|&gt;</span></span>
+<span id="cb9-59"><a href="#cb9-59" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">perc =</span> (n <span class="sc">/</span> <span class="fu">sum</span>(n)) <span class="sc">*</span> <span class="dv">100</span>), <span class="at">by =</span> <span class="fu">c</span>(<span class="st">"var"</span>, <span class="st">"n"</span>, <span class="st">"perc"</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb9-60"><a href="#cb9-60" aria-hidden="true" tabindex="-1"></a>  <span class="fu">full_join</span>(screen <span class="sc">|&gt;</span></span>
+<span id="cb9-61"><a href="#cb9-61" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="at">var =</span> dem_6, dem_6_1) <span class="sc">|&gt;</span></span>
+<span id="cb9-62"><a href="#cb9-62" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">var =</span> <span class="fu">case_when</span>(dem_6_1 <span class="sc">==</span> <span class="st">"Full-time"</span> <span class="sc">~</span> <span class="st">"Employed full-time"</span>,</span>
+<span id="cb9-63"><a href="#cb9-63" aria-hidden="true" tabindex="-1"></a>                         dem_6_1 <span class="sc">==</span> <span class="st">"Part-time"</span> <span class="sc">~</span> <span class="st">"Employed part-time"</span>,</span>
+<span id="cb9-64"><a href="#cb9-64" aria-hidden="true" tabindex="-1"></a>                         <span class="cn">TRUE</span> <span class="sc">~</span> var)) <span class="sc">|&gt;</span></span>
+<span id="cb9-65"><a href="#cb9-65" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">var =</span> <span class="fu">fct_relevel</span>(<span class="fu">factor</span>(var,</span>
+<span id="cb9-66"><a href="#cb9-66" aria-hidden="true" tabindex="-1"></a>                         <span class="fu">c</span>(<span class="st">"Employed full-time"</span>, <span class="st">"Employed part-time"</span>, <span class="st">"Full-time student"</span>,</span>
+<span id="cb9-67"><a href="#cb9-67" aria-hidden="true" tabindex="-1"></a>                           <span class="st">"Homemaker"</span>, <span class="st">"Disabled"</span>, <span class="st">"Retired"</span>, <span class="st">"Unemployed"</span>,</span>
+<span id="cb9-68"><a href="#cb9-68" aria-hidden="true" tabindex="-1"></a>                           <span class="st">"Temporarily laid off, sick leave, or maternity leave"</span>,</span>
+<span id="cb9-69"><a href="#cb9-69" aria-hidden="true" tabindex="-1"></a>                           <span class="st">"Other, not otherwise specified"</span>)))) <span class="sc">|&gt;</span></span>
+<span id="cb9-70"><a href="#cb9-70" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(var) <span class="sc">|&gt;</span></span>
+<span id="cb9-71"><a href="#cb9-71" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">n =</span> <span class="fu">n</span>()) <span class="sc">|&gt;</span></span>
+<span id="cb9-72"><a href="#cb9-72" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">perc =</span> (n <span class="sc">/</span> <span class="fu">sum</span>(n)) <span class="sc">*</span> <span class="dv">100</span>), <span class="at">by =</span> <span class="fu">c</span>(<span class="st">"var"</span>, <span class="st">"n"</span>, <span class="st">"perc"</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb9-73"><a href="#cb9-73" aria-hidden="true" tabindex="-1"></a>  <span class="fu">full_join</span>(screen <span class="sc">|&gt;</span></span>
+<span id="cb9-74"><a href="#cb9-74" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">mean =</span> <span class="fu">format</span>(<span class="fu">round</span>(<span class="fu">mean</span>(dem_7, <span class="at">na.rm =</span> <span class="cn">TRUE</span>), <span class="dv">0</span>), <span class="at">big.mark =</span> <span class="st">","</span>),</span>
+<span id="cb9-75"><a href="#cb9-75" aria-hidden="true" tabindex="-1"></a>            <span class="at">SD =</span> <span class="fu">format</span>(<span class="fu">round</span>(<span class="fu">sd</span>(dem_7, <span class="at">na.rm =</span> <span class="cn">TRUE</span>), <span class="dv">0</span>), <span class="at">big.mark =</span> <span class="st">","</span>),</span>
+<span id="cb9-76"><a href="#cb9-76" aria-hidden="true" tabindex="-1"></a>            <span class="at">min =</span><span class="fu">format</span>(<span class="fu">round</span>(<span class="fu">min</span>(dem_7, <span class="at">na.rm =</span> <span class="cn">TRUE</span>), <span class="dv">0</span>), <span class="at">big.mark =</span> <span class="st">","</span>),</span>
+<span id="cb9-77"><a href="#cb9-77" aria-hidden="true" tabindex="-1"></a>            <span class="at">max =</span> <span class="fu">format</span>(<span class="fu">round</span>(<span class="fu">max</span>(dem_7, <span class="at">na.rm =</span> <span class="cn">TRUE</span>), <span class="dv">0</span>), <span class="at">scientific =</span> <span class="cn">FALSE</span>, <span class="at">big.mark =</span> <span class="st">","</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb9-78"><a href="#cb9-78" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">var =</span> <span class="st">"Personal Income"</span>,</span>
+<span id="cb9-79"><a href="#cb9-79" aria-hidden="true" tabindex="-1"></a>        <span class="at">n =</span> <span class="fu">as.numeric</span>(<span class="st">""</span>),</span>
+<span id="cb9-80"><a href="#cb9-80" aria-hidden="true" tabindex="-1"></a>        <span class="at">perc =</span> <span class="fu">as.numeric</span>(<span class="st">""</span>),</span>
+<span id="cb9-81"><a href="#cb9-81" aria-hidden="true" tabindex="-1"></a>        <span class="at">mean =</span> <span class="fu">str_c</span>(<span class="st">"$"</span>, <span class="fu">as.character</span>(mean)),</span>
+<span id="cb9-82"><a href="#cb9-82" aria-hidden="true" tabindex="-1"></a>        <span class="at">SD =</span> <span class="fu">str_c</span>(<span class="st">"$"</span>, <span class="fu">as.character</span>(SD)),</span>
+<span id="cb9-83"><a href="#cb9-83" aria-hidden="true" tabindex="-1"></a>        <span class="at">min =</span> <span class="fu">str_c</span>(<span class="st">"$"</span>, <span class="fu">as.character</span>(min)),</span>
+<span id="cb9-84"><a href="#cb9-84" aria-hidden="true" tabindex="-1"></a>        <span class="at">max =</span> <span class="fu">as.character</span>(max)) <span class="sc">|&gt;</span></span>
+<span id="cb9-85"><a href="#cb9-85" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(var, n, perc, <span class="fu">everything</span>()), <span class="at">by =</span> <span class="fu">c</span>(<span class="st">"var"</span>, <span class="st">"n"</span>, <span class="st">"perc"</span>, <span class="st">"mean"</span>, <span class="st">"SD"</span>, <span class="st">"min"</span>, <span class="st">"max"</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb9-86"><a href="#cb9-86" aria-hidden="true" tabindex="-1"></a>  <span class="fu">full_join</span>(screen <span class="sc">|&gt;</span></span>
+<span id="cb9-87"><a href="#cb9-87" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="at">var =</span> dem_8) <span class="sc">|&gt;</span></span>
+<span id="cb9-88"><a href="#cb9-88" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">var =</span> <span class="fu">case_when</span>(var <span class="sc">==</span> <span class="st">"Never Married"</span> <span class="sc">~</span> <span class="st">"Never married"</span>,</span>
+<span id="cb9-89"><a href="#cb9-89" aria-hidden="true" tabindex="-1"></a>                         <span class="cn">TRUE</span> <span class="sc">~</span> var)) <span class="sc">|&gt;</span></span>
+<span id="cb9-90"><a href="#cb9-90" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">var =</span> <span class="fu">fct_relevel</span>(<span class="fu">factor</span>(var,</span>
+<span id="cb9-91"><a href="#cb9-91" aria-hidden="true" tabindex="-1"></a>                         <span class="fu">c</span>(<span class="st">"Never married"</span>, <span class="st">"Married"</span>, <span class="st">"Divorced"</span>, <span class="st">"Separated"</span>,</span>
+<span id="cb9-92"><a href="#cb9-92" aria-hidden="true" tabindex="-1"></a>                           <span class="st">"Widowed"</span>)))) <span class="sc">|&gt;</span></span>
+<span id="cb9-93"><a href="#cb9-93" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(var) <span class="sc">|&gt;</span></span>
+<span id="cb9-94"><a href="#cb9-94" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">n =</span> <span class="fu">n</span>()) <span class="sc">|&gt;</span></span>
+<span id="cb9-95"><a href="#cb9-95" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">perc =</span> (n <span class="sc">/</span> <span class="fu">sum</span>(n)) <span class="sc">*</span> <span class="dv">100</span>), <span class="at">by =</span> <span class="fu">c</span>(<span class="st">"var"</span>, <span class="st">"n"</span>, <span class="st">"perc"</span>))</span>
+<span id="cb9-96"><a href="#cb9-96" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-97"><a href="#cb9-97" aria-hidden="true" tabindex="-1"></a>auh <span class="ot">&lt;-</span> screen <span class="sc">|&gt;</span></span>
+<span id="cb9-98"><a href="#cb9-98" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">mean =</span> <span class="fu">mean</span>(auh_1, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb9-99"><a href="#cb9-99" aria-hidden="true" tabindex="-1"></a>            <span class="at">SD =</span> <span class="fu">sd</span>(auh_1, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb9-100"><a href="#cb9-100" aria-hidden="true" tabindex="-1"></a>            <span class="at">min =</span> <span class="fu">min</span>(auh_1, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb9-101"><a href="#cb9-101" aria-hidden="true" tabindex="-1"></a>            <span class="at">max =</span> <span class="fu">max</span>(auh_1, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb9-102"><a href="#cb9-102" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">var =</span> <span class="st">"Age of first drink"</span>,</span>
+<span id="cb9-103"><a href="#cb9-103" aria-hidden="true" tabindex="-1"></a>        <span class="at">n =</span> <span class="fu">as.numeric</span>(<span class="st">""</span>),</span>
+<span id="cb9-104"><a href="#cb9-104" aria-hidden="true" tabindex="-1"></a>        <span class="at">perc =</span> <span class="fu">as.numeric</span>(<span class="st">""</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb9-105"><a href="#cb9-105" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(var, n, perc, <span class="fu">everything</span>()) <span class="sc">|&gt;</span></span>
+<span id="cb9-106"><a href="#cb9-106" aria-hidden="true" tabindex="-1"></a>  <span class="fu">full_join</span>(screen <span class="sc">|&gt;</span></span>
+<span id="cb9-107"><a href="#cb9-107" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">mean =</span> <span class="fu">mean</span>(auh_2, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb9-108"><a href="#cb9-108" aria-hidden="true" tabindex="-1"></a>            <span class="at">SD =</span> <span class="fu">sd</span>(auh_2, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb9-109"><a href="#cb9-109" aria-hidden="true" tabindex="-1"></a>            <span class="at">min =</span> <span class="fu">min</span>(auh_2, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb9-110"><a href="#cb9-110" aria-hidden="true" tabindex="-1"></a>            <span class="at">max =</span> <span class="fu">max</span>(auh_2, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb9-111"><a href="#cb9-111" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">var =</span> <span class="st">"Age of regular drinking"</span>,</span>
+<span id="cb9-112"><a href="#cb9-112" aria-hidden="true" tabindex="-1"></a>        <span class="at">n =</span> <span class="fu">as.numeric</span>(<span class="st">""</span>),</span>
+<span id="cb9-113"><a href="#cb9-113" aria-hidden="true" tabindex="-1"></a>        <span class="at">perc =</span> <span class="fu">as.numeric</span>(<span class="st">""</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb9-114"><a href="#cb9-114" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(var, n, perc, <span class="fu">everything</span>()), <span class="at">by =</span> <span class="fu">c</span>(<span class="st">"var"</span>, <span class="st">"n"</span>, <span class="st">"perc"</span>, <span class="st">"mean"</span>, <span class="st">"SD"</span>,</span>
+<span id="cb9-115"><a href="#cb9-115" aria-hidden="true" tabindex="-1"></a>                                             <span class="st">"min"</span>, <span class="st">"max"</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb9-116"><a href="#cb9-116" aria-hidden="true" tabindex="-1"></a>  <span class="fu">full_join</span>(screen <span class="sc">|&gt;</span></span>
+<span id="cb9-117"><a href="#cb9-117" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">mean =</span> <span class="fu">mean</span>(auh_3, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb9-118"><a href="#cb9-118" aria-hidden="true" tabindex="-1"></a>            <span class="at">SD =</span> <span class="fu">sd</span>(auh_3, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb9-119"><a href="#cb9-119" aria-hidden="true" tabindex="-1"></a>            <span class="at">min =</span> <span class="fu">min</span>(auh_3, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb9-120"><a href="#cb9-120" aria-hidden="true" tabindex="-1"></a>            <span class="at">max =</span> <span class="fu">max</span>(auh_3, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb9-121"><a href="#cb9-121" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">var =</span> <span class="st">"Age at which drinking became problematic"</span>,</span>
+<span id="cb9-122"><a href="#cb9-122" aria-hidden="true" tabindex="-1"></a>        <span class="at">n =</span> <span class="fu">as.numeric</span>(<span class="st">""</span>),</span>
+<span id="cb9-123"><a href="#cb9-123" aria-hidden="true" tabindex="-1"></a>        <span class="at">perc =</span> <span class="fu">as.numeric</span>(<span class="st">""</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb9-124"><a href="#cb9-124" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(var, n, perc, <span class="fu">everything</span>()), <span class="at">by =</span> <span class="fu">c</span>(<span class="st">"var"</span>, <span class="st">"n"</span>, <span class="st">"perc"</span>, <span class="st">"mean"</span>, <span class="st">"SD"</span>,</span>
+<span id="cb9-125"><a href="#cb9-125" aria-hidden="true" tabindex="-1"></a>                                             <span class="st">"min"</span>, <span class="st">"max"</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb9-126"><a href="#cb9-126" aria-hidden="true" tabindex="-1"></a>  <span class="fu">full_join</span>(screen <span class="sc">|&gt;</span></span>
+<span id="cb9-127"><a href="#cb9-127" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">mean =</span> <span class="fu">mean</span>(auh_4, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb9-128"><a href="#cb9-128" aria-hidden="true" tabindex="-1"></a>            <span class="at">SD =</span> <span class="fu">sd</span>(auh_4, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb9-129"><a href="#cb9-129" aria-hidden="true" tabindex="-1"></a>            <span class="at">min =</span> <span class="fu">min</span>(auh_4, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb9-130"><a href="#cb9-130" aria-hidden="true" tabindex="-1"></a>            <span class="at">max =</span> <span class="fu">max</span>(auh_4, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb9-131"><a href="#cb9-131" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">var =</span> <span class="st">"Age of first quit attempt"</span>,</span>
+<span id="cb9-132"><a href="#cb9-132" aria-hidden="true" tabindex="-1"></a>        <span class="at">n =</span> <span class="fu">as.numeric</span>(<span class="st">""</span>),</span>
+<span id="cb9-133"><a href="#cb9-133" aria-hidden="true" tabindex="-1"></a>        <span class="at">perc =</span> <span class="fu">as.numeric</span>(<span class="st">""</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb9-134"><a href="#cb9-134" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(var, n, perc, <span class="fu">everything</span>()), <span class="at">by =</span> <span class="fu">c</span>(<span class="st">"var"</span>, <span class="st">"n"</span>, <span class="st">"perc"</span>, <span class="st">"mean"</span>, <span class="st">"SD"</span>,</span>
+<span id="cb9-135"><a href="#cb9-135" aria-hidden="true" tabindex="-1"></a>                                             <span class="st">"min"</span>, <span class="st">"max"</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb9-136"><a href="#cb9-136" aria-hidden="true" tabindex="-1"></a>  <span class="fu">full_join</span>(screen <span class="sc">|&gt;</span></span>
+<span id="cb9-137"><a href="#cb9-137" aria-hidden="true" tabindex="-1"></a>  <span class="co"># filter out 2 people with 100 and 365 reported quit attempts - will make footnote in table</span></span>
+<span id="cb9-138"><a href="#cb9-138" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(auh_5 <span class="sc">&lt;</span> <span class="dv">100</span>) <span class="sc">|&gt;</span></span>
+<span id="cb9-139"><a href="#cb9-139" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">mean =</span> <span class="fu">mean</span>(auh_5, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb9-140"><a href="#cb9-140" aria-hidden="true" tabindex="-1"></a>            <span class="at">SD =</span> <span class="fu">sd</span>(auh_5, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb9-141"><a href="#cb9-141" aria-hidden="true" tabindex="-1"></a>            <span class="at">min =</span> <span class="fu">min</span>(auh_5, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb9-142"><a href="#cb9-142" aria-hidden="true" tabindex="-1"></a>            <span class="at">max =</span> <span class="fu">max</span>(auh_5, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb9-143"><a href="#cb9-143" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">var =</span> <span class="st">"Number of Quit Attempts*"</span>,</span>
+<span id="cb9-144"><a href="#cb9-144" aria-hidden="true" tabindex="-1"></a>        <span class="at">n =</span> <span class="fu">as.numeric</span>(<span class="st">""</span>),</span>
+<span id="cb9-145"><a href="#cb9-145" aria-hidden="true" tabindex="-1"></a>        <span class="at">perc =</span> <span class="fu">as.numeric</span>(<span class="st">""</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb9-146"><a href="#cb9-146" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(var, n, perc, <span class="fu">everything</span>()), <span class="at">by =</span> <span class="fu">c</span>(<span class="st">"var"</span>, <span class="st">"n"</span>, <span class="st">"perc"</span>, <span class="st">"mean"</span>, <span class="st">"SD"</span>,</span>
+<span id="cb9-147"><a href="#cb9-147" aria-hidden="true" tabindex="-1"></a>                                             <span class="st">"min"</span>, <span class="st">"max"</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb9-148"><a href="#cb9-148" aria-hidden="true" tabindex="-1"></a>  <span class="fu">full_join</span>(screen <span class="sc">|&gt;</span></span>
+<span id="cb9-149"><a href="#cb9-149" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="at">var =</span> auh_6_1) <span class="sc">|&gt;</span></span>
+<span id="cb9-150"><a href="#cb9-150" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">var =</span> <span class="fu">case_when</span>(var <span class="sc">==</span> <span class="st">"Long-Term Residential Treatment (more than 6 months)"</span> <span class="sc">~</span> <span class="st">"Long-term residential (6+ months)"</span>,</span>
+<span id="cb9-151"><a href="#cb9-151" aria-hidden="true" tabindex="-1"></a>                         <span class="cn">TRUE</span> <span class="sc">~</span> var)) <span class="sc">|&gt;</span></span>
+<span id="cb9-152"><a href="#cb9-152" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(var) <span class="sc">|&gt;</span></span>
+<span id="cb9-153"><a href="#cb9-153" aria-hidden="true" tabindex="-1"></a>  <span class="fu">drop_na</span>() <span class="sc">|&gt;</span></span>
+<span id="cb9-154"><a href="#cb9-154" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">n =</span> <span class="fu">n</span>()) <span class="sc">|&gt;</span></span>
+<span id="cb9-155"><a href="#cb9-155" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">perc =</span> (n <span class="sc">/</span> n_total) <span class="sc">*</span> <span class="dv">100</span>), <span class="at">by =</span> <span class="fu">c</span>(<span class="st">"var"</span>, <span class="st">"n"</span>, <span class="st">"perc"</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb9-156"><a href="#cb9-156" aria-hidden="true" tabindex="-1"></a>  <span class="fu">full_join</span>(screen <span class="sc">|&gt;</span></span>
+<span id="cb9-157"><a href="#cb9-157" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="at">var =</span> auh_6_2) <span class="sc">|&gt;</span></span>
+<span id="cb9-158"><a href="#cb9-158" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">var =</span> <span class="fu">case_when</span>(var <span class="sc">==</span> <span class="st">"Short-Term Residential Treatment (less than 6 months)"</span> <span class="sc">~</span> <span class="st">"Short-term residential (&lt; 6 months)"</span>,</span>
+<span id="cb9-159"><a href="#cb9-159" aria-hidden="true" tabindex="-1"></a>                         <span class="cn">TRUE</span> <span class="sc">~</span> var)) <span class="sc">|&gt;</span></span>
+<span id="cb9-160"><a href="#cb9-160" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(var) <span class="sc">|&gt;</span></span>
+<span id="cb9-161"><a href="#cb9-161" aria-hidden="true" tabindex="-1"></a>  <span class="fu">drop_na</span>() <span class="sc">|&gt;</span></span>
+<span id="cb9-162"><a href="#cb9-162" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">n =</span> <span class="fu">n</span>()) <span class="sc">|&gt;</span></span>
+<span id="cb9-163"><a href="#cb9-163" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">perc =</span> (n <span class="sc">/</span> n_total) <span class="sc">*</span> <span class="dv">100</span>), <span class="at">by =</span> <span class="fu">c</span>(<span class="st">"var"</span>, <span class="st">"n"</span>, <span class="st">"perc"</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb9-164"><a href="#cb9-164" aria-hidden="true" tabindex="-1"></a>  <span class="fu">full_join</span>(screen <span class="sc">|&gt;</span></span>
+<span id="cb9-165"><a href="#cb9-165" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="at">var =</span> auh_6_3) <span class="sc">|&gt;</span></span>
+<span id="cb9-166"><a href="#cb9-166" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">var =</span> <span class="fu">case_when</span>(var <span class="sc">==</span> <span class="st">"Outpatient Treatment"</span> <span class="sc">~</span> <span class="st">"Outpatient"</span>,</span>
+<span id="cb9-167"><a href="#cb9-167" aria-hidden="true" tabindex="-1"></a>                         <span class="cn">TRUE</span> <span class="sc">~</span> var)) <span class="sc">|&gt;</span></span>
+<span id="cb9-168"><a href="#cb9-168" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(var) <span class="sc">|&gt;</span></span>
+<span id="cb9-169"><a href="#cb9-169" aria-hidden="true" tabindex="-1"></a>  <span class="fu">drop_na</span>() <span class="sc">|&gt;</span></span>
+<span id="cb9-170"><a href="#cb9-170" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">n =</span> <span class="fu">n</span>()) <span class="sc">|&gt;</span></span>
+<span id="cb9-171"><a href="#cb9-171" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">perc =</span> (n <span class="sc">/</span> n_total) <span class="sc">*</span> <span class="dv">100</span>), <span class="at">by =</span> <span class="fu">c</span>(<span class="st">"var"</span>, <span class="st">"n"</span>, <span class="st">"perc"</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb9-172"><a href="#cb9-172" aria-hidden="true" tabindex="-1"></a>  <span class="fu">full_join</span>(screen <span class="sc">|&gt;</span></span>
+<span id="cb9-173"><a href="#cb9-173" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="at">var =</span> auh_6_4) <span class="sc">|&gt;</span></span>
+<span id="cb9-174"><a href="#cb9-174" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">var =</span> <span class="fu">case_when</span>(var <span class="sc">==</span> <span class="st">"Individual Counseling"</span> <span class="sc">~</span> <span class="st">"Individual counseling"</span>,</span>
+<span id="cb9-175"><a href="#cb9-175" aria-hidden="true" tabindex="-1"></a>                         <span class="cn">TRUE</span> <span class="sc">~</span> var)) <span class="sc">|&gt;</span></span>
+<span id="cb9-176"><a href="#cb9-176" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(var) <span class="sc">|&gt;</span></span>
+<span id="cb9-177"><a href="#cb9-177" aria-hidden="true" tabindex="-1"></a>  <span class="fu">drop_na</span>() <span class="sc">|&gt;</span></span>
+<span id="cb9-178"><a href="#cb9-178" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">n =</span> <span class="fu">n</span>()) <span class="sc">|&gt;</span></span>
+<span id="cb9-179"><a href="#cb9-179" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">perc =</span> (n <span class="sc">/</span> n_total) <span class="sc">*</span> <span class="dv">100</span>), <span class="at">by =</span> <span class="fu">c</span>(<span class="st">"var"</span>, <span class="st">"n"</span>, <span class="st">"perc"</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb9-180"><a href="#cb9-180" aria-hidden="true" tabindex="-1"></a>  <span class="fu">full_join</span>(screen <span class="sc">|&gt;</span></span>
+<span id="cb9-181"><a href="#cb9-181" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="at">var =</span> auh_6_5) <span class="sc">|&gt;</span></span>
+<span id="cb9-182"><a href="#cb9-182" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">var =</span> <span class="fu">case_when</span>(var <span class="sc">==</span> <span class="st">"Group Counseling"</span> <span class="sc">~</span> <span class="st">"Group counseling"</span>,</span>
+<span id="cb9-183"><a href="#cb9-183" aria-hidden="true" tabindex="-1"></a>                         <span class="cn">TRUE</span> <span class="sc">~</span> var)) <span class="sc">|&gt;</span></span>
+<span id="cb9-184"><a href="#cb9-184" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(var) <span class="sc">|&gt;</span></span>
+<span id="cb9-185"><a href="#cb9-185" aria-hidden="true" tabindex="-1"></a>  <span class="fu">drop_na</span>() <span class="sc">|&gt;</span></span>
+<span id="cb9-186"><a href="#cb9-186" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">n =</span> <span class="fu">n</span>()) <span class="sc">|&gt;</span></span>
+<span id="cb9-187"><a href="#cb9-187" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">perc =</span> (n <span class="sc">/</span> n_total) <span class="sc">*</span> <span class="dv">100</span>), <span class="at">by =</span> <span class="fu">c</span>(<span class="st">"var"</span>, <span class="st">"n"</span>, <span class="st">"perc"</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb9-188"><a href="#cb9-188" aria-hidden="true" tabindex="-1"></a>  <span class="fu">full_join</span>(screen <span class="sc">|&gt;</span></span>
+<span id="cb9-189"><a href="#cb9-189" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="at">var =</span> auh_6_6) <span class="sc">|&gt;</span></span>
+<span id="cb9-190"><a href="#cb9-190" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(var) <span class="sc">|&gt;</span></span>
+<span id="cb9-191"><a href="#cb9-191" aria-hidden="true" tabindex="-1"></a>  <span class="fu">drop_na</span>() <span class="sc">|&gt;</span></span>
+<span id="cb9-192"><a href="#cb9-192" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">n =</span> <span class="fu">n</span>()) <span class="sc">|&gt;</span></span>
+<span id="cb9-193"><a href="#cb9-193" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">perc =</span> (n <span class="sc">/</span> n_total) <span class="sc">*</span> <span class="dv">100</span>), <span class="at">by =</span> <span class="fu">c</span>(<span class="st">"var"</span>, <span class="st">"n"</span>, <span class="st">"perc"</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb9-194"><a href="#cb9-194" aria-hidden="true" tabindex="-1"></a>  <span class="fu">full_join</span>(screen <span class="sc">|&gt;</span></span>
+<span id="cb9-195"><a href="#cb9-195" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="at">var =</span> auh_6_7) <span class="sc">|&gt;</span></span>
+<span id="cb9-196"><a href="#cb9-196" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(var) <span class="sc">|&gt;</span></span>
+<span id="cb9-197"><a href="#cb9-197" aria-hidden="true" tabindex="-1"></a>  <span class="fu">drop_na</span>() <span class="sc">|&gt;</span></span>
+<span id="cb9-198"><a href="#cb9-198" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">n =</span> <span class="fu">n</span>()) <span class="sc">|&gt;</span></span>
+<span id="cb9-199"><a href="#cb9-199" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">perc =</span> (n <span class="sc">/</span> n_total) <span class="sc">*</span> <span class="dv">100</span>), <span class="at">by =</span> <span class="fu">c</span>(<span class="st">"var"</span>, <span class="st">"n"</span>, <span class="st">"perc"</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb9-200"><a href="#cb9-200" aria-hidden="true" tabindex="-1"></a>  <span class="fu">full_join</span>(screen <span class="sc">|&gt;</span></span>
+<span id="cb9-201"><a href="#cb9-201" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="at">var =</span> auh_7) <span class="sc">|&gt;</span></span>
+<span id="cb9-202"><a href="#cb9-202" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">var =</span> <span class="fu">fct_relevel</span>(<span class="fu">factor</span>(var, <span class="fu">c</span>(<span class="st">"Yes"</span>, <span class="st">"No"</span>)))) <span class="sc">|&gt;</span></span>
+<span id="cb9-203"><a href="#cb9-203" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(var) <span class="sc">|&gt;</span></span>
+<span id="cb9-204"><a href="#cb9-204" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">n =</span> <span class="fu">n</span>()) <span class="sc">|&gt;</span></span>
+<span id="cb9-205"><a href="#cb9-205" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">perc =</span> (n <span class="sc">/</span> <span class="fu">sum</span>(n)) <span class="sc">*</span> <span class="dv">100</span>), <span class="at">by =</span> <span class="fu">c</span>(<span class="st">"var"</span>, <span class="st">"n"</span>, <span class="st">"perc"</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb9-206"><a href="#cb9-206" aria-hidden="true" tabindex="-1"></a>  <span class="fu">full_join</span>(screen <span class="sc">|&gt;</span></span>
+<span id="cb9-207"><a href="#cb9-207" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">mean =</span> <span class="fu">mean</span>(dsm5_total),</span>
+<span id="cb9-208"><a href="#cb9-208" aria-hidden="true" tabindex="-1"></a>            <span class="at">SD =</span> <span class="fu">sd</span>(dsm5_total),</span>
+<span id="cb9-209"><a href="#cb9-209" aria-hidden="true" tabindex="-1"></a>            <span class="at">min =</span> <span class="fu">min</span>(dsm5_total, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb9-210"><a href="#cb9-210" aria-hidden="true" tabindex="-1"></a>            <span class="at">max =</span> <span class="fu">max</span>(dsm5_total, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb9-211"><a href="#cb9-211" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">var =</span> <span class="st">"DSM-5 Alcohol Use Disorder Symptom Count"</span>,</span>
+<span id="cb9-212"><a href="#cb9-212" aria-hidden="true" tabindex="-1"></a>        <span class="at">n =</span> <span class="fu">as.numeric</span>(<span class="st">""</span>),</span>
+<span id="cb9-213"><a href="#cb9-213" aria-hidden="true" tabindex="-1"></a>        <span class="at">perc =</span> <span class="fu">as.numeric</span>(<span class="st">""</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb9-214"><a href="#cb9-214" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(var, n, perc, <span class="fu">everything</span>()), <span class="at">by =</span> <span class="fu">c</span>(<span class="st">"var"</span>, <span class="st">"n"</span>, <span class="st">"perc"</span>, <span class="st">"mean"</span>, <span class="st">"SD"</span>,</span>
+<span id="cb9-215"><a href="#cb9-215" aria-hidden="true" tabindex="-1"></a>                                             <span class="st">"min"</span>, <span class="st">"max"</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb9-216"><a href="#cb9-216" aria-hidden="true" tabindex="-1"></a>  <span class="fu">full_join</span>(screen <span class="sc">|&gt;</span></span>
+<span id="cb9-217"><a href="#cb9-217" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="at">var =</span> assist_2_1) <span class="sc">|&gt;</span></span>
+<span id="cb9-218"><a href="#cb9-218" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(var <span class="sc">!=</span> <span class="st">"Never"</span> <span class="sc">&amp;</span> <span class="sc">!</span><span class="fu">is.na</span>(var)) <span class="sc">|&gt;</span></span>
+<span id="cb9-219"><a href="#cb9-219" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">var =</span> <span class="st">"Tobacco products (cigarettes, chewing tobacco, cigars, etc.)"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb9-220"><a href="#cb9-220" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(var) <span class="sc">|&gt;</span></span>
+<span id="cb9-221"><a href="#cb9-221" aria-hidden="true" tabindex="-1"></a>  <span class="fu">drop_na</span>() <span class="sc">|&gt;</span></span>
+<span id="cb9-222"><a href="#cb9-222" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">n =</span> <span class="fu">n</span>()) <span class="sc">|&gt;</span></span>
+<span id="cb9-223"><a href="#cb9-223" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">perc =</span> (n <span class="sc">/</span> n_total) <span class="sc">*</span> <span class="dv">100</span>), <span class="at">by =</span> <span class="fu">c</span>(<span class="st">"var"</span>, <span class="st">"n"</span>, <span class="st">"perc"</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb9-224"><a href="#cb9-224" aria-hidden="true" tabindex="-1"></a>  <span class="fu">full_join</span>(screen <span class="sc">|&gt;</span></span>
+<span id="cb9-225"><a href="#cb9-225" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="at">var =</span> assist_2_2) <span class="sc">|&gt;</span></span>
+<span id="cb9-226"><a href="#cb9-226" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(var <span class="sc">!=</span> <span class="st">"Never"</span> <span class="sc">&amp;</span> <span class="sc">!</span><span class="fu">is.na</span>(var)) <span class="sc">|&gt;</span></span>
+<span id="cb9-227"><a href="#cb9-227" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">var =</span> <span class="st">"Cannabis (marijuana, pot, grass, hash, etc.)"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb9-228"><a href="#cb9-228" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(var) <span class="sc">|&gt;</span></span>
+<span id="cb9-229"><a href="#cb9-229" aria-hidden="true" tabindex="-1"></a>  <span class="fu">drop_na</span>() <span class="sc">|&gt;</span></span>
+<span id="cb9-230"><a href="#cb9-230" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">n =</span> <span class="fu">n</span>()) <span class="sc">|&gt;</span></span>
+<span id="cb9-231"><a href="#cb9-231" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">perc =</span> (n <span class="sc">/</span> n_total) <span class="sc">*</span> <span class="dv">100</span>), <span class="at">by =</span> <span class="fu">c</span>(<span class="st">"var"</span>, <span class="st">"n"</span>, <span class="st">"perc"</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb9-232"><a href="#cb9-232" aria-hidden="true" tabindex="-1"></a>  <span class="fu">full_join</span>(screen <span class="sc">|&gt;</span></span>
+<span id="cb9-233"><a href="#cb9-233" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="at">var =</span> assist_2_3) <span class="sc">|&gt;</span></span>
+<span id="cb9-234"><a href="#cb9-234" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(var <span class="sc">!=</span> <span class="st">"Never"</span> <span class="sc">&amp;</span> <span class="sc">!</span><span class="fu">is.na</span>(var)) <span class="sc">|&gt;</span></span>
+<span id="cb9-235"><a href="#cb9-235" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">var =</span> <span class="st">"Cocaine (coke, crack, etc.)"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb9-236"><a href="#cb9-236" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(var) <span class="sc">|&gt;</span></span>
+<span id="cb9-237"><a href="#cb9-237" aria-hidden="true" tabindex="-1"></a>  <span class="fu">drop_na</span>() <span class="sc">|&gt;</span></span>
+<span id="cb9-238"><a href="#cb9-238" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">n =</span> <span class="fu">n</span>()) <span class="sc">|&gt;</span></span>
+<span id="cb9-239"><a href="#cb9-239" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">perc =</span> (n <span class="sc">/</span> n_total) <span class="sc">*</span> <span class="dv">100</span>), <span class="at">by =</span> <span class="fu">c</span>(<span class="st">"var"</span>, <span class="st">"n"</span>, <span class="st">"perc"</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb9-240"><a href="#cb9-240" aria-hidden="true" tabindex="-1"></a>  <span class="fu">full_join</span>(screen <span class="sc">|&gt;</span></span>
+<span id="cb9-241"><a href="#cb9-241" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="at">var =</span> assist_2_4) <span class="sc">|&gt;</span></span>
+<span id="cb9-242"><a href="#cb9-242" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(var <span class="sc">!=</span> <span class="st">"Never"</span> <span class="sc">&amp;</span> <span class="sc">!</span><span class="fu">is.na</span>(var)) <span class="sc">|&gt;</span></span>
+<span id="cb9-243"><a href="#cb9-243" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">var =</span> <span class="st">"Amphetamine type stimulants (speed, diet pills, ecstasy, etc.)"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb9-244"><a href="#cb9-244" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(var) <span class="sc">|&gt;</span></span>
+<span id="cb9-245"><a href="#cb9-245" aria-hidden="true" tabindex="-1"></a>  <span class="fu">drop_na</span>() <span class="sc">|&gt;</span></span>
+<span id="cb9-246"><a href="#cb9-246" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">n =</span> <span class="fu">n</span>()) <span class="sc">|&gt;</span></span>
+<span id="cb9-247"><a href="#cb9-247" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">perc =</span> (n <span class="sc">/</span> n_total) <span class="sc">*</span> <span class="dv">100</span>), <span class="at">by =</span> <span class="fu">c</span>(<span class="st">"var"</span>, <span class="st">"n"</span>, <span class="st">"perc"</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb9-248"><a href="#cb9-248" aria-hidden="true" tabindex="-1"></a>  <span class="fu">full_join</span>(screen <span class="sc">|&gt;</span></span>
+<span id="cb9-249"><a href="#cb9-249" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="at">var =</span> assist_2_5) <span class="sc">|&gt;</span></span>
+<span id="cb9-250"><a href="#cb9-250" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(var <span class="sc">!=</span> <span class="st">"Never"</span> <span class="sc">&amp;</span> <span class="sc">!</span><span class="fu">is.na</span>(var)) <span class="sc">|&gt;</span></span>
+<span id="cb9-251"><a href="#cb9-251" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">var =</span> <span class="st">"Inhalants (nitrous, glue, petrol, paint thinner, etc.)"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb9-252"><a href="#cb9-252" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(var) <span class="sc">|&gt;</span></span>
+<span id="cb9-253"><a href="#cb9-253" aria-hidden="true" tabindex="-1"></a>  <span class="fu">drop_na</span>() <span class="sc">|&gt;</span></span>
+<span id="cb9-254"><a href="#cb9-254" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">n =</span> <span class="fu">n</span>()) <span class="sc">|&gt;</span></span>
+<span id="cb9-255"><a href="#cb9-255" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">perc =</span> (n <span class="sc">/</span> n_total) <span class="sc">*</span> <span class="dv">100</span>), <span class="at">by =</span> <span class="fu">c</span>(<span class="st">"var"</span>, <span class="st">"n"</span>, <span class="st">"perc"</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb9-256"><a href="#cb9-256" aria-hidden="true" tabindex="-1"></a>  <span class="fu">full_join</span>(screen <span class="sc">|&gt;</span></span>
+<span id="cb9-257"><a href="#cb9-257" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="at">var =</span> assist_2_6) <span class="sc">|&gt;</span></span>
+<span id="cb9-258"><a href="#cb9-258" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(var <span class="sc">!=</span> <span class="st">"Never"</span> <span class="sc">&amp;</span> <span class="sc">!</span><span class="fu">is.na</span>(var)) <span class="sc">|&gt;</span></span>
+<span id="cb9-259"><a href="#cb9-259" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">var =</span> <span class="st">"Sedatives or sleeping pills (Valium, Serepax, Rohypnol, etc.)"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb9-260"><a href="#cb9-260" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(var) <span class="sc">|&gt;</span></span>
+<span id="cb9-261"><a href="#cb9-261" aria-hidden="true" tabindex="-1"></a>  <span class="fu">drop_na</span>() <span class="sc">|&gt;</span></span>
+<span id="cb9-262"><a href="#cb9-262" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">n =</span> <span class="fu">n</span>()) <span class="sc">|&gt;</span></span>
+<span id="cb9-263"><a href="#cb9-263" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">perc =</span> (n <span class="sc">/</span> n_total) <span class="sc">*</span> <span class="dv">100</span>), <span class="at">by =</span> <span class="fu">c</span>(<span class="st">"var"</span>, <span class="st">"n"</span>, <span class="st">"perc"</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb9-264"><a href="#cb9-264" aria-hidden="true" tabindex="-1"></a>  <span class="fu">full_join</span>(screen <span class="sc">|&gt;</span></span>
+<span id="cb9-265"><a href="#cb9-265" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="at">var =</span> assist_2_7) <span class="sc">|&gt;</span></span>
+<span id="cb9-266"><a href="#cb9-266" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(var <span class="sc">!=</span> <span class="st">"Never"</span> <span class="sc">&amp;</span> <span class="sc">!</span><span class="fu">is.na</span>(var)) <span class="sc">|&gt;</span></span>
+<span id="cb9-267"><a href="#cb9-267" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">var =</span> <span class="st">"Hallucinogens (LSD, acid, mushrooms, PCP, Special K, etc.)"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb9-268"><a href="#cb9-268" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(var) <span class="sc">|&gt;</span></span>
+<span id="cb9-269"><a href="#cb9-269" aria-hidden="true" tabindex="-1"></a>  <span class="fu">drop_na</span>() <span class="sc">|&gt;</span></span>
+<span id="cb9-270"><a href="#cb9-270" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">n =</span> <span class="fu">n</span>()) <span class="sc">|&gt;</span></span>
+<span id="cb9-271"><a href="#cb9-271" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">perc =</span> (n <span class="sc">/</span> n_total) <span class="sc">*</span> <span class="dv">100</span>), <span class="at">by =</span> <span class="fu">c</span>(<span class="st">"var"</span>, <span class="st">"n"</span>, <span class="st">"perc"</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb9-272"><a href="#cb9-272" aria-hidden="true" tabindex="-1"></a>  <span class="fu">full_join</span>(screen <span class="sc">|&gt;</span></span>
+<span id="cb9-273"><a href="#cb9-273" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="at">var =</span> assist_2_8) <span class="sc">|&gt;</span></span>
+<span id="cb9-274"><a href="#cb9-274" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(var <span class="sc">!=</span> <span class="st">"Never"</span> <span class="sc">&amp;</span> <span class="sc">!</span><span class="fu">is.na</span>(var)) <span class="sc">|&gt;</span></span>
+<span id="cb9-275"><a href="#cb9-275" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">var =</span> <span class="st">"Opioids (heroin, morphine, methadone, codeine, etc.)"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb9-276"><a href="#cb9-276" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(var) <span class="sc">|&gt;</span></span>
+<span id="cb9-277"><a href="#cb9-277" aria-hidden="true" tabindex="-1"></a>  <span class="fu">drop_na</span>() <span class="sc">|&gt;</span></span>
+<span id="cb9-278"><a href="#cb9-278" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">n =</span> <span class="fu">n</span>()) <span class="sc">|&gt;</span></span>
+<span id="cb9-279"><a href="#cb9-279" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">perc =</span> (n <span class="sc">/</span> n_total) <span class="sc">*</span> <span class="dv">100</span>), <span class="at">by =</span> <span class="fu">c</span>(<span class="st">"var"</span>, <span class="st">"n"</span>, <span class="st">"perc"</span>))</span>
+<span id="cb9-280"><a href="#cb9-280" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-281"><a href="#cb9-281" aria-hidden="true" tabindex="-1"></a>lapses_per_subid <span class="ot">&lt;-</span> screen <span class="sc">|&gt;</span></span>
+<span id="cb9-282"><a href="#cb9-282" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(subid) <span class="sc">|&gt;</span></span>
+<span id="cb9-283"><a href="#cb9-283" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(lapses <span class="sc">|&gt;</span></span>
+<span id="cb9-284"><a href="#cb9-284" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tabyl</span>(subid) <span class="sc">|&gt;</span></span>
+<span id="cb9-285"><a href="#cb9-285" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span>percent), <span class="at">by =</span> <span class="st">"subid"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb9-286"><a href="#cb9-286" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">n =</span> <span class="fu">if_else</span>(<span class="fu">is.na</span>(n), <span class="dv">0</span>, n),</span>
+<span id="cb9-287"><a href="#cb9-287" aria-hidden="true" tabindex="-1"></a>         <span class="at">lapse =</span> <span class="fu">if_else</span>(n <span class="sc">&gt;</span> <span class="dv">0</span>, <span class="st">"yes"</span>, <span class="st">"no"</span>))</span>
+<span id="cb9-288"><a href="#cb9-288" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-289"><a href="#cb9-289" aria-hidden="true" tabindex="-1"></a>lapse_info <span class="ot">&lt;-</span> lapses_per_subid <span class="sc">|&gt;</span></span>
+<span id="cb9-290"><a href="#cb9-290" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(lapse) <span class="sc">|&gt;</span></span>
+<span id="cb9-291"><a href="#cb9-291" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rename</span>(<span class="at">var =</span> lapse) <span class="sc">|&gt;</span></span>
+<span id="cb9-292"><a href="#cb9-292" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">var =</span> <span class="fu">factor</span>(var, <span class="at">levels =</span> <span class="fu">c</span>(<span class="st">"yes"</span>, <span class="st">"no"</span>), <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"Yes"</span>, <span class="st">"No"</span>))) <span class="sc">|&gt;</span></span>
+<span id="cb9-293"><a href="#cb9-293" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">n =</span> <span class="fu">n</span>()) <span class="sc">|&gt;</span></span>
+<span id="cb9-294"><a href="#cb9-294" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">perc =</span> (n <span class="sc">/</span> n_total) <span class="sc">*</span> <span class="dv">100</span>,</span>
+<span id="cb9-295"><a href="#cb9-295" aria-hidden="true" tabindex="-1"></a>         <span class="at">mean =</span> <span class="cn">NA_real_</span>,</span>
+<span id="cb9-296"><a href="#cb9-296" aria-hidden="true" tabindex="-1"></a>         <span class="at">SD =</span> <span class="cn">NA_real_</span>,</span>
+<span id="cb9-297"><a href="#cb9-297" aria-hidden="true" tabindex="-1"></a>         <span class="at">min =</span> <span class="cn">NA_real_</span>,</span>
+<span id="cb9-298"><a href="#cb9-298" aria-hidden="true" tabindex="-1"></a>         <span class="at">max =</span> <span class="cn">NA_real_</span>) <span class="sc">|&gt;</span></span>
+<span id="cb9-299"><a href="#cb9-299" aria-hidden="true" tabindex="-1"></a>  <span class="fu">full_join</span>(lapses_per_subid <span class="sc">|&gt;</span></span>
+<span id="cb9-300"><a href="#cb9-300" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">mean =</span> <span class="fu">mean</span>(n),</span>
+<span id="cb9-301"><a href="#cb9-301" aria-hidden="true" tabindex="-1"></a>            <span class="at">SD =</span> <span class="fu">sd</span>(n),</span>
+<span id="cb9-302"><a href="#cb9-302" aria-hidden="true" tabindex="-1"></a>            <span class="at">min =</span> <span class="fu">min</span>(n),</span>
+<span id="cb9-303"><a href="#cb9-303" aria-hidden="true" tabindex="-1"></a>            <span class="at">max =</span> <span class="fu">max</span>(n)) <span class="sc">|&gt;</span></span>
+<span id="cb9-304"><a href="#cb9-304" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">var =</span> <span class="st">"Number of reported lapses"</span>),</span>
+<span id="cb9-305"><a href="#cb9-305" aria-hidden="true" tabindex="-1"></a>  <span class="at">by =</span> <span class="fu">c</span>(<span class="st">"var"</span>, <span class="st">"mean"</span>, <span class="st">"SD"</span>, <span class="st">"min"</span>, <span class="st">"max"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div></div>
 <section id="demographics" class="level3">
 <h3 class="anchored" data-anchor-id="demographics">Demographics</h3>
 <p>A total of 192 individuals were eligible to participate in the study, of which 191 consented to participate and 169 enrolled in the study. Fifteen participants were excluded prior to the first monthly follow-up visit. One participant was excluded for not maintaining a recovery goal of abstinence during their time on study. Two participants were excluded due to evidence of low compliance and careless responding. A further five individuals were excluded due to poor geolocation data quality as a result of insufficient data (resulting from software incompatibility and/or very limited mobility), resulting in a final sample size of 146.</p>
-<p>The average age of the final sample was 40.9 years (SD = 12 years, range = 21-72 years). There was an approximately equal number of men (n = 74, 50.7%) and women (n = 72, 49.3%). The majority of the sample was White/Caucasian (n = 127, 86.99%) and non-Hispanic (n = 142, n = 97%). The mean income of participants was $34,408 (SD = $32,259, range = $0-$200,000). On average, participants self-reported a mean number of 8.9 DSM-V symptoms of AUD (range = 4-11). A detailed breakdown of participant characteristics is presented in <strong>?@fig-demo-2</strong>.</p>
+<p>The average age of the final sample was 40.9 years (SD = 12 years, range = 21-72 years). There was an approximately equal number of men (n = 74, 50.7%) and women (n = 72, 49.3%). The majority of the sample was White/Caucasian (n = 127, 86.99%) and non-Hispanic (n = 142, n = 97%). The mean income of participants was $34,408 (SD = $32,259, range = $0-$200,000). On average, participants self-reported a mean number of 8.9 DSM-V symptoms of AUD (range = 4-11). A detailed breakdown of participant characteristics is presented in <a href="#fig-demo-2" class="quarto-xref">Figure&nbsp;1</a>.</p>
 <p>output: true label: tbl-demo-2</p>
-<p><img src="objects/table.png" class="img-fluid" alt="Test">{fig-demo-2}</p>
+<div id="fig-demo-2" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-demo-2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<a href="objects/table.png" class="lightbox" data-gallery="quarto-lightbox-gallery-1" data-glightbox="description: .lightbox-desc-1"><img src="objects/table.png" class="img-fluid figure-img"></a>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-demo-2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;1: Test
+</figcaption>
+</figure>
+</div>
 <div class="cell-container"><div class="cell-decorator"><pre>In [3]:</pre></div><div class="cell">
 <div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co"># </span></span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="co"># options(knitr.kable.NA = "—")</span></span>
@@ -1056,9 +1065,9 @@ lgl  (1): split_num
 <section id="model-evaluation-1" class="level3">
 <h3 class="anchored" data-anchor-id="model-evaluation-1">Model Evaluation</h3>
 <p>We selected and evaluated the best performing XGBoost model from our validation set. This may result in a slight optimism bias in our model performance, though we believe this is largely offset through our use of 10 x 30 cross-validation (which averages model performance across 300 folds). However, evaluating the validation set was important to do because model development is still in progress, and as such it would not have been appropriate to examine independent test set performance at this stage.</p>
-<p>The median auROC across the 300 folds achieved fair performance (<em>Mdn</em> = 0.712). <a href="#fig-auroc-histogram" class="quarto-xref">Figure&nbsp;1</a> displays a histogram of model performance distribution across all folds. A receiver operating characteristic curve is displayed in <a href="#fig-auroc-plot" class="quarto-xref">Figure&nbsp;2</a>, representing aggregate predicted lapse probabilities across all 300 folds of the validation set.</p>
-<p>Posterior probability distributions for the auROCs for our best performing validation set model were used to formally characterize model performance. The median auROC was 0.714 (95% CI [0.70-0.73]), indicating that there is a probability &gt; .95 that our model is performing above chance (i.e., auROC &gt; .5; <a href="#fig-pp" class="quarto-xref">Figure&nbsp;3</a>).</p>
-<p>Finally, we performed model calibration in order to improve our trust in model predictions. Results of model calibration are displayed in <a href="#fig-calibration" class="quarto-xref">Figure&nbsp;4</a>, showing that this model <em>over</em> predicts lapse probability even after calibrating the model. In other words, our model is more likely to predict that an individual will lapse than the true rate of lapse in our sample.</p>
+<p>The median auROC across the 300 folds achieved fair performance (<em>Mdn</em> = 0.712). <a href="#fig-auroc-histogram" class="quarto-xref">Figure&nbsp;2</a> displays a histogram of model performance distribution across all folds. A receiver operating characteristic curve is displayed in <a href="#fig-auroc-plot" class="quarto-xref">Figure&nbsp;3</a>, representing aggregate predicted lapse probabilities across all 300 folds of the validation set.</p>
+<p>Posterior probability distributions for the auROCs for our best performing validation set model were used to formally characterize model performance. The median auROC was 0.714 (95% CI [0.70-0.73]), indicating that there is a probability &gt; .95 that our model is performing above chance (i.e., auROC &gt; .5; <a href="#fig-pp" class="quarto-xref">Figure&nbsp;4</a>).</p>
+<p>Finally, we performed model calibration in order to improve our trust in model predictions. Results of model calibration are displayed in <a href="#fig-calibration" class="quarto-xref">Figure&nbsp;5</a>, showing that this model <em>over</em> predicts lapse probability even after calibrating the model. In other words, our model is more likely to predict that an individual will lapse than the true rate of lapse in our sample.</p>
 <div class="quarto-embed-nb-cell" data-notebook="/Users/punturierice/Documents/GitHub/study_gps/notebooks/auROC_distribution_posterior.qmd" data-notebook-title="Evaluate inner auROC for main models of training jobs from CHTC for" data-notebook-cellid="cell-fig-auroc-histogram">
 <div class="cell-container"><div class="cell-decorator"><pre>In [4]:</pre></div><div id="cell-fig-auroc-histogram" class="cell" data-fig-height="6" data-fig-width="6">
 <div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co"># auROCs |&gt; </span></span>
@@ -1078,10 +1087,10 @@ lgl  (1): split_num
 <div id="fig-auroc-histogram" class="quarto-figure quarto-figure-center quarto-float anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-auroc-histogram-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca" class="">
-<a href="index_files/figure-html/notebooks-auROC_distribution_posterior-fig-auroc-histogram-output-1.png" class="lightbox" data-glightbox="description: .lightbox-desc-1" data-gallery="quarto-lightbox-gallery-1"><img src="index_files/figure-html/notebooks-auROC_distribution_posterior-fig-auroc-histogram-output-1.png" class="img-fluid figure-img"></a>
+<a href="index_files/figure-html/notebooks-auROC_distribution_posterior-fig-auroc-histogram-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-2" data-glightbox="description: .lightbox-desc-2"><img src="index_files/figure-html/notebooks-auROC_distribution_posterior-fig-auroc-histogram-output-1.png" class="img-fluid figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-auroc-histogram-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;1: auROC performance across all inner cross-validation folds.
+Figure&nbsp;2: auROC performance across all inner cross-validation folds.
 </figcaption>
 </figure>
 </div>
@@ -1129,10 +1138,10 @@ Figure&nbsp;1: auROC performance across all inner cross-validation folds.
 <div id="fig-auroc-plot" class="quarto-figure quarto-figure-center quarto-float anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-auroc-plot-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca" class="">
-<a href="index_files/figure-html/notebooks-auROC_plot-fig-auroc-plot-output-2.png" class="lightbox" data-glightbox="description: .lightbox-desc-2" data-gallery="quarto-lightbox-gallery-2"><img src="index_files/figure-html/notebooks-auROC_plot-fig-auroc-plot-output-2.png" class="img-fluid figure-img"></a>
+<a href="index_files/figure-html/notebooks-auROC_plot-fig-auroc-plot-output-2.png" class="lightbox" data-gallery="quarto-lightbox-gallery-3" data-glightbox="description: .lightbox-desc-3"><img src="index_files/figure-html/notebooks-auROC_plot-fig-auroc-plot-output-2.png" class="img-fluid figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-auroc-plot-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;2: auROC for overall validation set performance across thresholds.
+Figure&nbsp;3: auROC for overall validation set performance across thresholds.
 </figcaption>
 </figure>
 </div>
@@ -1168,10 +1177,10 @@ Figure&nbsp;2: auROC for overall validation set performance across thresholds.
 <div id="fig-pp" class="quarto-figure quarto-figure-center quarto-float anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-pp-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca" class="">
-<a href="index_files/figure-html/notebooks-auROC_distribution_posterior-fig-pp-output-1.png" class="lightbox" data-glightbox="description: .lightbox-desc-3" data-gallery="quarto-lightbox-gallery-3"><img src="index_files/figure-html/notebooks-auROC_distribution_posterior-fig-pp-output-1.png" class="img-fluid figure-img"></a>
+<a href="index_files/figure-html/notebooks-auROC_distribution_posterior-fig-pp-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-4" data-glightbox="description: .lightbox-desc-4"><img src="index_files/figure-html/notebooks-auROC_distribution_posterior-fig-pp-output-1.png" class="img-fluid figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-pp-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;3: Posterior distribution of model performance with 95% credible interval.
+Figure&nbsp;4: Posterior distribution of model performance with 95% credible interval.
 </figcaption>
 </figure>
 </div>
@@ -1211,10 +1220,10 @@ Adding another scale for x, which will replace the existing scale.</code></pre>
 <div id="fig-calibration" class="quarto-figure quarto-figure-center quarto-float anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-calibration-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca" class="">
-<a href="index_files/figure-html/notebooks-calibration_plot-fig-calibration-output-2.png" class="lightbox" data-glightbox="description: .lightbox-desc-4" data-gallery="quarto-lightbox-gallery-4"><img src="index_files/figure-html/notebooks-calibration_plot-fig-calibration-output-2.png" class="img-fluid figure-img"></a>
+<a href="index_files/figure-html/notebooks-calibration_plot-fig-calibration-output-2.png" class="lightbox" data-gallery="quarto-lightbox-gallery-5" data-glightbox="description: .lightbox-desc-5"><img src="index_files/figure-html/notebooks-calibration_plot-fig-calibration-output-2.png" class="img-fluid figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-calibration-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;4: Comparison between raw (uncalibrated) and logistic (calibrated) probabilities.
+Figure&nbsp;5: Comparison between raw (uncalibrated) and logistic (calibrated) probabilities.
 </figcaption>
 </figure>
 </div>
@@ -1224,7 +1233,7 @@ Figure&nbsp;4: Comparison between raw (uncalibrated) and logistic (calibrated) p
 </section>
 <section id="feature-importance" class="level3">
 <h3 class="anchored" data-anchor-id="feature-importance">Feature Importance</h3>
-<p>Global importance (mean absolute Shapley values) for feature categories is shown in <a href="#fig-shaps-group" class="quarto-xref">Figure&nbsp;5</a>. Three aggregated feature categories were identified as being particularly important in contributing to model predictions: time spent at risky locations, time spent at different types of location, and time spent at locations with varying levels of alcohol availability. Other aggregated feature groups, both context-supplemented and without, did not appear to be strong and unique global contributors to model predictions.</p>
+<p>Global importance (mean absolute Shapley values) for feature categories is shown in <a href="#fig-shaps-group" class="quarto-xref">Figure&nbsp;6</a>. Three aggregated feature categories were identified as being particularly important in contributing to model predictions: time spent at risky locations, time spent at different types of location, and time spent at locations with varying levels of alcohol availability. Other aggregated feature groups, both context-supplemented and without, did not appear to be strong and unique global contributors to model predictions.</p>
 <div class="quarto-embed-nb-cell" data-notebook="/Users/punturierice/Documents/GitHub/study_gps/notebooks/shaps.qmd" data-notebook-title="SHAPs" data-notebook-cellid="cell-fig-shaps-group">
 <div class="cell-container"><div class="cell-decorator"><pre>In [8]:</pre></div><div id="cell-fig-shaps-group" class="cell" data-fig-height="6" data-fig-width="6">
 <div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>shaps_grp <span class="op">|&gt;</span></span>
@@ -1241,10 +1250,10 @@ Figure&nbsp;4: Comparison between raw (uncalibrated) and logistic (calibrated) p
 <div id="fig-shaps-group" class="quarto-figure quarto-figure-center quarto-float anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-shaps-group-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca" class="">
-<a href="index_files/figure-html/notebooks-shaps-fig-shaps-group-output-1.png" class="lightbox" data-glightbox="description: .lightbox-desc-5" data-gallery="quarto-lightbox-gallery-5"><img src="index_files/figure-html/notebooks-shaps-fig-shaps-group-output-1.png" class="img-fluid figure-img"></a>
+<a href="index_files/figure-html/notebooks-shaps-fig-shaps-group-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-6" data-glightbox="description: .lightbox-desc-6"><img src="index_files/figure-html/notebooks-shaps-fig-shaps-group-output-1.png" class="img-fluid figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-shaps-group-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;5: Grouped (mean absolute values) SHAP values displaying relative feature importance.
+Figure&nbsp;6: Grouped (mean absolute values) SHAP values displaying relative feature importance.
 </figcaption>
 </figure>
 </div>
@@ -1254,7 +1263,7 @@ Figure&nbsp;5: Grouped (mean absolute values) SHAP values displaying relative fe
 </section>
 <section id="algorithmic-fairness-1" class="level3">
 <h3 class="anchored" data-anchor-id="algorithmic-fairness-1">Algorithmic Fairness</h3>
-<p><a href="#fig-fairness-subgroups" class="quarto-xref">Figure&nbsp;6</a> shows differences in model performance across race (<em>N</em> white = 127, <em>N</em> non-white = 19), sex (<em>N</em> male = 74, <em>N</em> female = 72), age (<em>N</em> younger than 55 = 126, <em>N</em> older than or equal to 55 = 20), and income (<em>N</em> below federal poverty line = 48, <em>N</em> above federal poverty line = 98). All group comparisons were reliably different (probability &gt; .95) across models, such that identities with higher assumed privilege were associated with improved model performance. White, non-Hispanic participants demonstrated 0.055 greater model performance than Hispanic and/or non-white participants (range=0.026-0.083, probability=1.000). Male participants demonstrated 0.036 greater model performance than female participants (range=0.012-0.060, probability=0.999). Younger participants demonstrated 0.106 greater model performance than older participants (range=0.080-0.133, probability=1.000). Finally, participants above the poverty line demonstrated 0.056 greater model performance than those below the poverty line (range=0.033-0.079, probability=1.000).</p>
+<p><a href="#fig-fairness-subgroups" class="quarto-xref">Figure&nbsp;7</a> shows differences in model performance across race (<em>N</em> white = 127, <em>N</em> non-white = 19), sex (<em>N</em> male = 74, <em>N</em> female = 72), age (<em>N</em> younger than 55 = 126, <em>N</em> older than or equal to 55 = 20), and income (<em>N</em> below federal poverty line = 48, <em>N</em> above federal poverty line = 98). All group comparisons were reliably different (probability &gt; .95) across models, such that identities with higher assumed privilege were associated with improved model performance. White, non-Hispanic participants demonstrated 0.055 greater model performance than Hispanic and/or non-white participants (range=0.026-0.083, probability=1.000). Male participants demonstrated 0.036 greater model performance than female participants (range=0.012-0.060, probability=0.999). Younger participants demonstrated 0.106 greater model performance than older participants (range=0.080-0.133, probability=1.000). Finally, participants above the poverty line demonstrated 0.056 greater model performance than those below the poverty line (range=0.033-0.079, probability=1.000).</p>
 <div class="quarto-embed-nb-cell" data-notebook="/Users/punturierice/Documents/GitHub/study_gps/notebooks/fairness.qmd" data-notebook-title="Subgroup Analysis" data-notebook-cellid="cell-fig-fairness-subgroups">
 <div class="cell-container"><div class="cell-decorator"><pre>In [9]:</pre></div><div id="cell-fig-fairness-subgroups" class="cell" data-fig-height="6" data-fig-width="6">
 <div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>cowplot::plot_grid(fig_race, fig_sex, fig_age, fig_income, align<span class="op">=</span><span class="st">"v"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -1262,10 +1271,10 @@ Figure&nbsp;5: Grouped (mean absolute values) SHAP values displaying relative fe
 <div id="fig-fairness-subgroups" class="quarto-figure quarto-figure-center quarto-float anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-fairness-subgroups-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca" class="">
-<a href="index_files/figure-html/notebooks-fairness-fig-fairness-subgroups-output-1.png" class="lightbox" data-glightbox="description: .lightbox-desc-6" data-gallery="quarto-lightbox-gallery-6"><img src="index_files/figure-html/notebooks-fairness-fig-fairness-subgroups-output-1.png" class="img-fluid figure-img"></a>
+<a href="index_files/figure-html/notebooks-fairness-fig-fairness-subgroups-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-7" data-glightbox="description: .lightbox-desc-7"><img src="index_files/figure-html/notebooks-fairness-fig-fairness-subgroups-output-1.png" class="img-fluid figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-fairness-subgroups-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;6: 95% credible intervals across posterior subgroups at differential levels of privilege.
+Figure&nbsp;7: 95% credible intervals across posterior subgroups at differential levels of privilege.
 </figcaption>
 </figure>
 </div>
@@ -1416,12 +1425,13 @@ Witkiewitz, Katie, and G. Alan Marlatt. 2004. <span>“Relapse Prevention for Al
 </div>
 </div>
 <div class="hidden" aria-hidden="true">
-<span class="glightbox-desc lightbox-desc-1">Figure&nbsp;1: auROC performance across all inner cross-validation folds.</span>
-<span class="glightbox-desc lightbox-desc-2">Figure&nbsp;2: auROC for overall validation set performance across thresholds.</span>
-<span class="glightbox-desc lightbox-desc-3">Figure&nbsp;3: Posterior distribution of model performance with 95% credible interval.</span>
-<span class="glightbox-desc lightbox-desc-4">Figure&nbsp;4: Comparison between raw (uncalibrated) and logistic (calibrated) probabilities.</span>
-<span class="glightbox-desc lightbox-desc-5">Figure&nbsp;5: Grouped (mean absolute values) SHAP values displaying relative feature importance.</span>
-<span class="glightbox-desc lightbox-desc-6">Figure&nbsp;6: 95% credible intervals across posterior subgroups at differential levels of privilege.</span>
+<span class="glightbox-desc lightbox-desc-1">Figure&nbsp;1: Test</span>
+<span class="glightbox-desc lightbox-desc-2">Figure&nbsp;2: auROC performance across all inner cross-validation folds.</span>
+<span class="glightbox-desc lightbox-desc-3">Figure&nbsp;3: auROC for overall validation set performance across thresholds.</span>
+<span class="glightbox-desc lightbox-desc-4">Figure&nbsp;4: Posterior distribution of model performance with 95% credible interval.</span>
+<span class="glightbox-desc lightbox-desc-5">Figure&nbsp;5: Comparison between raw (uncalibrated) and logistic (calibrated) probabilities.</span>
+<span class="glightbox-desc lightbox-desc-6">Figure&nbsp;6: Grouped (mean absolute values) SHAP values displaying relative feature importance.</span>
+<span class="glightbox-desc lightbox-desc-7">Figure&nbsp;7: 95% credible intervals across posterior subgroups at differential levels of privilege.</span>
 </div>
 </section>
      </main>
@@ -1833,7 +1843,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
     }
   }
 });
-</script>  </div> <!-- /content -->  <script>var lightboxQuarto = GLightbox({"selector":".lightbox","closeEffect":"zoom","loop":false,"openEffect":"zoom","descPosition":"bottom"});
+</script>  </div> <!-- /content -->  <script>var lightboxQuarto = GLightbox({"descPosition":"bottom","openEffect":"zoom","selector":".lightbox","closeEffect":"zoom","loop":false});
 window.onload = () => {
   lightboxQuarto.on('slide_before_load', (data) => {
     const { slideIndex, slideNode, slideConfig, player, trigger } = data;

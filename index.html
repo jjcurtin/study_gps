@@ -498,26 +498,35 @@ Table&nbsp;3: Demographic and relevant alcohol use history variables sampled at 
 <section id="demographics" class="level3">
 <h3 class="anchored" data-anchor-id="demographics">Demographics</h3>
 <p>A total of 192 individuals were eligible to participate in the study, of which 191 consented to participate and 169 enrolled in the study. Fifteen participants were excluded prior to the first monthly follow-up visit. One participant was excluded for not maintaining a recovery goal of abstinence during their time on study. Two participants were excluded due to evidence of low compliance and careless responding. A further five individuals were excluded due to poor geolocation data quality as a result of insufficient data (resulting from software incompatibility and/or very limited mobility), resulting in a final sample size of 146.</p>
-<p>The average age of the final sample was 40.9 years (SD = 12 years, range = 21-72 years). There was an approximately equal number of men (n = 74, 50.7%) and women (n = 72, 49.3%). The majority of the sample was White/Caucasian (n = 127, 86.99%) and non-Hispanic (n = 142, n = 97%). The mean income of participants was $34,408 (SD = $32,259, range = $0-$200,000). On average, participants self-reported a mean number of 8.9 DSM-V symptoms of AUD (range = 4-11). A detailed breakdown of participant characteristics is presented in <strong>?@fig-demo-2</strong>.</p>
+<p>The average age of the final sample was 40.9 years (SD = 12 years, range = 21-72 years). There was an approximately equal number of men (n = 74, 50.7%) and women (n = 72, 49.3%). The majority of the sample was White/Caucasian (n = 127, 86.99%) and non-Hispanic (n = 142, n = 97%). The mean income of participants was $34,408 (SD = $32,259, range = $0-$200,000). On average, participants self-reported a mean number of 8.9 DSM-V symptoms of AUD (range = 4-11). A detailed breakdown of participant characteristics is presented in <a href="#fig-demo-2" class="quarto-xref">Figure&nbsp;1</a>.</p>
 <p>output: true label: tbl-demo-2</p>
-<p><img src="objects/table.png" class="img-fluid" alt="Test">{fig-demo-2}</p>
+<div id="fig-demo-2" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-demo-2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<a href="objects/table.png" class="lightbox" data-gallery="quarto-lightbox-gallery-1" data-glightbox="description: .lightbox-desc-1"><img src="objects/table.png" class="img-fluid figure-img"></a>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-demo-2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;1: Test
+</figcaption>
+</figure>
+</div>
 </section>
 <section id="model-evaluation-1" class="level3">
 <h3 class="anchored" data-anchor-id="model-evaluation-1">Model Evaluation</h3>
 <p>We selected and evaluated the best performing XGBoost model from our validation set. This may result in a slight optimism bias in our model performance, though we believe this is largely offset through our use of 10 x 30 cross-validation (which averages model performance across 300 folds). However, evaluating the validation set was important to do because model development is still in progress, and as such it would not have been appropriate to examine independent test set performance at this stage.</p>
-<p>The median auROC across the 300 folds achieved fair performance (<em>Mdn</em> = 0.712). <a href="#fig-auroc-histogram" class="quarto-xref">Figure&nbsp;1</a> displays a histogram of model performance distribution across all folds. A receiver operating characteristic curve is displayed in <a href="#fig-auroc-plot" class="quarto-xref">Figure&nbsp;2</a>, representing aggregate predicted lapse probabilities across all 300 folds of the validation set.</p>
-<p>Posterior probability distributions for the auROCs for our best performing validation set model were used to formally characterize model performance. The median auROC was 0.714 (95% CI [0.70-0.73]), indicating that there is a probability &gt; .95 that our model is performing above chance (i.e., auROC &gt; .5; <a href="#fig-pp" class="quarto-xref">Figure&nbsp;3</a>).</p>
-<p>Finally, we performed model calibration in order to improve our trust in model predictions. Results of model calibration are displayed in <a href="#fig-calibration" class="quarto-xref">Figure&nbsp;4</a>, showing that this model <em>over</em> predicts lapse probability even after calibrating the model. In other words, our model is more likely to predict that an individual will lapse than the true rate of lapse in our sample.</p>
+<p>The median auROC across the 300 folds achieved fair performance (<em>Mdn</em> = 0.712). <a href="#fig-auroc-histogram" class="quarto-xref">Figure&nbsp;2</a> displays a histogram of model performance distribution across all folds. A receiver operating characteristic curve is displayed in <a href="#fig-auroc-plot" class="quarto-xref">Figure&nbsp;3</a>, representing aggregate predicted lapse probabilities across all 300 folds of the validation set.</p>
+<p>Posterior probability distributions for the auROCs for our best performing validation set model were used to formally characterize model performance. The median auROC was 0.714 (95% CI [0.70-0.73]), indicating that there is a probability &gt; .95 that our model is performing above chance (i.e., auROC &gt; .5; <a href="#fig-pp" class="quarto-xref">Figure&nbsp;4</a>).</p>
+<p>Finally, we performed model calibration in order to improve our trust in model predictions. Results of model calibration are displayed in <a href="#fig-calibration" class="quarto-xref">Figure&nbsp;5</a>, showing that this model <em>over</em> predicts lapse probability even after calibrating the model. In other words, our model is more likely to predict that an individual will lapse than the true rate of lapse in our sample.</p>
 <div class="quarto-embed-nb-cell">
 <div id="cell-fig-auroc-histogram" class="cell" data-fig-height="6" data-fig-width="6">
 <div class="cell-output cell-output-display">
 <div id="fig-auroc-histogram" class="quarto-figure quarto-figure-center quarto-float anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-auroc-histogram-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="index_files/figure-html/notebooks-auROC_distribution_posterior-fig-auroc-histogram-output-1.png" class="lightbox" data-glightbox="description: .lightbox-desc-1" data-gallery="quarto-lightbox-gallery-1"><img src="index_files/figure-html/notebooks-auROC_distribution_posterior-fig-auroc-histogram-output-1.png" class="img-fluid figure-img"></a>
+<a href="index_files/figure-html/notebooks-auROC_distribution_posterior-fig-auroc-histogram-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-2" data-glightbox="description: .lightbox-desc-2"><img src="index_files/figure-html/notebooks-auROC_distribution_posterior-fig-auroc-histogram-output-1.png" class="img-fluid figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-auroc-histogram-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;1: auROC performance across all inner cross-validation folds.
+Figure&nbsp;2: auROC performance across all inner cross-validation folds.
 </figcaption>
 </figure>
 </div>
@@ -530,10 +539,10 @@ Figure&nbsp;1: auROC performance across all inner cross-validation folds.
 <div id="fig-auroc-plot" class="quarto-figure quarto-figure-center quarto-float anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-auroc-plot-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="index_files/figure-html/notebooks-auROC_plot-fig-auroc-plot-output-2.png" class="lightbox" data-glightbox="description: .lightbox-desc-2" data-gallery="quarto-lightbox-gallery-2"><img src="index_files/figure-html/notebooks-auROC_plot-fig-auroc-plot-output-2.png" class="img-fluid figure-img"></a>
+<a href="index_files/figure-html/notebooks-auROC_plot-fig-auroc-plot-output-2.png" class="lightbox" data-gallery="quarto-lightbox-gallery-3" data-glightbox="description: .lightbox-desc-3"><img src="index_files/figure-html/notebooks-auROC_plot-fig-auroc-plot-output-2.png" class="img-fluid figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-auroc-plot-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;2: auROC for overall validation set performance across thresholds.
+Figure&nbsp;3: auROC for overall validation set performance across thresholds.
 </figcaption>
 </figure>
 </div>
@@ -546,10 +555,10 @@ Figure&nbsp;2: auROC for overall validation set performance across thresholds.
 <div id="fig-pp" class="quarto-figure quarto-figure-center quarto-float anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-pp-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="index_files/figure-html/notebooks-auROC_distribution_posterior-fig-pp-output-1.png" class="lightbox" data-glightbox="description: .lightbox-desc-3" data-gallery="quarto-lightbox-gallery-3"><img src="index_files/figure-html/notebooks-auROC_distribution_posterior-fig-pp-output-1.png" class="img-fluid figure-img"></a>
+<a href="index_files/figure-html/notebooks-auROC_distribution_posterior-fig-pp-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-4" data-glightbox="description: .lightbox-desc-4"><img src="index_files/figure-html/notebooks-auROC_distribution_posterior-fig-pp-output-1.png" class="img-fluid figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-pp-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;3: Posterior distribution of model performance with 95% credible interval.
+Figure&nbsp;4: Posterior distribution of model performance with 95% credible interval.
 </figcaption>
 </figure>
 </div>
@@ -562,10 +571,10 @@ Figure&nbsp;3: Posterior distribution of model performance with 95% credible int
 <div id="fig-calibration" class="quarto-figure quarto-figure-center quarto-float anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-calibration-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="index_files/figure-html/notebooks-calibration_plot-fig-calibration-output-2.png" class="lightbox" data-glightbox="description: .lightbox-desc-4" data-gallery="quarto-lightbox-gallery-4"><img src="index_files/figure-html/notebooks-calibration_plot-fig-calibration-output-2.png" class="img-fluid figure-img"></a>
+<a href="index_files/figure-html/notebooks-calibration_plot-fig-calibration-output-2.png" class="lightbox" data-gallery="quarto-lightbox-gallery-5" data-glightbox="description: .lightbox-desc-5"><img src="index_files/figure-html/notebooks-calibration_plot-fig-calibration-output-2.png" class="img-fluid figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-calibration-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;4: Comparison between raw (uncalibrated) and logistic (calibrated) probabilities.
+Figure&nbsp;5: Comparison between raw (uncalibrated) and logistic (calibrated) probabilities.
 </figcaption>
 </figure>
 </div>
@@ -575,17 +584,17 @@ Figure&nbsp;4: Comparison between raw (uncalibrated) and logistic (calibrated) p
 </section>
 <section id="feature-importance" class="level3">
 <h3 class="anchored" data-anchor-id="feature-importance">Feature Importance</h3>
-<p>Global importance (mean absolute Shapley values) for feature categories is shown in <a href="#fig-shaps-group" class="quarto-xref">Figure&nbsp;5</a>. Three aggregated feature categories were identified as being particularly important in contributing to model predictions: time spent at risky locations, time spent at different types of location, and time spent at locations with varying levels of alcohol availability. Other aggregated feature groups, both context-supplemented and without, did not appear to be strong and unique global contributors to model predictions.</p>
+<p>Global importance (mean absolute Shapley values) for feature categories is shown in <a href="#fig-shaps-group" class="quarto-xref">Figure&nbsp;6</a>. Three aggregated feature categories were identified as being particularly important in contributing to model predictions: time spent at risky locations, time spent at different types of location, and time spent at locations with varying levels of alcohol availability. Other aggregated feature groups, both context-supplemented and without, did not appear to be strong and unique global contributors to model predictions.</p>
 <div class="quarto-embed-nb-cell">
 <div id="cell-fig-shaps-group" class="cell" data-fig-height="6" data-fig-width="6">
 <div class="cell-output cell-output-display">
 <div id="fig-shaps-group" class="quarto-figure quarto-figure-center quarto-float anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-shaps-group-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="index_files/figure-html/notebooks-shaps-fig-shaps-group-output-1.png" class="lightbox" data-glightbox="description: .lightbox-desc-5" data-gallery="quarto-lightbox-gallery-5"><img src="index_files/figure-html/notebooks-shaps-fig-shaps-group-output-1.png" class="img-fluid figure-img"></a>
+<a href="index_files/figure-html/notebooks-shaps-fig-shaps-group-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-6" data-glightbox="description: .lightbox-desc-6"><img src="index_files/figure-html/notebooks-shaps-fig-shaps-group-output-1.png" class="img-fluid figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-shaps-group-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;5: Grouped (mean absolute values) SHAP values displaying relative feature importance.
+Figure&nbsp;6: Grouped (mean absolute values) SHAP values displaying relative feature importance.
 </figcaption>
 </figure>
 </div>
@@ -595,17 +604,17 @@ Figure&nbsp;5: Grouped (mean absolute values) SHAP values displaying relative fe
 </section>
 <section id="algorithmic-fairness-1" class="level3">
 <h3 class="anchored" data-anchor-id="algorithmic-fairness-1">Algorithmic Fairness</h3>
-<p><a href="#fig-fairness-subgroups" class="quarto-xref">Figure&nbsp;6</a> shows differences in model performance across race (<em>N</em> white = 127, <em>N</em> non-white = 19), sex (<em>N</em> male = 74, <em>N</em> female = 72), age (<em>N</em> younger than 55 = 126, <em>N</em> older than or equal to 55 = 20), and income (<em>N</em> below federal poverty line = 48, <em>N</em> above federal poverty line = 98). All group comparisons were reliably different (probability &gt; .95) across models, such that identities with higher assumed privilege were associated with improved model performance. White, non-Hispanic participants demonstrated 0.055 greater model performance than Hispanic and/or non-white participants (range=0.026-0.083, probability=1.000). Male participants demonstrated 0.036 greater model performance than female participants (range=0.012-0.060, probability=0.999). Younger participants demonstrated 0.106 greater model performance than older participants (range=0.080-0.133, probability=1.000). Finally, participants above the poverty line demonstrated 0.056 greater model performance than those below the poverty line (range=0.033-0.079, probability=1.000).</p>
+<p><a href="#fig-fairness-subgroups" class="quarto-xref">Figure&nbsp;7</a> shows differences in model performance across race (<em>N</em> white = 127, <em>N</em> non-white = 19), sex (<em>N</em> male = 74, <em>N</em> female = 72), age (<em>N</em> younger than 55 = 126, <em>N</em> older than or equal to 55 = 20), and income (<em>N</em> below federal poverty line = 48, <em>N</em> above federal poverty line = 98). All group comparisons were reliably different (probability &gt; .95) across models, such that identities with higher assumed privilege were associated with improved model performance. White, non-Hispanic participants demonstrated 0.055 greater model performance than Hispanic and/or non-white participants (range=0.026-0.083, probability=1.000). Male participants demonstrated 0.036 greater model performance than female participants (range=0.012-0.060, probability=0.999). Younger participants demonstrated 0.106 greater model performance than older participants (range=0.080-0.133, probability=1.000). Finally, participants above the poverty line demonstrated 0.056 greater model performance than those below the poverty line (range=0.033-0.079, probability=1.000).</p>
 <div class="quarto-embed-nb-cell">
 <div id="cell-fig-fairness-subgroups" class="cell" data-fig-height="6" data-fig-width="6">
 <div class="cell-output cell-output-display">
 <div id="fig-fairness-subgroups" class="quarto-figure quarto-figure-center quarto-float anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-fairness-subgroups-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="index_files/figure-html/notebooks-fairness-fig-fairness-subgroups-output-1.png" class="lightbox" data-glightbox="description: .lightbox-desc-6" data-gallery="quarto-lightbox-gallery-6"><img src="index_files/figure-html/notebooks-fairness-fig-fairness-subgroups-output-1.png" class="img-fluid figure-img"></a>
+<a href="index_files/figure-html/notebooks-fairness-fig-fairness-subgroups-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-7" data-glightbox="description: .lightbox-desc-7"><img src="index_files/figure-html/notebooks-fairness-fig-fairness-subgroups-output-1.png" class="img-fluid figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-fairness-subgroups-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;6: 95% credible intervals across posterior subgroups at differential levels of privilege.
+Figure&nbsp;7: 95% credible intervals across posterior subgroups at differential levels of privilege.
 </figcaption>
 </figure>
 </div>
@@ -756,12 +765,13 @@ Witkiewitz, Katie, and G. Alan Marlatt. 2004. <span>“Relapse Prevention for Al
 </div>
 </div>
 <div class="hidden" aria-hidden="true">
-<span class="glightbox-desc lightbox-desc-1">Figure&nbsp;1: auROC performance across all inner cross-validation folds.</span>
-<span class="glightbox-desc lightbox-desc-2">Figure&nbsp;2: auROC for overall validation set performance across thresholds.</span>
-<span class="glightbox-desc lightbox-desc-3">Figure&nbsp;3: Posterior distribution of model performance with 95% credible interval.</span>
-<span class="glightbox-desc lightbox-desc-4">Figure&nbsp;4: Comparison between raw (uncalibrated) and logistic (calibrated) probabilities.</span>
-<span class="glightbox-desc lightbox-desc-5">Figure&nbsp;5: Grouped (mean absolute values) SHAP values displaying relative feature importance.</span>
-<span class="glightbox-desc lightbox-desc-6">Figure&nbsp;6: 95% credible intervals across posterior subgroups at differential levels of privilege.</span>
+<span class="glightbox-desc lightbox-desc-1">Figure&nbsp;1: Test</span>
+<span class="glightbox-desc lightbox-desc-2">Figure&nbsp;2: auROC performance across all inner cross-validation folds.</span>
+<span class="glightbox-desc lightbox-desc-3">Figure&nbsp;3: auROC for overall validation set performance across thresholds.</span>
+<span class="glightbox-desc lightbox-desc-4">Figure&nbsp;4: Posterior distribution of model performance with 95% credible interval.</span>
+<span class="glightbox-desc lightbox-desc-5">Figure&nbsp;5: Comparison between raw (uncalibrated) and logistic (calibrated) probabilities.</span>
+<span class="glightbox-desc lightbox-desc-6">Figure&nbsp;6: Grouped (mean absolute values) SHAP values displaying relative feature importance.</span>
+<span class="glightbox-desc lightbox-desc-7">Figure&nbsp;7: 95% credible intervals across posterior subgroups at differential levels of privilege.</span>
 </div>
 </section>
 
@@ -1177,7 +1187,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 });
 </script>
 </div> <!-- /content -->
-<script>var lightboxQuarto = GLightbox({"descPosition":"bottom","openEffect":"zoom","closeEffect":"zoom","selector":".lightbox","loop":false});
+<script>var lightboxQuarto = GLightbox({"closeEffect":"zoom","openEffect":"zoom","selector":".lightbox","loop":false,"descPosition":"bottom"});
 window.onload = () => {
   lightboxQuarto.on('slide_before_load', (data) => {
     const { slideIndex, slideNode, slideConfig, player, trigger } = data;

@@ -218,311 +218,311 @@ probs <- read_csv(here::here(path_models, str_c("best_config_v6_nested_1_x_10_3_
 #| message: false
 #| warning: false
 
-# study_dates <- read_csv(here::here(path_gps, "study_dates.csv"),
-#                           show_col_types = FALSE) 
-# 
-# subids_dates <- study_dates |>
-#     pull(subid) |>  
-#     unique()
-# 
-# screen <- read_csv(file.path(path_shared, "screen.csv"), 
-#                    col_types = cols()) |>
-#   filter(subid %in% subids_dates) |> 
-#   mutate(across(dsm5_1:dsm5_11, ~ recode(., "No" = 0, "Yes" = 1))) |>  
-#   rowwise() |>  
-#   mutate(dsm5_total = sum(c(dsm5_1, dsm5_2, dsm5_3, dsm5_4, dsm5_5, dsm5_6, dsm5_7, 
-#                               dsm5_8, dsm5_9, dsm5_10, dsm5_11))) |>  
-#   ungroup()
-# 
-# lapses <- read_csv(file.path(path_shared, "lapses_day.csv"), col_types = cols()) |>
-#   filter(exclude == FALSE)
-# 
-# n_total <- 146
-# 
-# dem <- screen |>
-#   summarise(mean = as.character(round(mean(dem_1, na.rm = TRUE), 1)),
-#             SD = as.character(round(sd(dem_1, na.rm = TRUE), 1)),
-#             min = as.character(min(dem_1, na.rm = TRUE)),
-#             max = as.character(max(dem_1, na.rm = TRUE))) |>
-#   mutate(var = "Age",
-#          n = as.numeric(""),
-#          perc = as.numeric("")) |>
-#   select(var, n, perc, everything()) |>
-#   full_join(screen |>
-#   select(var = dem_2) |>
-#   group_by(var) |>
-#   summarise(n = n()) |>
-#   mutate(perc = (n / sum(n)) * 100), by = c("var", "n", "perc")) |>
-#   full_join(screen |>
-#   select(var = dem_3) |>
-#   mutate(var = fct_relevel(factor(var,
-#                          c("American Indian/Alaska Native", "Asian", "Black/African American",
-#                            "White/Caucasian", "Other/Multiracial")))) |>
-#   group_by(var) |>
-#   summarise(n = n()) |>
-#   mutate(perc = (n / sum(n)) * 100), by = c("var", "n", "perc")) |>
-#   full_join(screen |>
-#   select(var = dem_4) |>
-#   mutate(var = case_when(var == "No, I am not of Hispanic, Latino, or Spanish origin" ~ "No",
-#                          TRUE ~ "Yes"),
-#          var = fct_relevel(factor(var, c("Yes", "No")))) |>
-#   group_by(var) |>
-#   summarise(n = n()) |>
-#   mutate(perc = (n / sum(n)) * 100), by = c("var", "n", "perc")) |>
-#   full_join(screen |>
-#   select(var = dem_5) |>
-#   mutate(var = fct_relevel(factor(var,
-#                          c("Less than high school or GED degree", "High school or GED",
-#                            "Some college", "2-Year degree", "College degree", "Advanced degree")))) |>
-#   group_by(var) |>
-#   summarise(n = n()) |>
-#   mutate(perc = (n / sum(n)) * 100), by = c("var", "n", "perc")) |>
-#   full_join(screen |>
-#   select(var = dem_6, dem_6_1) |>
-#   mutate(var = case_when(dem_6_1 == "Full-time" ~ "Employed full-time",
-#                          dem_6_1 == "Part-time" ~ "Employed part-time",
-#                          TRUE ~ var)) |>
-#   mutate(var = fct_relevel(factor(var,
-#                          c("Employed full-time", "Employed part-time", "Full-time student",
-#                            "Homemaker", "Disabled", "Retired", "Unemployed",
-#                            "Temporarily laid off, sick leave, or maternity leave",
-#                            "Other, not otherwise specified")))) |>
-#   group_by(var) |>
-#   summarise(n = n()) |>
-#   mutate(perc = (n / sum(n)) * 100), by = c("var", "n", "perc")) |>
-#   full_join(screen |>
-#   summarise(mean = format(round(mean(dem_7, na.rm = TRUE), 0), big.mark = ","),
-#             SD = format(round(sd(dem_7, na.rm = TRUE), 0), big.mark = ","),
-#             min =format(round(min(dem_7, na.rm = TRUE), 0), big.mark = ","),
-#             max = format(round(max(dem_7, na.rm = TRUE), 0), scientific = FALSE, big.mark = ",")) |>
-#   mutate(var = "Personal Income",
-#         n = as.numeric(""),
-#         perc = as.numeric(""),
-#         mean = str_c("$", as.character(mean)),
-#         SD = str_c("$", as.character(SD)),
-#         min = str_c("$", as.character(min)),
-#         max = as.character(max)) |>
-#   select(var, n, perc, everything()), by = c("var", "n", "perc", "mean", "SD", "min", "max")) |>
-#   full_join(screen |>
-#   select(var = dem_8) |>
-#   mutate(var = case_when(var == "Never Married" ~ "Never married",
-#                          TRUE ~ var)) |>
-#   mutate(var = fct_relevel(factor(var,
-#                          c("Never married", "Married", "Divorced", "Separated",
-#                            "Widowed")))) |>
-#   group_by(var) |>
-#   summarise(n = n()) |>
-#   mutate(perc = (n / sum(n)) * 100), by = c("var", "n", "perc"))
-# 
-# auh <- screen |>
-#   summarise(mean = mean(auh_1, na.rm = TRUE),
-#             SD = sd(auh_1, na.rm = TRUE),
-#             min = min(auh_1, na.rm = TRUE),
-#             max = max(auh_1, na.rm = TRUE)) |>
-#   mutate(var = "Age of first drink",
-#         n = as.numeric(""),
-#         perc = as.numeric("")) |>
-#   select(var, n, perc, everything()) |>
-#   full_join(screen |>
-#   summarise(mean = mean(auh_2, na.rm = TRUE),
-#             SD = sd(auh_2, na.rm = TRUE),
-#             min = min(auh_2, na.rm = TRUE),
-#             max = max(auh_2, na.rm = TRUE)) |>
-#   mutate(var = "Age of regular drinking",
-#         n = as.numeric(""),
-#         perc = as.numeric("")) |>
-#   select(var, n, perc, everything()), by = c("var", "n", "perc", "mean", "SD",
-#                                              "min", "max")) |>
-#   full_join(screen |>
-#   summarise(mean = mean(auh_3, na.rm = TRUE),
-#             SD = sd(auh_3, na.rm = TRUE),
-#             min = min(auh_3, na.rm = TRUE),
-#             max = max(auh_3, na.rm = TRUE)) |>
-#   mutate(var = "Age at which drinking became problematic",
-#         n = as.numeric(""),
-#         perc = as.numeric("")) |>
-#   select(var, n, perc, everything()), by = c("var", "n", "perc", "mean", "SD",
-#                                              "min", "max")) |>
-#   full_join(screen |>
-#   summarise(mean = mean(auh_4, na.rm = TRUE),
-#             SD = sd(auh_4, na.rm = TRUE),
-#             min = min(auh_4, na.rm = TRUE),
-#             max = max(auh_4, na.rm = TRUE)) |>
-#   mutate(var = "Age of first quit attempt",
-#         n = as.numeric(""),
-#         perc = as.numeric("")) |>
-#   select(var, n, perc, everything()), by = c("var", "n", "perc", "mean", "SD",
-#                                              "min", "max")) |>
-#   full_join(screen |>
-#   # filter out 2 people with 100 and 365 reported quit attempts - will make footnote in table
-#   filter(auh_5 < 100) |>
-#   summarise(mean = mean(auh_5, na.rm = TRUE),
-#             SD = sd(auh_5, na.rm = TRUE),
-#             min = min(auh_5, na.rm = TRUE),
-#             max = max(auh_5, na.rm = TRUE)) |>
-#   mutate(var = "Number of Quit Attempts*",
-#         n = as.numeric(""),
-#         perc = as.numeric("")) |>
-#   select(var, n, perc, everything()), by = c("var", "n", "perc", "mean", "SD",
-#                                              "min", "max")) |>
-#   full_join(screen |>
-#   select(var = auh_6_1) |>
-#   mutate(var = case_when(var == "Long-Term Residential Treatment (more than 6 months)" ~ "Long-term residential (6+ months)",
-#                          TRUE ~ var)) |>
-#   group_by(var) |>
-#   drop_na() |>
-#   summarise(n = n()) |>
-#   mutate(perc = (n / n_total) * 100), by = c("var", "n", "perc")) |>
-#   full_join(screen |>
-#   select(var = auh_6_2) |>
-#   mutate(var = case_when(var == "Short-Term Residential Treatment (less than 6 months)" ~ "Short-term residential (< 6 months)",
-#                          TRUE ~ var)) |>
-#   group_by(var) |>
-#   drop_na() |>
-#   summarise(n = n()) |>
-#   mutate(perc = (n / n_total) * 100), by = c("var", "n", "perc")) |>
-#   full_join(screen |>
-#   select(var = auh_6_3) |>
-#   mutate(var = case_when(var == "Outpatient Treatment" ~ "Outpatient",
-#                          TRUE ~ var)) |>
-#   group_by(var) |>
-#   drop_na() |>
-#   summarise(n = n()) |>
-#   mutate(perc = (n / n_total) * 100), by = c("var", "n", "perc")) |>
-#   full_join(screen |>
-#   select(var = auh_6_4) |>
-#   mutate(var = case_when(var == "Individual Counseling" ~ "Individual counseling",
-#                          TRUE ~ var)) |>
-#   group_by(var) |>
-#   drop_na() |>
-#   summarise(n = n()) |>
-#   mutate(perc = (n / n_total) * 100), by = c("var", "n", "perc")) |>
-#   full_join(screen |>
-#   select(var = auh_6_5) |>
-#   mutate(var = case_when(var == "Group Counseling" ~ "Group counseling",
-#                          TRUE ~ var)) |>
-#   group_by(var) |>
-#   drop_na() |>
-#   summarise(n = n()) |>
-#   mutate(perc = (n / n_total) * 100), by = c("var", "n", "perc")) |>
-#   full_join(screen |>
-#   select(var = auh_6_6) |>
-#   group_by(var) |>
-#   drop_na() |>
-#   summarise(n = n()) |>
-#   mutate(perc = (n / n_total) * 100), by = c("var", "n", "perc")) |>
-#   full_join(screen |>
-#   select(var = auh_6_7) |>
-#   group_by(var) |>
-#   drop_na() |>
-#   summarise(n = n()) |>
-#   mutate(perc = (n / n_total) * 100), by = c("var", "n", "perc")) |>
-#   full_join(screen |>
-#   select(var = auh_7) |>
-#   mutate(var = fct_relevel(factor(var, c("Yes", "No")))) |>
-#   group_by(var) |>
-#   summarise(n = n()) |>
-#   mutate(perc = (n / sum(n)) * 100), by = c("var", "n", "perc")) |>
-#   full_join(screen |>
-#   summarise(mean = mean(dsm5_total),
-#             SD = sd(dsm5_total),
-#             min = min(dsm5_total, na.rm = TRUE),
-#             max = max(dsm5_total, na.rm = TRUE)) |>
-#   mutate(var = "DSM-5 Alcohol Use Disorder Symptom Count",
-#         n = as.numeric(""),
-#         perc = as.numeric("")) |>
-#   select(var, n, perc, everything()), by = c("var", "n", "perc", "mean", "SD",
-#                                              "min", "max")) |>
-#   full_join(screen |>
-#   select(var = assist_2_1) |>
-#   filter(var != "Never" & !is.na(var)) |>
-#   mutate(var = "Tobacco products (cigarettes, chewing tobacco, cigars, etc.)") |>
-#   group_by(var) |>
-#   drop_na() |>
-#   summarise(n = n()) |>
-#   mutate(perc = (n / n_total) * 100), by = c("var", "n", "perc")) |>
-#   full_join(screen |>
-#   select(var = assist_2_2) |>
-#   filter(var != "Never" & !is.na(var)) |>
-#   mutate(var = "Cannabis (marijuana, pot, grass, hash, etc.)") |>
-#   group_by(var) |>
-#   drop_na() |>
-#   summarise(n = n()) |>
-#   mutate(perc = (n / n_total) * 100), by = c("var", "n", "perc")) |>
-#   full_join(screen |>
-#   select(var = assist_2_3) |>
-#   filter(var != "Never" & !is.na(var)) |>
-#   mutate(var = "Cocaine (coke, crack, etc.)") |>
-#   group_by(var) |>
-#   drop_na() |>
-#   summarise(n = n()) |>
-#   mutate(perc = (n / n_total) * 100), by = c("var", "n", "perc")) |>
-#   full_join(screen |>
-#   select(var = assist_2_4) |>
-#   filter(var != "Never" & !is.na(var)) |>
-#   mutate(var = "Amphetamine type stimulants (speed, diet pills, ecstasy, etc.)") |>
-#   group_by(var) |>
-#   drop_na() |>
-#   summarise(n = n()) |>
-#   mutate(perc = (n / n_total) * 100), by = c("var", "n", "perc")) |>
-#   full_join(screen |>
-#   select(var = assist_2_5) |>
-#   filter(var != "Never" & !is.na(var)) |>
-#   mutate(var = "Inhalants (nitrous, glue, petrol, paint thinner, etc.)") |>
-#   group_by(var) |>
-#   drop_na() |>
-#   summarise(n = n()) |>
-#   mutate(perc = (n / n_total) * 100), by = c("var", "n", "perc")) |>
-#   full_join(screen |>
-#   select(var = assist_2_6) |>
-#   filter(var != "Never" & !is.na(var)) |>
-#   mutate(var = "Sedatives or sleeping pills (Valium, Serepax, Rohypnol, etc.)") |>
-#   group_by(var) |>
-#   drop_na() |>
-#   summarise(n = n()) |>
-#   mutate(perc = (n / n_total) * 100), by = c("var", "n", "perc")) |>
-#   full_join(screen |>
-#   select(var = assist_2_7) |>
-#   filter(var != "Never" & !is.na(var)) |>
-#   mutate(var = "Hallucinogens (LSD, acid, mushrooms, PCP, Special K, etc.)") |>
-#   group_by(var) |>
-#   drop_na() |>
-#   summarise(n = n()) |>
-#   mutate(perc = (n / n_total) * 100), by = c("var", "n", "perc")) |>
-#   full_join(screen |>
-#   select(var = assist_2_8) |>
-#   filter(var != "Never" & !is.na(var)) |>
-#   mutate(var = "Opioids (heroin, morphine, methadone, codeine, etc.)") |>
-#   group_by(var) |>
-#   drop_na() |>
-#   summarise(n = n()) |>
-#   mutate(perc = (n / n_total) * 100), by = c("var", "n", "perc"))
-# 
-# lapses_per_subid <- screen |>
-#   select(subid) |>
-#   left_join(lapses |>
-#   tabyl(subid) |>
-#   select(-percent), by = "subid") |>
-#   mutate(n = if_else(is.na(n), 0, n),
-#          lapse = if_else(n > 0, "yes", "no"))
-# 
-# lapse_info <- lapses_per_subid |>
-#   group_by(lapse) |>
-#   rename(var = lapse) |>
-#   mutate(var = factor(var, levels = c("yes", "no"), labels = c("Yes", "No"))) |>
-#   summarise(n = n()) |>
-#   mutate(perc = (n / n_total) * 100,
-#          mean = NA_real_,
-#          SD = NA_real_,
-#          min = NA_real_,
-#          max = NA_real_) |>
-#   full_join(lapses_per_subid |>
-#   summarise(mean = mean(n),
-#             SD = sd(n),
-#             min = min(n),
-#             max = max(n)) |>
-#   mutate(var = "Number of reported lapses"),
-#   by = c("var", "mean", "SD", "min", "max"))
+study_dates <- read_csv(here::here(path_gps, "study_dates.csv"),
+                          show_col_types = FALSE) 
+
+subids_dates <- study_dates |>
+    pull(subid) |>  
+    unique()
+
+screen <- read_csv(file.path(path_shared, "screen.csv"), 
+                   col_types = cols()) |>
+  filter(subid %in% subids_dates) |> 
+  mutate(across(dsm5_1:dsm5_11, ~ recode(., "No" = 0, "Yes" = 1))) |>  
+  rowwise() |>  
+  mutate(dsm5_total = sum(c(dsm5_1, dsm5_2, dsm5_3, dsm5_4, dsm5_5, dsm5_6, dsm5_7, 
+                              dsm5_8, dsm5_9, dsm5_10, dsm5_11))) |>  
+  ungroup()
+
+lapses <- read_csv(file.path(path_shared, "lapses_day.csv"), col_types = cols()) |>
+  filter(exclude == FALSE)
+
+n_total <- 146
+
+dem <- screen |>
+  summarise(mean = as.character(round(mean(dem_1, na.rm = TRUE), 1)),
+            SD = as.character(round(sd(dem_1, na.rm = TRUE), 1)),
+            min = as.character(min(dem_1, na.rm = TRUE)),
+            max = as.character(max(dem_1, na.rm = TRUE))) |>
+  mutate(var = "Age",
+         n = as.numeric(""),
+         perc = as.numeric("")) |>
+  select(var, n, perc, everything()) |>
+  full_join(screen |>
+  select(var = dem_2) |>
+  group_by(var) |>
+  summarise(n = n()) |>
+  mutate(perc = (n / sum(n)) * 100), by = c("var", "n", "perc")) |>
+  full_join(screen |>
+  select(var = dem_3) |>
+  mutate(var = fct_relevel(factor(var,
+                         c("American Indian/Alaska Native", "Asian", "Black/African American",
+                           "White/Caucasian", "Other/Multiracial")))) |>
+  group_by(var) |>
+  summarise(n = n()) |>
+  mutate(perc = (n / sum(n)) * 100), by = c("var", "n", "perc")) |>
+  full_join(screen |>
+  select(var = dem_4) |>
+  mutate(var = case_when(var == "No, I am not of Hispanic, Latino, or Spanish origin" ~ "No",
+                         TRUE ~ "Yes"),
+         var = fct_relevel(factor(var, c("Yes", "No")))) |>
+  group_by(var) |>
+  summarise(n = n()) |>
+  mutate(perc = (n / sum(n)) * 100), by = c("var", "n", "perc")) |>
+  full_join(screen |>
+  select(var = dem_5) |>
+  mutate(var = fct_relevel(factor(var,
+                         c("Less than high school or GED degree", "High school or GED",
+                           "Some college", "2-Year degree", "College degree", "Advanced degree")))) |>
+  group_by(var) |>
+  summarise(n = n()) |>
+  mutate(perc = (n / sum(n)) * 100), by = c("var", "n", "perc")) |>
+  full_join(screen |>
+  select(var = dem_6, dem_6_1) |>
+  mutate(var = case_when(dem_6_1 == "Full-time" ~ "Employed full-time",
+                         dem_6_1 == "Part-time" ~ "Employed part-time",
+                         TRUE ~ var)) |>
+  mutate(var = fct_relevel(factor(var,
+                         c("Employed full-time", "Employed part-time", "Full-time student",
+                           "Homemaker", "Disabled", "Retired", "Unemployed",
+                           "Temporarily laid off, sick leave, or maternity leave",
+                           "Other, not otherwise specified")))) |>
+  group_by(var) |>
+  summarise(n = n()) |>
+  mutate(perc = (n / sum(n)) * 100), by = c("var", "n", "perc")) |>
+  full_join(screen |>
+  summarise(mean = format(round(mean(dem_7, na.rm = TRUE), 0), big.mark = ","),
+            SD = format(round(sd(dem_7, na.rm = TRUE), 0), big.mark = ","),
+            min =format(round(min(dem_7, na.rm = TRUE), 0), big.mark = ","),
+            max = format(round(max(dem_7, na.rm = TRUE), 0), scientific = FALSE, big.mark = ",")) |>
+  mutate(var = "Personal Income",
+        n = as.numeric(""),
+        perc = as.numeric(""),
+        mean = str_c("$", as.character(mean)),
+        SD = str_c("$", as.character(SD)),
+        min = str_c("$", as.character(min)),
+        max = as.character(max)) |>
+  select(var, n, perc, everything()), by = c("var", "n", "perc", "mean", "SD", "min", "max")) |>
+  full_join(screen |>
+  select(var = dem_8) |>
+  mutate(var = case_when(var == "Never Married" ~ "Never married",
+                         TRUE ~ var)) |>
+  mutate(var = fct_relevel(factor(var,
+                         c("Never married", "Married", "Divorced", "Separated",
+                           "Widowed")))) |>
+  group_by(var) |>
+  summarise(n = n()) |>
+  mutate(perc = (n / sum(n)) * 100), by = c("var", "n", "perc"))
+
+auh <- screen |>
+  summarise(mean = mean(auh_1, na.rm = TRUE),
+            SD = sd(auh_1, na.rm = TRUE),
+            min = min(auh_1, na.rm = TRUE),
+            max = max(auh_1, na.rm = TRUE)) |>
+  mutate(var = "Age of first drink",
+        n = as.numeric(""),
+        perc = as.numeric("")) |>
+  select(var, n, perc, everything()) |>
+  full_join(screen |>
+  summarise(mean = mean(auh_2, na.rm = TRUE),
+            SD = sd(auh_2, na.rm = TRUE),
+            min = min(auh_2, na.rm = TRUE),
+            max = max(auh_2, na.rm = TRUE)) |>
+  mutate(var = "Age of regular drinking",
+        n = as.numeric(""),
+        perc = as.numeric("")) |>
+  select(var, n, perc, everything()), by = c("var", "n", "perc", "mean", "SD",
+                                             "min", "max")) |>
+  full_join(screen |>
+  summarise(mean = mean(auh_3, na.rm = TRUE),
+            SD = sd(auh_3, na.rm = TRUE),
+            min = min(auh_3, na.rm = TRUE),
+            max = max(auh_3, na.rm = TRUE)) |>
+  mutate(var = "Age at which drinking became problematic",
+        n = as.numeric(""),
+        perc = as.numeric("")) |>
+  select(var, n, perc, everything()), by = c("var", "n", "perc", "mean", "SD",
+                                             "min", "max")) |>
+  full_join(screen |>
+  summarise(mean = mean(auh_4, na.rm = TRUE),
+            SD = sd(auh_4, na.rm = TRUE),
+            min = min(auh_4, na.rm = TRUE),
+            max = max(auh_4, na.rm = TRUE)) |>
+  mutate(var = "Age of first quit attempt",
+        n = as.numeric(""),
+        perc = as.numeric("")) |>
+  select(var, n, perc, everything()), by = c("var", "n", "perc", "mean", "SD",
+                                             "min", "max")) |>
+  full_join(screen |>
+  # filter out 2 people with 100 and 365 reported quit attempts - will make footnote in table
+  filter(auh_5 < 100) |>
+  summarise(mean = mean(auh_5, na.rm = TRUE),
+            SD = sd(auh_5, na.rm = TRUE),
+            min = min(auh_5, na.rm = TRUE),
+            max = max(auh_5, na.rm = TRUE)) |>
+  mutate(var = "Number of Quit Attempts*",
+        n = as.numeric(""),
+        perc = as.numeric("")) |>
+  select(var, n, perc, everything()), by = c("var", "n", "perc", "mean", "SD",
+                                             "min", "max")) |>
+  full_join(screen |>
+  select(var = auh_6_1) |>
+  mutate(var = case_when(var == "Long-Term Residential Treatment (more than 6 months)" ~ "Long-term residential (6+ months)",
+                         TRUE ~ var)) |>
+  group_by(var) |>
+  drop_na() |>
+  summarise(n = n()) |>
+  mutate(perc = (n / n_total) * 100), by = c("var", "n", "perc")) |>
+  full_join(screen |>
+  select(var = auh_6_2) |>
+  mutate(var = case_when(var == "Short-Term Residential Treatment (less than 6 months)" ~ "Short-term residential (< 6 months)",
+                         TRUE ~ var)) |>
+  group_by(var) |>
+  drop_na() |>
+  summarise(n = n()) |>
+  mutate(perc = (n / n_total) * 100), by = c("var", "n", "perc")) |>
+  full_join(screen |>
+  select(var = auh_6_3) |>
+  mutate(var = case_when(var == "Outpatient Treatment" ~ "Outpatient",
+                         TRUE ~ var)) |>
+  group_by(var) |>
+  drop_na() |>
+  summarise(n = n()) |>
+  mutate(perc = (n / n_total) * 100), by = c("var", "n", "perc")) |>
+  full_join(screen |>
+  select(var = auh_6_4) |>
+  mutate(var = case_when(var == "Individual Counseling" ~ "Individual counseling",
+                         TRUE ~ var)) |>
+  group_by(var) |>
+  drop_na() |>
+  summarise(n = n()) |>
+  mutate(perc = (n / n_total) * 100), by = c("var", "n", "perc")) |>
+  full_join(screen |>
+  select(var = auh_6_5) |>
+  mutate(var = case_when(var == "Group Counseling" ~ "Group counseling",
+                         TRUE ~ var)) |>
+  group_by(var) |>
+  drop_na() |>
+  summarise(n = n()) |>
+  mutate(perc = (n / n_total) * 100), by = c("var", "n", "perc")) |>
+  full_join(screen |>
+  select(var = auh_6_6) |>
+  group_by(var) |>
+  drop_na() |>
+  summarise(n = n()) |>
+  mutate(perc = (n / n_total) * 100), by = c("var", "n", "perc")) |>
+  full_join(screen |>
+  select(var = auh_6_7) |>
+  group_by(var) |>
+  drop_na() |>
+  summarise(n = n()) |>
+  mutate(perc = (n / n_total) * 100), by = c("var", "n", "perc")) |>
+  full_join(screen |>
+  select(var = auh_7) |>
+  mutate(var = fct_relevel(factor(var, c("Yes", "No")))) |>
+  group_by(var) |>
+  summarise(n = n()) |>
+  mutate(perc = (n / sum(n)) * 100), by = c("var", "n", "perc")) |>
+  full_join(screen |>
+  summarise(mean = mean(dsm5_total),
+            SD = sd(dsm5_total),
+            min = min(dsm5_total, na.rm = TRUE),
+            max = max(dsm5_total, na.rm = TRUE)) |>
+  mutate(var = "DSM-5 Alcohol Use Disorder Symptom Count",
+        n = as.numeric(""),
+        perc = as.numeric("")) |>
+  select(var, n, perc, everything()), by = c("var", "n", "perc", "mean", "SD",
+                                             "min", "max")) |>
+  full_join(screen |>
+  select(var = assist_2_1) |>
+  filter(var != "Never" & !is.na(var)) |>
+  mutate(var = "Tobacco products (cigarettes, chewing tobacco, cigars, etc.)") |>
+  group_by(var) |>
+  drop_na() |>
+  summarise(n = n()) |>
+  mutate(perc = (n / n_total) * 100), by = c("var", "n", "perc")) |>
+  full_join(screen |>
+  select(var = assist_2_2) |>
+  filter(var != "Never" & !is.na(var)) |>
+  mutate(var = "Cannabis (marijuana, pot, grass, hash, etc.)") |>
+  group_by(var) |>
+  drop_na() |>
+  summarise(n = n()) |>
+  mutate(perc = (n / n_total) * 100), by = c("var", "n", "perc")) |>
+  full_join(screen |>
+  select(var = assist_2_3) |>
+  filter(var != "Never" & !is.na(var)) |>
+  mutate(var = "Cocaine (coke, crack, etc.)") |>
+  group_by(var) |>
+  drop_na() |>
+  summarise(n = n()) |>
+  mutate(perc = (n / n_total) * 100), by = c("var", "n", "perc")) |>
+  full_join(screen |>
+  select(var = assist_2_4) |>
+  filter(var != "Never" & !is.na(var)) |>
+  mutate(var = "Amphetamine type stimulants (speed, diet pills, ecstasy, etc.)") |>
+  group_by(var) |>
+  drop_na() |>
+  summarise(n = n()) |>
+  mutate(perc = (n / n_total) * 100), by = c("var", "n", "perc")) |>
+  full_join(screen |>
+  select(var = assist_2_5) |>
+  filter(var != "Never" & !is.na(var)) |>
+  mutate(var = "Inhalants (nitrous, glue, petrol, paint thinner, etc.)") |>
+  group_by(var) |>
+  drop_na() |>
+  summarise(n = n()) |>
+  mutate(perc = (n / n_total) * 100), by = c("var", "n", "perc")) |>
+  full_join(screen |>
+  select(var = assist_2_6) |>
+  filter(var != "Never" & !is.na(var)) |>
+  mutate(var = "Sedatives or sleeping pills (Valium, Serepax, Rohypnol, etc.)") |>
+  group_by(var) |>
+  drop_na() |>
+  summarise(n = n()) |>
+  mutate(perc = (n / n_total) * 100), by = c("var", "n", "perc")) |>
+  full_join(screen |>
+  select(var = assist_2_7) |>
+  filter(var != "Never" & !is.na(var)) |>
+  mutate(var = "Hallucinogens (LSD, acid, mushrooms, PCP, Special K, etc.)") |>
+  group_by(var) |>
+  drop_na() |>
+  summarise(n = n()) |>
+  mutate(perc = (n / n_total) * 100), by = c("var", "n", "perc")) |>
+  full_join(screen |>
+  select(var = assist_2_8) |>
+  filter(var != "Never" & !is.na(var)) |>
+  mutate(var = "Opioids (heroin, morphine, methadone, codeine, etc.)") |>
+  group_by(var) |>
+  drop_na() |>
+  summarise(n = n()) |>
+  mutate(perc = (n / n_total) * 100), by = c("var", "n", "perc"))
+
+lapses_per_subid <- screen |>
+  select(subid) |>
+  left_join(lapses |>
+  tabyl(subid) |>
+  select(-percent), by = "subid") |>
+  mutate(n = if_else(is.na(n), 0, n),
+         lapse = if_else(n > 0, "yes", "no"))
+
+lapse_info <- lapses_per_subid |>
+  group_by(lapse) |>
+  rename(var = lapse) |>
+  mutate(var = factor(var, levels = c("yes", "no"), labels = c("Yes", "No"))) |>
+  summarise(n = n()) |>
+  mutate(perc = (n / n_total) * 100,
+         mean = NA_real_,
+         SD = NA_real_,
+         min = NA_real_,
+         max = NA_real_) |>
+  full_join(lapses_per_subid |>
+  summarise(mean = mean(n),
+            SD = sd(n),
+            min = min(n),
+            max = max(n)) |>
+  mutate(var = "Number of reported lapses"),
+  by = c("var", "mean", "SD", "min", "max"))
 ```
 
 ### Demographics
@@ -534,7 +534,7 @@ The average age of the final sample was 40.9 years (SD = 12 years, range = 21-72
 output: true
 label: tbl-demo-2
 
-![Test](objects/table.png){fig-demo-2}
+![Test](objects/table.png){#fig-demo-2}
 
 ```{r}
 # 
