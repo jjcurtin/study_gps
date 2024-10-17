@@ -61,9 +61,9 @@ shaps_grp <- read_rds(file.path(path_models, str_c("inner_shapsgrp_",
 
 ```{r}
 #| label: fig-shaps-group
-#| fig-cap: Grouped (mean absolute values) SHAP values displaying relative feature importance.
-#| fig-height: 6
-#| fig-width: 6
+#| fig-cap: Grouped SHAP values displaying relative feature importance calculated using mean absolute values. Larger log-odds values indicate greater contribution to predictions in the model.
+#| fig-height: 5
+#| fig-width: 5
 
 shaps_grp |>
   group_by(variable_grp) |>

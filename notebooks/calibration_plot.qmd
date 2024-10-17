@@ -51,6 +51,7 @@ Packages for script
 library(tidyverse)
 library(tidymodels)
 library(probably)
+library(yardstick)
 ```
 
 Path
@@ -127,19 +128,28 @@ brier |> summarize(across(everything(), list(mean, median)))
 Raw and logi
 ```{r}
 #| label: fig-calibration
-#| fig-cap: Comparison between raw (uncalibrated) and logistic (calibrated) probabilities.
-#| fig-height: 6
+#| fig-cap: Comparison between raw (uncalibrated) and logistic (calibrated) probabilities. Predicted lapse probability represents the predicted probabilities derived from the model, whereas observed lapse rate reflects the true rate of lapses in the data. The dashed y = x line represents perfect performance, where predicted probabilities reflect true probabilities. Each point represents the midpoint of a given bin, which increase by 10% (i.e., 5% represents the midpoint from 0-10%).
+#| fig-height: 4
 #| fig-width: 6
 cols <- c("prob_raw" = "#FF9898FF", "prob_logi" = "#A91E45FF")
 
 probs |>
   mutate(.pred_lapse = .pred_Lapse) |>
   filter(method == "prob_raw" | method == "prob_logi") |> 
-  #filter(outer_split_num == 1) |>
   cal_plot_breaks(truth = label, 
                   estimate = .pred_lapse,
                   .by = method) +
   scale_color_manual(values = cols,
                      aesthetics = c("color", "fill")) +
-  theme_classic()
+  ylab("Observed Lapse Rate") +
+  xlab("Predicted Lapse Probability (Bin Midpoint)") +
+  facet_grid(~factor(method, levels=c('prob_raw','prob_logi'),
+                     labels = c("Raw (Uncalibrated) Probability",
+                                "Logistic (Calibrated) Probability"))) +
+  scale_y_continuous(breaks = seq(0,1, by = .1),
+                     limits = seq(0,1)) +
+  scale_x_continuous(breaks = seq(0,1, by = .1),
+                     limits = seq(0,1)) +
+  theme_classic() +
+  theme(legend.position="none")
 ```

@@ -1,0 +1,248 @@
+---
+title: "Create posterior probability objects"
+author: "Claire Punturieri"
+date: "`r lubridate::today()`"
+output: 
+  html_document:
+    toc: true 
+    toc_depth: 4
+format:
+  html:
+    embed-resources: true
+params:
+  study: "gps"
+  window: "1day"
+  version: "v6"
+  cv: "nested_1_x_10_3_x_10"
+  algorithms: "xgboost"   # "all" or name of specific algorithm
+  model: "main"
+editor_options: 
+  chunk_output_type: console
+---
+
+# Housekeeping
+
+## Code status
+
+## Notes
+
+
+# Set Up
+
+## Set Up Environment
+
+### Study parameters
+```{r}
+study <- params$study
+cv <- params$cv
+algorithms <- params$algorithms
+version <- params$version
+window <- params$window
+model <- params$model
+```
+
+### Defaults
+```{r}
+#| message: false
+#| warning: false
+
+# handle conflicts
+options(conflicts.policy = "depends.ok")
+devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/fun_ml.R?raw=true")
+tidymodels_conflictRules()
+
+knitr::opts_chunk$set(attr.output='style="max-height: 500px;"')
+
+options(tibble.width = Inf)
+options(tibble.print_max = Inf)
+```
+
+### Packages for script
+```{r}
+#| message: false
+#| warning: false
+
+library(tidyverse)
+library(tidyposterior)
+library(tidymodels)
+library(yardstick)
+
+theme_set(theme_classic())
+
+devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true")
+```
+
+
+### Absolute paths
+```{r}
+path_models <- format_path(str_c("studydata/risk/models/", study))
+path_gps <- format_path(str_c("studydata/risk/data_processed/", study))
+path_shared <- format_path(str_c("studydata/risk/data_processed/shared"))
+```
+
+## Data Cleaning
+
+Read in Data
+```{r}
+probs <- read_rds(here::here(path_models, str_c("inner_preds_", window, "_", version, "_",
+                                         cv, "_", model, ".rds"))) |> 
+  #pivot_longer(cols = starts_with("prob"), 
+               #names_to = "method", 
+               #values_to = ".pred_Lapse") |>
+  glimpse()
+
+labels <- read_csv(here::here(path_gps, "labels.csv"), col_types = cols()) |> 
+  mutate(day_start = as_datetime(day_start, tz = "America/Chicago"),
+         day_end = as_datetime(day_end, tz = "America/Chicago"))
+
+labels$id_obs <- 1: nrow(labels)
+
+screen <- read_csv(here::here(path_shared, "screen.csv"),
+                   col_types = cols()) |>
+  select(c(starts_with("dem"), subid)) |> 
+  glimpse()
+```
+
+Find demographic groups
+```{r}
+demographics <- labels |> 
+  left_join(screen, by = "subid") |> 
+  select(-day_start, -day_end, -lapse) |> 
+  distinct() |>
+  mutate(
+    race = case_when(
+      dem_3 == "White/Caucasian" & grepl("No", dem_4) ~ "white",
+      dem_3 != "White/Caucasian" | grepl("Yes", dem_4) ~ "non_white"),
+    sex = if_else(dem_2 == "Female", "female", "male"),
+    age = if_else(dem_1 >= 55, "older", "younger"),
+    income = if_else(dem_7 <= .5 * 30000, "below_poverty", "above_poverty")
+  ) |> 
+  select(-starts_with("dem")) |> 
+  glimpse()
+```
+
+```{r}
+probs <- probs |> 
+  left_join(demographics, by = "id_obs")
+```
+
+## Calculate auROC
+
+```{r}
+auroc_all <- probs |> 
+  group_by(inner_split_num, outer_split_num) |> 
+  summarize(auroc = roc_auc(cur_data(), prob_logi, truth = label)$.estimate)
+```
+
+```{r}
+auroc_race <- probs |> 
+  group_by(inner_split_num, outer_split_num, race) |> 
+  summarize(auroc = roc_auc(cur_data(), prob_logi, truth = label)$.estimate) |> 
+  ungroup() |> 
+  rename(subgroup = race)
+
+auroc_sex <- probs |> 
+  group_by(inner_split_num, outer_split_num, sex) |> 
+  summarize(auroc = roc_auc(cur_data(), prob_logi, truth = label)$.estimate) |> 
+  ungroup() |> 
+  bind_rows(auroc_all |> mutate(sex = "all")) |> 
+  rename(subgroup = sex)
+
+auroc_age <- probs |> 
+  group_by(inner_split_num, outer_split_num, age) |> 
+  summarize(auroc = roc_auc(cur_data(), prob_logi, truth = label)$.estimate) |>
+  ungroup() |> 
+  bind_rows(auroc_all |> mutate(age = "all")) |> 
+  rename(subgroup = age)
+
+auroc_income <- probs |> 
+  group_by(inner_split_num, outer_split_num, income) |> 
+  summarize(auroc = roc_auc(cur_data(), prob_logi, truth = label)$.estimate) |>
+  ungroup() |> 
+  bind_rows(auroc_all |> mutate(income = "all")) |> 
+  rename(subgroup = income)
+```
+
+## Data objects
+
+Create non-tidy pp object function.
+```{r}
+pp_create <- function(df){
+  df |> 
+    filter(subgroup != "all") |>
+    group_by(subgroup) |>
+    pivot_wider(values_from = auroc, names_from = subgroup) |>
+    rename(id = inner_split_num, id2 = outer_split_num) |>
+    perf_mod(formula = statistic ~ model + (1 | id2/id),
+             # prior_intercept = rstanarm::student_t(autoscale = TRUE),
+             # prior = rstanarm::student_t(autoscale = TRUE),
+             # transform = tidyposterior::logit_trans,  # for skewed & bounded AUC
+             # iter = 2000, chains = 4,
+             adapt_delta = .99,
+             # cores = 4, seed = 12345,
+             family = gaussian, verbose = FALSE) 
+}
+```
+
+pp quartiles function.
+```{r}
+pp_quartiles <- function(pp_object){
+  q <- c(0.025, 0.5, 0.975)
+
+  pp_object |>
+    tidy(seed = 123) |>
+    group_by(model) |> 
+    summarize(median = quantile(posterior, probs = q[2]),
+              lower = quantile(posterior, probs = q[1]), 
+              upper = quantile(posterior, probs = q[3]))
+  
+}
+```
+
+pp contrasts function.
+```{r}
+pp_contrast <- function(pp_object, levels){
+  q <- c(0.025, 0.5, 0.975)
+  
+  pp_object |> 
+    contrast_models(list_1 = levels[1], list_2 = levels[2]) |> 
+    summarize(median = quantile(difference, probs = q[2]),
+              lower = quantile(difference, probs = q[1]), 
+              upper = quantile(difference, probs = q[3]),
+              prob = mean(difference > 0))
+}
+```
+
+
+Create pp objects.
+```{r}
+pp_race <- pp_create(auroc_race)
+
+pp_sex <- pp_create(auroc_sex)
+
+pp_income <- pp_create(auroc_income)
+
+pp_age <- pp_create(auroc_age)
+```
+
+Create pp quartiles and save out.
+```{r}
+pp_race |> pp_quartiles() |> write_csv(here::here("objects", "pp_race_q.csv"))
+
+pp_sex |> pp_quartiles() |> write_csv(here::here("objects", "pp_sex_q.csv"))
+
+pp_age |> pp_quartiles() |> write_csv(here::here("objects", "pp_age_q.csv"))
+
+pp_income |> pp_quartiles() |> write_csv(here::here("objects", "pp_income_q.csv"))
+```
+
+Create pp contrasts and save out.
+```{r}
+pp_race |> pp_contrast(levels = c("white", "non_white")) |> write_csv(here::here("objects", "pp_race_con.csv"))
+
+pp_sex |> pp_contrast(levels = c("male", "female")) |> write_csv(here::here("objects", "pp_sex_con.csv"))
+
+pp_age |> pp_contrast(levels = c("younger", "older")) |> write_csv(here::here("objects", "pp_age_con.csv"))
+
+pp_income |> pp_contrast(levels = c("above_poverty", "below_poverty")) |> write_csv(here::here("objects", "pp_income_con.csv"))
+```

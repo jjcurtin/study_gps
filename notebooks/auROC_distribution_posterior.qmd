@@ -114,9 +114,9 @@ Calculate auROC in each fold
 Generate plot across all *inner* folds.
 ```{r}
 #| label: fig-auroc-histogram
-#| fig-cap: auROC performance across all inner cross-validation folds.
-#| fig-height: 6
-#| fig-width: 6
+#| fig-cap: Area under the receiver operating characteristic (auROC) curves for each of 300 (10 x 30) cross validation splits. The dashed line represents the median auROC across all 300 splits.
+#| fig-height: 4
+#| fig-width: 5
 
 # auROCs |> 
 #   ggplot(aes(x = auROC)) +
@@ -125,13 +125,15 @@ Generate plot across all *inner* folds.
 #   labs(x = "auROC", y = "Frequency")
 probs |> 
   ggplot(aes(x = roc_auc)) +
-  geom_histogram(bins = 10, fill = c("#af1f21")) +
-  geom_vline(xintercept = median(probs$roc_auc), color = c("#f29c96"), lwd = 1, linetype="longdash") +
+  geom_histogram(bins = 15, color = c("#af1f21"), fill = "white") +
+  #geom_step(bins = 10, fill = c("#af1f21")) +
+  #stat_bin(geom="step", bins = 10, color = c("#af1f21"), lwd = 1) +
+  geom_vline(xintercept = median(probs$roc_auc), color = c("darkblue"), lwd = 1, linetype="dashed") +
+  scale_y_continuous(expand = c(0,0)) +
   labs(x = "auROC", y = "Frequency")
 ```
 
 # Posteriors
-> CP: should this be local or chtc? I have both available
 
 ```{r}
 # from ?perf_mod()
@@ -177,30 +179,41 @@ if(file.exists(here::here(path_models, str_c("pp_",
 Posterior graph as density plot
 ```{r}
 #| label: fig-pp
-#| fig-cap: Posterior distribution of model performance with 95% credible interval.
-#| fig-height: 6
-#| fig-width: 6
+#| fig-cap: Posterior probability distribution of model performance with a 95% credible interval. The dashed line represents median auROC across the sampling distribution, while the dotted line represents chance performance (auROC = 0.50).
+#| fig-height: 3
+#| fig-width: 5
 
 
 pp_tidy <- pp |> 
-  tidy(seed = 123) |> 
-  write_csv(here::here("objects", "pp_tidy.csv"))
+  tidy(seed = 123)
+
+q <- c(0.025, 0.5, 0.975)
 
 ci_day <- pp_tidy |> 
-  summary() |> 
+  summarize(median = quantile(posterior, probs = q[2]),
+            lower = quantile(posterior, probs = q[1]), 
+            upper = quantile(posterior, probs = q[3])) |> 
   mutate(y = 30)
 
-# vertical line for the median
 pp_tidy |> 
   ggplot(aes(x = posterior)) + 
-  geom_density(color = c("#af1f21"), fill = c("#f29c96"), alpha = 1, lwd = .8) +
-  geom_segment(mapping = aes(y = y, yend = y, x = lower, xend = upper), color = c("#af1f21"),
-                data = ci_day, lwd = 1) +
+  geom_density(color = c("#af1f21"), fill = "white", alpha = 1, lwd = .8) +
+  #geom_segment(mapping = aes(y = y, yend = y, x = lower, xend = upper), color = c("#af1f21"),
+                #data = ci_day, lwd = 1) +
+  geom_errorbar(aes(y = ci_day$y, xmin = ci_day$lower, xmax = ci_day$upper), color = c("darkblue"), lwd = 1) +
+  geom_vline(xintercept = ci_day$median, color = c("darkblue"), lwd = 1, linetype="dashed") +
+  geom_vline(xintercept = .5, color = "darkblue", lwd = 1, linetype="dotted") +
+  scale_x_continuous(limits=c(0.49,.76)) +
+  scale_y_continuous(expand = c(0,0)) +
   ylab("Posterior Probability Density") +
   xlab("Area Under ROC Curve")
 ```
 
 ```{r}
+pp_tidy <- pp |> 
+  tidy(seed = 123) |> 
+  write_csv(here::here("objects", "pp_tidy.csv"))
+
 pp_tidy |> 
  summarize(prob = mean(posterior > .5)) 
 ```
