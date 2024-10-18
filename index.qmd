@@ -589,6 +589,7 @@ This study demonstrates that it is feasible to predict lapse with a fair level o
 
 <!--************************************************************************-->
 <!-- Table 1: Eligibility Criteria-->
+### Table 1: Eligibility Criteria
 
 | Eligibility Criteria                                           |
 |----------------------------------------------------------------|
@@ -612,6 +613,7 @@ This study demonstrates that it is feasible to predict lapse with a fair level o
 
 <!--************************************************************************-->
 <!-- Table 2: Collected demographic information-->
+### Table 2: Collected demographic information
 
 | Variable     | Measure                                                           |
 |--------------------------|----------------------------------------------|
@@ -641,6 +643,7 @@ This study demonstrates that it is feasible to predict lapse with a fair level o
 
 <!--************************************************************************-->
 <!-- Table 3: Contextual geolocation information-->
+### Table 3: Contextual geolocation information
 
 | Question                                                                                                      | Responses                                                                                                                                                                                                                                                                                      |
 |-----------------------|-------------------------------------------------|
@@ -666,6 +669,7 @@ This study demonstrates that it is feasible to predict lapse with a fair level o
 
 <!--************************************************************************-->
 <!-- Table 4: Demographic responses-->
+### Table 4: Demographic responses
 
 ![Demographic characteristics of the sample (N = 146).](objects/table.png){#tbl-demo-2}
 
@@ -681,6 +685,7 @@ This study demonstrates that it is feasible to predict lapse with a fair level o
 
 <!--************************************************************************-->
 <!-- Figure 1: auROC histogram-->
+### Figure 1: auROC histogram
 
 {{< embed notebooks/auROC_distribution_posterior.qmd#fig-auroc-histogram >}}
 
@@ -696,6 +701,7 @@ This study demonstrates that it is feasible to predict lapse with a fair level o
 
 <!--************************************************************************-->
 <!-- Figure 2: auROC posterior probability distribution-->
+### Figure 2: auROC posterior probability distribution
 
 {{< embed notebooks/auROC_distribution_posterior.qmd#fig-pp >}}
 
@@ -711,6 +717,7 @@ This study demonstrates that it is feasible to predict lapse with a fair level o
 
 <!--************************************************************************-->
 <!-- Figure 3: Calibration plot-->
+### Figure 3: Calibration plot
 
 {{< embed notebooks/calibration_plot.qmd#fig-calibration >}}
 
@@ -726,6 +733,7 @@ This study demonstrates that it is feasible to predict lapse with a fair level o
 
 <!--************************************************************************-->
 <!-- Figure 4: Calibrated auROC plot-->
+### Figure 4: Calibrated auROC plot
 
 {{< embed notebooks/auROC_plot.qmd#fig-auroc-plot >}}
 
@@ -741,6 +749,7 @@ This study demonstrates that it is feasible to predict lapse with a fair level o
 
 <!--************************************************************************-->
 <!-- Figure 5: Global Feature Importance-->
+### Figure 5: Global Feature Importance
 
 {{< embed notebooks/shaps.qmd#fig-shaps-group >}}
 
@@ -756,13 +765,6 @@ This study demonstrates that it is feasible to predict lapse with a fair level o
 
 <!--************************************************************************-->
 <!-- Figure 6: Posterior probability distribution 95% credible intervals by subgroup-->
+### Figure 6: Posterior probability distribution 95% credible intervals by subgroup
 
 {{< embed notebooks/fairness.qmd#fig-fairness-subgroups >}}
-
-```{=html}
-<br>
-<br>
-<br>
-<br>
-<br>
-```

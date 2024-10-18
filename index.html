@@ -267,9 +267,21 @@ div.csl-indent {
   <li><a href="#conclusion" id="toc-conclusion" class="nav-link" data-scroll-target="#conclusion">Conclusion</a></li>
   </ul></li>
   <li><a href="#references" id="toc-references" class="nav-link" data-scroll-target="#references">References</a></li>
-  <li><a href="#tables-and-figures" id="toc-tables-and-figures" class="nav-link" data-scroll-target="#tables-and-figures">Tables and Figures</a></li>
+  <li><a href="#tables-and-figures" id="toc-tables-and-figures" class="nav-link" data-scroll-target="#tables-and-figures">Tables and Figures</a>
+  <ul class="collapse">
+  <li><a href="#table-1-eligibility-criteria" id="toc-table-1-eligibility-criteria" class="nav-link" data-scroll-target="#table-1-eligibility-criteria">Table 1: Eligibility Criteria</a></li>
+  <li><a href="#table-2-collected-demographic-information" id="toc-table-2-collected-demographic-information" class="nav-link" data-scroll-target="#table-2-collected-demographic-information">Table 2: Collected demographic information</a></li>
+  <li><a href="#table-3-contextual-geolocation-information" id="toc-table-3-contextual-geolocation-information" class="nav-link" data-scroll-target="#table-3-contextual-geolocation-information">Table 3: Contextual geolocation information</a></li>
+  <li><a href="#table-4-demographic-responses" id="toc-table-4-demographic-responses" class="nav-link" data-scroll-target="#table-4-demographic-responses">Table 4: Demographic responses</a></li>
+  <li><a href="#figure-1-auroc-histogram" id="toc-figure-1-auroc-histogram" class="nav-link" data-scroll-target="#figure-1-auroc-histogram">Figure 1: auROC histogram</a></li>
+  <li><a href="#figure-2-auroc-posterior-probability-distribution" id="toc-figure-2-auroc-posterior-probability-distribution" class="nav-link" data-scroll-target="#figure-2-auroc-posterior-probability-distribution">Figure 2: auROC posterior probability distribution</a></li>
+  <li><a href="#figure-3-calibration-plot" id="toc-figure-3-calibration-plot" class="nav-link" data-scroll-target="#figure-3-calibration-plot">Figure 3: Calibration plot</a></li>
+  <li><a href="#figure-4-calibrated-auroc-plot" id="toc-figure-4-calibrated-auroc-plot" class="nav-link" data-scroll-target="#figure-4-calibrated-auroc-plot">Figure 4: Calibrated auROC plot</a></li>
+  <li><a href="#figure-5-global-feature-importance" id="toc-figure-5-global-feature-importance" class="nav-link" data-scroll-target="#figure-5-global-feature-importance">Figure 5: Global Feature Importance</a></li>
+  <li><a href="#figure-6-posterior-probability-distribution-95-credible-intervals-by-subgroup" id="toc-figure-6-posterior-probability-distribution-95-credible-intervals-by-subgroup" class="nav-link" data-scroll-target="#figure-6-posterior-probability-distribution-95-credible-intervals-by-subgroup">Figure 6: Posterior probability distribution 95% credible intervals by subgroup</a></li>
+  </ul></li>
   </ul>
-<div class="quarto-alternate-notebooks"><h2>Notebooks</h2><ul><li><a href="index-preview.html"><i class="bi bi-journal-code"></i>Article Notebook</a></li><li><a href="notebooks/shaps-preview.html"><i class="bi bi-journal-code"></i>SHAPs</a></li><li><a href="notebooks/fairness-preview.html"><i class="bi bi-journal-code"></i>Subgroup Analysis</a></li><li><a href="notebooks/auROC_distribution_posterior-preview.html"><i class="bi bi-journal-code"></i>Evaluate inner auROC for `r params$model` models of training jobs from CHTC for `r params$study` study with version `r params$version` using `r params$cv` CV</a></li><li><a href="notebooks/calibration_plot-preview.html"><i class="bi bi-journal-code"></i>Generate INNER calibration</a></li><li><a href="notebooks/auROC_plot-preview.html"><i class="bi bi-journal-code"></i>Generate auROC plot for `r params$model` models of training jobs from CHTC for `r params$study` study with version `r params$version` using `r params$cv` CV</a></li></ul></div></nav>
+<div class="quarto-alternate-notebooks"><h2>Notebooks</h2><ul><li><a href="index-preview.html"><i class="bi bi-journal-code"></i>Article Notebook</a></li><li><a href="notebooks/shaps-preview.html"><i class="bi bi-journal-code"></i>SHAPs</a></li><li><a href="notebooks/fairness-preview.html"><i class="bi bi-journal-code"></i>Subgroup Analysis</a></li><li><a href="notebooks/auROC_distribution_posterior-preview.html"><i class="bi bi-journal-code"></i>Validation auROC histogram and posterior probability distribution</a></li><li><a href="notebooks/calibration_plot-preview.html"><i class="bi bi-journal-code"></i>Validation set calibration</a></li><li><a href="notebooks/auROC_plot-preview.html"><i class="bi bi-journal-code"></i>Calibrated auROC</a></li></ul></div></nav>
 </div>
 <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
 </div>
@@ -554,6 +566,8 @@ Wyant, Kendra, Sarah June Kittleson Sant’Ana, Gaylen Fronk, and John J. Curtin
 <h2 class="anchored" data-anchor-id="tables-and-figures">Tables and Figures</h2>
 <!--************************************************************************-->
 <!-- Table 1: Eligibility Criteria-->
+<section id="table-1-eligibility-criteria" class="level3">
+<h3 class="anchored" data-anchor-id="table-1-eligibility-criteria">Table 1: Eligibility Criteria</h3>
 <div id="tbl-elig" class="quarto-float anchored">
 <figure class="quarto-float quarto-float-tbl figure">
 <figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-elig-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
@@ -595,6 +609,9 @@ Table&nbsp;1: Eligibility criteria for study enrollment. **Personal or study-pro
 <div style="page-break-after: always;"></div>
 <!--************************************************************************-->
 <!-- Table 2: Collected demographic information-->
+</section>
+<section id="table-2-collected-demographic-information" class="level3">
+<h3 class="anchored" data-anchor-id="table-2-collected-demographic-information">Table 2: Collected demographic information</h3>
 <div id="tbl-demo-1" class="quarto-float anchored">
 <figure class="quarto-float quarto-float-tbl figure">
 <figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-demo-1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
@@ -670,6 +687,9 @@ Table&nbsp;2: Demographic and relevant alcohol use history variables sampled at 
 <div style="page-break-after: always;"></div>
 <!--************************************************************************-->
 <!-- Table 3: Contextual geolocation information-->
+</section>
+<section id="table-3-contextual-geolocation-information" class="level3">
+<h3 class="anchored" data-anchor-id="table-3-contextual-geolocation-information">Table 3: Contextual geolocation information</h3>
 <div id="tbl-context" class="quarto-float anchored">
 <figure class="quarto-float quarto-float-tbl figure">
 <figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-context-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
@@ -729,6 +749,9 @@ Table&nbsp;3: Location information collected from frequently visited locations.
 <div style="page-break-after: always;"></div>
 <!--************************************************************************-->
 <!-- Table 4: Demographic responses-->
+</section>
+<section id="table-4-demographic-responses" class="level3">
+<h3 class="anchored" data-anchor-id="table-4-demographic-responses">Table 4: Demographic responses</h3>
 <div id="tbl-demo-2" class="quarto-float anchored">
 <figure class="quarto-float quarto-float-tbl figure">
 <figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-demo-2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
@@ -747,6 +770,9 @@ Table&nbsp;4: Demographic characteristics of the sample (N = 146).
 <div style="page-break-after: always;"></div>
 <!--************************************************************************-->
 <!-- Figure 1: auROC histogram-->
+</section>
+<section id="figure-1-auroc-histogram" class="level3">
+<h3 class="anchored" data-anchor-id="figure-1-auroc-histogram">Figure 1: auROC histogram</h3>
 <div class="quarto-embed-nb-cell">
 <div id="cell-fig-auroc-histogram" class="cell" data-fig-height="4" data-fig-width="5">
 <div class="cell-output cell-output-display">
@@ -762,7 +788,7 @@ Figure&nbsp;1: Area under the receiver operating characteristic (auROC) curves f
 </div>
 </div>
 </div>
-<a class="quarto-notebook-link" id="nblink-1" href="notebooks/auROC_distribution_posterior-preview.html#cell-fig-auroc-histogram">Source: Evaluate inner auROC for `r params$model` models of training jobs from CHTC for `r params$study` study with version `r params$version` using `r params$cv` CV</a></div>
+<a class="quarto-notebook-link" id="nblink-1" href="notebooks/auROC_distribution_posterior-preview.html#cell-fig-auroc-histogram">Source: Validation auROC histogram and posterior probability distribution</a></div>
 <br>
 <br>
 <br>
@@ -771,6 +797,9 @@ Figure&nbsp;1: Area under the receiver operating characteristic (auROC) curves f
 <div style="page-break-after: always;"></div>
 <!--************************************************************************-->
 <!-- Figure 2: auROC posterior probability distribution-->
+</section>
+<section id="figure-2-auroc-posterior-probability-distribution" class="level3">
+<h3 class="anchored" data-anchor-id="figure-2-auroc-posterior-probability-distribution">Figure 2: auROC posterior probability distribution</h3>
 <div class="quarto-embed-nb-cell">
 <div id="cell-fig-pp" class="cell" data-fig-height="3" data-fig-width="5">
 <div class="cell-output cell-output-display">
@@ -786,7 +815,7 @@ Figure&nbsp;2: Posterior probability distribution of model performance with a 95
 </div>
 </div>
 </div>
-<a class="quarto-notebook-link" id="nblink-2" href="notebooks/auROC_distribution_posterior-preview.html#cell-fig-pp">Source: Evaluate inner auROC for `r params$model` models of training jobs from CHTC for `r params$study` study with version `r params$version` using `r params$cv` CV</a></div>
+<a class="quarto-notebook-link" id="nblink-2" href="notebooks/auROC_distribution_posterior-preview.html#cell-fig-pp">Source: Validation auROC histogram and posterior probability distribution</a></div>
 <br>
 <br>
 <br>
@@ -795,6 +824,9 @@ Figure&nbsp;2: Posterior probability distribution of model performance with a 95
 <div style="page-break-after: always;"></div>
 <!--************************************************************************-->
 <!-- Figure 3: Calibration plot-->
+</section>
+<section id="figure-3-calibration-plot" class="level3">
+<h3 class="anchored" data-anchor-id="figure-3-calibration-plot">Figure 3: Calibration plot</h3>
 <div class="quarto-embed-nb-cell">
 <div id="cell-fig-calibration" class="cell" data-fig-height="4" data-fig-width="6">
 <div class="cell-output cell-output-display">
@@ -810,7 +842,7 @@ Figure&nbsp;3: Comparison between raw (uncalibrated) and logistic (calibrated) p
 </div>
 </div>
 </div>
-<a class="quarto-notebook-link" id="nblink-3" href="notebooks/calibration_plot-preview.html#cell-fig-calibration">Source: Generate INNER calibration</a></div>
+<a class="quarto-notebook-link" id="nblink-3" href="notebooks/calibration_plot-preview.html#cell-fig-calibration">Source: Validation set calibration</a></div>
 <br>
 <br>
 <br>
@@ -819,6 +851,9 @@ Figure&nbsp;3: Comparison between raw (uncalibrated) and logistic (calibrated) p
 <div style="page-break-after: always;"></div>
 <!--************************************************************************-->
 <!-- Figure 4: Calibrated auROC plot-->
+</section>
+<section id="figure-4-calibrated-auroc-plot" class="level3">
+<h3 class="anchored" data-anchor-id="figure-4-calibrated-auroc-plot">Figure 4: Calibrated auROC plot</h3>
 <div class="quarto-embed-nb-cell">
 <div id="cell-fig-auroc-plot" class="cell" data-fig-height="6" data-fig-width="6">
 <div class="cell-output cell-output-display">
@@ -834,7 +869,7 @@ Figure&nbsp;4: Area under the receiver operating characteristic (auROC) curve fo
 </div>
 </div>
 </div>
-<a class="quarto-notebook-link" id="nblink-4" href="notebooks/auROC_plot-preview.html#cell-fig-auroc-plot">Source: Generate auROC plot for `r params$model` models of training jobs from CHTC for `r params$study` study with version `r params$version` using `r params$cv` CV</a></div>
+<a class="quarto-notebook-link" id="nblink-4" href="notebooks/auROC_plot-preview.html#cell-fig-auroc-plot">Source: Calibrated auROC</a></div>
 <br>
 <br>
 <br>
@@ -843,6 +878,9 @@ Figure&nbsp;4: Area under the receiver operating characteristic (auROC) curve fo
 <div style="page-break-after: always;"></div>
 <!--************************************************************************-->
 <!-- Figure 5: Global Feature Importance-->
+</section>
+<section id="figure-5-global-feature-importance" class="level3">
+<h3 class="anchored" data-anchor-id="figure-5-global-feature-importance">Figure 5: Global Feature Importance</h3>
 <div class="quarto-embed-nb-cell">
 <div id="cell-fig-shaps-group" class="cell" data-fig-height="5" data-fig-width="5">
 <div class="cell-output cell-output-display">
@@ -867,6 +905,9 @@ Figure&nbsp;5: Grouped SHAP values displaying relative feature importance calcul
 <div style="page-break-after: always;"></div>
 <!--************************************************************************-->
 <!-- Figure 6: Posterior probability distribution 95% credible intervals by subgroup-->
+</section>
+<section id="figure-6-posterior-probability-distribution-95-credible-intervals-by-subgroup" class="level3">
+<h3 class="anchored" data-anchor-id="figure-6-posterior-probability-distribution-95-credible-intervals-by-subgroup">Figure 6: Posterior probability distribution 95% credible intervals by subgroup</h3>
 <div class="quarto-embed-nb-cell">
 <div id="cell-fig-fairness-subgroups" class="cell" data-fig-height="4" data-fig-width="6">
 <div class="cell-output cell-output-display">
@@ -883,11 +924,6 @@ Figure&nbsp;6: 95% credible intervals across posterior probability distributions
 </div>
 </div>
 <a class="quarto-notebook-link" id="nblink-6" href="notebooks/fairness-preview.html#cell-fig-fairness-subgroups">Source: Subgroup Analysis</a></div>
-<br>
-<br>
-<br>
-<br>
-<br>
 <div class="hidden" aria-hidden="true">
 <span class="glightbox-desc lightbox-desc-1">Table&nbsp;4: Demographic characteristics of the sample (N = 146).</span>
 <span class="glightbox-desc lightbox-desc-2">Figure&nbsp;1: Area under the receiver operating characteristic (auROC) curves for each of 300 (10 x 30) cross validation splits. The dashed line represents the median auROC across all 300 splits.</span>
@@ -897,6 +933,7 @@ Figure&nbsp;6: 95% credible intervals across posterior probability distributions
 <span class="glightbox-desc lightbox-desc-6">Figure&nbsp;5: Grouped SHAP values displaying relative feature importance calculated using mean absolute values. Larger log-odds values indicate greater contribution to predictions in the model.</span>
 <span class="glightbox-desc lightbox-desc-7">Figure&nbsp;6: 95% credible intervals across posterior probability distributions by subgroup at differential levels of privilege.</span>
 </div>
+</section>
 </section>
 
 </main>
@@ -1311,7 +1348,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 });
 </script>
 </div> <!-- /content -->
-<script>var lightboxQuarto = GLightbox({"selector":".lightbox","loop":false,"openEffect":"zoom","descPosition":"bottom","closeEffect":"zoom"});
+<script>var lightboxQuarto = GLightbox({"loop":false,"openEffect":"zoom","selector":".lightbox","closeEffect":"zoom","descPosition":"bottom"});
 window.onload = () => {
   lightboxQuarto.on('slide_before_load', (data) => {
     const { slideIndex, slideNode, slideConfig, player, trigger } = data;

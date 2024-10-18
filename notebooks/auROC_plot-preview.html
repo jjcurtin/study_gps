@@ -8,7 +8,7 @@
     <meta name="author" content="John Curtin &amp; Claire Punturieri">
     <meta name="dcterms.date" content="2024-10-17">
 
-    <title>Generate auROC plot for main models of training jobs from CHTC for gps study with version v6 using nested_1_x_10_3_x_10 CV</title>
+    <title>Calibrated auROC</title>
     <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -249,7 +249,7 @@ window.document.addEventListener("DOMContentLoaded", function (_event) {
       if (link.href.indexOf("#") !== -1) {
         const anchor = link.href.split("#")[1];
         const heading = window.document.querySelector(
-          `[data-anchor-id="${anchor}"]`
+          `[data-anchor-id=${anchor}]`
         );
         if (heading) {
           // Add the class
@@ -289,10 +289,8 @@ window.document.addEventListener("DOMContentLoaded", function (_event) {
       window.innerHeight + window.pageYOffset >=
       window.document.body.offsetHeight
     ) {
-      // This is the no-scroll case where last section should be the active one
       sectionIndex = 0;
     } else {
-      // This finds the last section visible on screen that should be made active
       sectionIndex = [...sections].reverse().findIndex((section) => {
         if (section) {
           return window.pageYOffset >= section.offsetTop - sectionMargin;
@@ -474,7 +472,6 @@ window.document.addEventListener("DOMContentLoaded", function (_event) {
           for (const child of el.children) {
             child.style.opacity = 0;
             child.style.overflow = "hidden";
-            child.style.pointerEvents = "none";
           }
 
           nexttick(() => {
@@ -516,7 +513,6 @@ window.document.addEventListener("DOMContentLoaded", function (_event) {
 
               const clone = child.cloneNode(true);
               clone.style.opacity = 1;
-              clone.style.pointerEvents = null;
               clone.style.display = null;
               toggleContents.append(clone);
             }
@@ -591,7 +587,6 @@ window.document.addEventListener("DOMContentLoaded", function (_event) {
           for (const child of el.children) {
             child.style.opacity = 1;
             child.style.overflow = null;
-            child.style.pointerEvents = null;
           }
 
           const placeholderEl = window.document.getElementById(
@@ -899,7 +894,6 @@ window.document.addEventListener("DOMContentLoaded", function (_event) {
     // Process the collapse state if this is an UL
     if (el.tagName === "UL") {
       if (tocOpenDepth === -1 && depth > 1) {
-        // toc-expand: false
         el.classList.add("collapse");
       } else if (
         depth <= tocOpenDepth ||
@@ -918,9 +912,10 @@ window.document.addEventListener("DOMContentLoaded", function (_event) {
   };
 
   // walk the TOC and expand / collapse any items that should be shown
+
   if (tocEl) {
-    updateActiveLink();
     walk(tocEl, 0);
+    updateActiveLink();
   }
 
   // Throttle the scroll event and walk peridiocally
@@ -939,10 +934,6 @@ window.document.addEventListener("DOMContentLoaded", function (_event) {
   window.addEventListener(
     "resize",
     throttle(() => {
-      if (tocEl) {
-        updateActiveLink();
-        walk(tocEl, 0);
-      }
       if (!isReaderMode()) {
         hideOverlappedSidebars();
       }
@@ -1082,7 +1073,7 @@ function nexttick(func) {
 !function(A,e){"use strict";"function"==typeof define&&define.amd?define([],e):"object"==typeof module&&module.exports?module.exports=e():(A.AnchorJS=e(),A.anchors=new A.AnchorJS)}(globalThis,function(){"use strict";return function(A){function u(A){A.icon=Object.prototype.hasOwnProperty.call(A,"icon")?A.icon:"",A.visible=Object.prototype.hasOwnProperty.call(A,"visible")?A.visible:"hover",A.placement=Object.prototype.hasOwnProperty.call(A,"placement")?A.placement:"right",A.ariaLabel=Object.prototype.hasOwnProperty.call(A,"ariaLabel")?A.ariaLabel:"Anchor",A.class=Object.prototype.hasOwnProperty.call(A,"class")?A.class:"",A.base=Object.prototype.hasOwnProperty.call(A,"base")?A.base:"",A.truncate=Object.prototype.hasOwnProperty.call(A,"truncate")?Math.floor(A.truncate):64,A.titleText=Object.prototype.hasOwnProperty.call(A,"titleText")?A.titleText:""}function d(A){var e;if("string"==typeof A||A instanceof String)e=[].slice.call(document.querySelectorAll(A));else{if(!(Array.isArray(A)||A instanceof NodeList))throw new TypeError("The selector provided to AnchorJS was invalid.");e=[].slice.call(A)}return e}this.options=A||{},this.elements=[],u(this.options),this.add=function(A){var e,t,o,i,n,s,a,r,l,c,h,p=[];if(u(this.options),0!==(e=d(A=A||"h2, h3, h4, h5, h6")).length){for(null===document.head.querySelector("style.anchorjs")&&((A=document.createElement("style")).className="anchorjs",A.appendChild(document.createTextNode("")),void 0===(h=document.head.querySelector('[rel="stylesheet"],style'))?document.head.appendChild(A):document.head.insertBefore(A,h),A.sheet.insertRule(".anchorjs-link{opacity:0;text-decoration:none;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}",A.sheet.cssRules.length),A.sheet.insertRule(":hover>.anchorjs-link,.anchorjs-link:focus{opacity:1}",A.sheet.cssRules.length),A.sheet.insertRule("[data-anchorjs-icon]::after{content:attr(data-anchorjs-icon)}",A.sheet.cssRules.length),A.sheet.insertRule('@font-face{font-family:anchorjs-icons;src:url(data:n/a;base64,AAEAAAALAIAAAwAwT1MvMg8yG2cAAAE4AAAAYGNtYXDp3gC3AAABpAAAAExnYXNwAAAAEAAAA9wAAAAIZ2x5ZlQCcfwAAAH4AAABCGhlYWQHFvHyAAAAvAAAADZoaGVhBnACFwAAAPQAAAAkaG10eASAADEAAAGYAAAADGxvY2EACACEAAAB8AAAAAhtYXhwAAYAVwAAARgAAAAgbmFtZQGOH9cAAAMAAAAAunBvc3QAAwAAAAADvAAAACAAAQAAAAEAAHzE2p9fDzz1AAkEAAAAAADRecUWAAAAANQA6R8AAAAAAoACwAAAAAgAAgAAAAAAAAABAAADwP/AAAACgAAA/9MCrQABAAAAAAAAAAAAAAAAAAAAAwABAAAAAwBVAAIAAAAAAAIAAAAAAAAAAAAAAAAAAAAAAAMCQAGQAAUAAAKZAswAAACPApkCzAAAAesAMwEJAAAAAAAAAAAAAAAAAAAAARAAAAAAAAAAAAAAAAAAAAAAQAAg//0DwP/AAEADwABAAAAAAQAAAAAAAAAAAAAAIAAAAAAAAAIAAAACgAAxAAAAAwAAAAMAAAAcAAEAAwAAABwAAwABAAAAHAAEADAAAAAIAAgAAgAAACDpy//9//8AAAAg6cv//f///+EWNwADAAEAAAAAAAAAAAAAAAAACACEAAEAAAAAAAAAAAAAAAAxAAACAAQARAKAAsAAKwBUAAABIiYnJjQ3NzY2MzIWFxYUBwcGIicmNDc3NjQnJiYjIgYHBwYUFxYUBwYGIwciJicmNDc3NjIXFhQHBwYUFxYWMzI2Nzc2NCcmNDc2MhcWFAcHBgYjARQGDAUtLXoWOR8fORYtLTgKGwoKCjgaGg0gEhIgDXoaGgkJBQwHdR85Fi0tOAobCgoKOBoaDSASEiANehoaCQkKGwotLXoWOR8BMwUFLYEuehYXFxYugC44CQkKGwo4GkoaDQ0NDXoaShoKGwoFBe8XFi6ALjgJCQobCjgaShoNDQ0NehpKGgobCgoKLYEuehYXAAAADACWAAEAAAAAAAEACAAAAAEAAAAAAAIAAwAIAAEAAAAAAAMACAAAAAEAAAAAAAQACAAAAAEAAAAAAAUAAQALAAEAAAAAAAYACAAAAAMAAQQJAAEAEAAMAAMAAQQJAAIABgAcAAMAAQQJAAMAEAAMAAMAAQQJAAQAEAAMAAMAAQQJAAUAAgAiAAMAAQQJAAYAEAAMYW5jaG9yanM0MDBAAGEAbgBjAGgAbwByAGoAcwA0ADAAMABAAAAAAwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAH//wAP) format("truetype")}',A.sheet.cssRules.length)),h=document.querySelectorAll("[id]"),t=[].map.call(h,function(A){return A.id}),i=0;i<e.length;i++)if(this.hasAnchorJSLink(e[i]))p.push(i);else{if(e[i].hasAttribute("id"))o=e[i].getAttribute("id");else if(e[i].hasAttribute("data-anchor-id"))o=e[i].getAttribute("data-anchor-id");else{for(r=a=this.urlify(e[i].textContent),s=0;n=t.indexOf(r=void 0!==n?a+"-"+s:r),s+=1,-1!==n;);n=void 0,t.push(r),e[i].setAttribute("id",r),o=r}(l=document.createElement("a")).className="anchorjs-link "+this.options.class,l.setAttribute("aria-label",this.options.ariaLabel),l.setAttribute("data-anchorjs-icon",this.options.icon),this.options.titleText&&(l.title=this.options.titleText),c=document.querySelector("base")?window.location.pathname+window.location.search:"",c=this.options.base||c,l.href=c+"#"+o,"always"===this.options.visible&&(l.style.opacity="1"),""===this.options.icon&&(l.style.font="1em/1 anchorjs-icons","left"===this.options.placement)&&(l.style.lineHeight="inherit"),"left"===this.options.placement?(l.style.position="absolute",l.style.marginLeft="-1.25em",l.style.paddingRight=".25em",l.style.paddingLeft=".25em",e[i].insertBefore(l,e[i].firstChild)):(l.style.marginLeft=".1875em",l.style.paddingRight=".1875em",l.style.paddingLeft=".1875em",e[i].appendChild(l))}for(i=0;i<p.length;i++)e.splice(p[i]-i,1);this.elements=this.elements.concat(e)}return this},this.remove=function(A){for(var e,t,o=d(A),i=0;i<o.length;i++)(t=o[i].querySelector(".anchorjs-link"))&&(-1!==(e=this.elements.indexOf(o[i]))&&this.elements.splice(e,1),o[i].removeChild(t));return this},this.removeAll=function(){this.remove(this.elements)},this.urlify=function(A){var e=document.createElement("textarea");return e.innerHTML=A,A=e.value,this.options.truncate||u(this.options),A.trim().replace(/'/gi,"").replace(/[& +$,:;=?@"#{}|^~[`%!'<>\]./()*\\\n\t\b\v\u00A0]/g,"-").replace(/-{2,}/g,"-").substring(0,this.options.truncate).replace(/^-+|-+$/gm,"").toLowerCase()},this.hasAnchorJSLink=function(A){var e=A.firstChild&&-1<(" "+A.firstChild.className+" ").indexOf(" anchorjs-link "),A=A.lastChild&&-1<(" "+A.lastChild.className+" ").indexOf(" anchorjs-link ");return e||A||!1}}});
 // @license-end</script>
 <style type="text/css">.tippy-box[data-animation=fade][data-state=hidden]{opacity:0}[data-tippy-root]{max-width:calc(100vw - 10px)}.tippy-box{position:relative;background-color:#333;color:#fff;border-radius:4px;font-size:14px;line-height:1.4;white-space:normal;outline:0;transition-property:transform,visibility,opacity}.tippy-box[data-placement^=top]>.tippy-arrow{bottom:0}.tippy-box[data-placement^=top]>.tippy-arrow:before{bottom:-7px;left:0;border-width:8px 8px 0;border-top-color:initial;transform-origin:center top}.tippy-box[data-placement^=bottom]>.tippy-arrow{top:0}.tippy-box[data-placement^=bottom]>.tippy-arrow:before{top:-7px;left:0;border-width:0 8px 8px;border-bottom-color:initial;transform-origin:center bottom}.tippy-box[data-placement^=left]>.tippy-arrow{right:0}.tippy-box[data-placement^=left]>.tippy-arrow:before{border-width:8px 0 8px 8px;border-left-color:initial;right:-7px;transform-origin:center left}.tippy-box[data-placement^=right]>.tippy-arrow{left:0}.tippy-box[data-placement^=right]>.tippy-arrow:before{left:-7px;border-width:8px 8px 8px 0;border-right-color:initial;transform-origin:center right}.tippy-box[data-inertia][data-state=visible]{transition-timing-function:cubic-bezier(.54,1.5,.38,1.11)}.tippy-arrow{width:16px;height:16px;color:#333}.tippy-arrow:before{content:"";position:absolute;border-color:transparent;border-style:solid}.tippy-content{position:relative;padding:5px 9px;z-index:1}</style>
-<link href="data:text/css,%0A%3Aroot%20%7B%0A%2D%2Dquarto%2Dhl%2Dot%2Dcolor%3A%20%23003B4F%3B%0A%2D%2Dquarto%2Dhl%2Dat%2Dcolor%3A%20%23657422%3B%0A%2D%2Dquarto%2Dhl%2Dss%2Dcolor%3A%20%2320794D%3B%0A%2D%2Dquarto%2Dhl%2Dan%2Dcolor%3A%20%235E5E5E%3B%0A%2D%2Dquarto%2Dhl%2Dfu%2Dcolor%3A%20%234758AB%3B%0A%2D%2Dquarto%2Dhl%2Dst%2Dcolor%3A%20%2320794D%3B%0A%2D%2Dquarto%2Dhl%2Dcf%2Dcolor%3A%20%23003B4F%3B%0A%2D%2Dquarto%2Dhl%2Dop%2Dcolor%3A%20%235E5E5E%3B%0A%2D%2Dquarto%2Dhl%2Der%2Dcolor%3A%20%23AD0000%3B%0A%2D%2Dquarto%2Dhl%2Dbn%2Dcolor%3A%20%23AD0000%3B%0A%2D%2Dquarto%2Dhl%2Dal%2Dcolor%3A%20%23AD0000%3B%0A%2D%2Dquarto%2Dhl%2Dva%2Dcolor%3A%20%23111111%3B%0A%2D%2Dquarto%2Dhl%2Dbu%2Dcolor%3A%20inherit%3B%0A%2D%2Dquarto%2Dhl%2Dex%2Dcolor%3A%20inherit%3B%0A%2D%2Dquarto%2Dhl%2Dpp%2Dcolor%3A%20%23AD0000%3B%0A%2D%2Dquarto%2Dhl%2Din%2Dcolor%3A%20%235E5E5E%3B%0A%2D%2Dquarto%2Dhl%2Dvs%2Dcolor%3A%20%2320794D%3B%0A%2D%2Dquarto%2Dhl%2Dwa%2Dcolor%3A%20%235E5E5E%3B%0A%2D%2Dquarto%2Dhl%2Ddo%2Dcolor%3A%20%235E5E5E%3B%0A%2D%2Dquarto%2Dhl%2Dim%2Dcolor%3A%20%2300769E%3B%0A%2D%2Dquarto%2Dhl%2Dch%2Dcolor%3A%20%2320794D%3B%0A%2D%2Dquarto%2Dhl%2Ddt%2Dcolor%3A%20%23AD0000%3B%0A%2D%2Dquarto%2Dhl%2Dfl%2Dcolor%3A%20%23AD0000%3B%0A%2D%2Dquarto%2Dhl%2Dco%2Dcolor%3A%20%235E5E5E%3B%0A%2D%2Dquarto%2Dhl%2Dcv%2Dcolor%3A%20%235E5E5E%3B%0A%2D%2Dquarto%2Dhl%2Dcn%2Dcolor%3A%20%238f5902%3B%0A%2D%2Dquarto%2Dhl%2Dsc%2Dcolor%3A%20%235E5E5E%3B%0A%2D%2Dquarto%2Dhl%2Ddv%2Dcolor%3A%20%23AD0000%3B%0A%2D%2Dquarto%2Dhl%2Dkw%2Dcolor%3A%20%23003B4F%3B%0A%7D%0A%0A%3Aroot%20%7B%0A%2D%2Dquarto%2Dfont%2Dmonospace%3A%20SFMono%2DRegular%2C%20Menlo%2C%20Monaco%2C%20Consolas%2C%20%22Liberation%20Mono%22%2C%20%22Courier%20New%22%2C%20monospace%3B%0A%7D%0Apre%20%3E%20code%2EsourceCode%20%3E%20span%20%7B%0Acolor%3A%20%23003B4F%3B%0A%7D%0Acode%20span%20%7B%0Acolor%3A%20%23003B4F%3B%0A%7D%0Acode%2EsourceCode%20%3E%20span%20%7B%0Acolor%3A%20%23003B4F%3B%0A%7D%0Adiv%2EsourceCode%2C%0Adiv%2EsourceCode%20pre%2EsourceCode%20%7B%0Acolor%3A%20%23003B4F%3B%0A%7D%0Acode%20span%2Eot%20%7B%0Acolor%3A%20%23003B4F%3B%0Afont%2Dstyle%3A%20inherit%3B%0A%7D%0Acode%20span%2Eat%20%7B%0Acolor%3A%20%23657422%3B%0Afont%2Dstyle%3A%20inherit%3B%0A%7D%0Acode%20span%2Ess%20%7B%0Acolor%3A%20%2320794D%3B%0Afont%2Dstyle%3A%20inherit%3B%0A%7D%0Acode%20span%2Ean%20%7B%0Acolor%3A%20%235E5E5E%3B%0Afont%2Dstyle%3A%20inherit%3B%0A%7D%0Acode%20span%2Efu%20%7B%0Acolor%3A%20%234758AB%3B%0Afont%2Dstyle%3A%20inherit%3B%0A%7D%0Acode%20span%2Est%20%7B%0Acolor%3A%20%2320794D%3B%0Afont%2Dstyle%3A%20inherit%3B%0A%7D%0Acode%20span%2Ecf%20%7B%0Acolor%3A%20%23003B4F%3B%0Afont%2Dweight%3A%20bold%3B%0Afont%2Dstyle%3A%20inherit%3B%0A%7D%0Acode%20span%2Eop%20%7B%0Acolor%3A%20%235E5E5E%3B%0Afont%2Dstyle%3A%20inherit%3B%0A%7D%0Acode%20span%2Eer%20%7B%0Acolor%3A%20%23AD0000%3B%0Afont%2Dstyle%3A%20inherit%3B%0A%7D%0Acode%20span%2Ebn%20%7B%0Acolor%3A%20%23AD0000%3B%0Afont%2Dstyle%3A%20inherit%3B%0A%7D%0Acode%20span%2Eal%20%7B%0Acolor%3A%20%23AD0000%3B%0Afont%2Dstyle%3A%20inherit%3B%0A%7D%0Acode%20span%2Eva%20%7B%0Acolor%3A%20%23111111%3B%0Afont%2Dstyle%3A%20inherit%3B%0A%7D%0Acode%20span%2Ebu%20%7B%0Afont%2Dstyle%3A%20inherit%3B%0A%7D%0Acode%20span%2Eex%20%7B%0Afont%2Dstyle%3A%20inherit%3B%0A%7D%0Acode%20span%2Epp%20%7B%0Acolor%3A%20%23AD0000%3B%0Afont%2Dstyle%3A%20inherit%3B%0A%7D%0Acode%20span%2Ein%20%7B%0Acolor%3A%20%235E5E5E%3B%0Afont%2Dstyle%3A%20inherit%3B%0A%7D%0Acode%20span%2Evs%20%7B%0Acolor%3A%20%2320794D%3B%0Afont%2Dstyle%3A%20inherit%3B%0A%7D%0Acode%20span%2Ewa%20%7B%0Acolor%3A%20%235E5E5E%3B%0Afont%2Dstyle%3A%20italic%3B%0A%7D%0Acode%20span%2Edo%20%7B%0Acolor%3A%20%235E5E5E%3B%0Afont%2Dstyle%3A%20italic%3B%0A%7D%0Acode%20span%2Eim%20%7B%0Acolor%3A%20%2300769E%3B%0Afont%2Dstyle%3A%20inherit%3B%0A%7D%0Acode%20span%2Ech%20%7B%0Acolor%3A%20%2320794D%3B%0Afont%2Dstyle%3A%20inherit%3B%0A%7D%0Acode%20span%2Edt%20%7B%0Acolor%3A%20%23AD0000%3B%0Afont%2Dstyle%3A%20inherit%3B%0A%7D%0Acode%20span%2Efl%20%7B%0Acolor%3A%20%23AD0000%3B%0Afont%2Dstyle%3A%20inherit%3B%0A%7D%0Acode%20span%2Eco%20%7B%0Acolor%3A%20%235E5E5E%3B%0Afont%2Dstyle%3A%20inherit%3B%0A%7D%0Acode%20span%2Ecv%20%7B%0Acolor%3A%20%235E5E5E%3B%0Afont%2Dstyle%3A%20italic%3B%0A%7D%0Acode%20span%2Ecn%20%7B%0Acolor%3A%20%238f5902%3B%0Afont%2Dstyle%3A%20inherit%3B%0A%7D%0Acode%20span%2Esc%20%7B%0Acolor%3A%20%235E5E5E%3B%0Afont%2Dstyle%3A%20inherit%3B%0A%7D%0Acode%20span%2Edv%20%7B%0Acolor%3A%20%23AD0000%3B%0Afont%2Dstyle%3A%20inherit%3B%0A%7D%0Acode%20span%2Ekw%20%7B%0Acolor%3A%20%23003B4F%3B%0Afont%2Dweight%3A%20bold%3B%0Afont%2Dstyle%3A%20inherit%3B%0A%7D%0A%2Eprevent%2Dinlining%20%7B%0Acontent%3A%20%22%3C%2F%22%3B%0A%7D%0A%0A" rel="stylesheet" id="quarto-text-highlighting-styles">
+<link href="data:text/css,%0A%3Aroot%20%7B%0A%2D%2Dquarto%2Dhl%2Dot%2Dcolor%3A%20%23003B4F%3B%0A%2D%2Dquarto%2Dhl%2Dat%2Dcolor%3A%20%23657422%3B%0A%2D%2Dquarto%2Dhl%2Dss%2Dcolor%3A%20%2320794D%3B%0A%2D%2Dquarto%2Dhl%2Dan%2Dcolor%3A%20%235E5E5E%3B%0A%2D%2Dquarto%2Dhl%2Dfu%2Dcolor%3A%20%234758AB%3B%0A%2D%2Dquarto%2Dhl%2Dst%2Dcolor%3A%20%2320794D%3B%0A%2D%2Dquarto%2Dhl%2Dcf%2Dcolor%3A%20%23003B4F%3B%0A%2D%2Dquarto%2Dhl%2Dop%2Dcolor%3A%20%235E5E5E%3B%0A%2D%2Dquarto%2Dhl%2Der%2Dcolor%3A%20%23AD0000%3B%0A%2D%2Dquarto%2Dhl%2Dbn%2Dcolor%3A%20%23AD0000%3B%0A%2D%2Dquarto%2Dhl%2Dal%2Dcolor%3A%20%23AD0000%3B%0A%2D%2Dquarto%2Dhl%2Dva%2Dcolor%3A%20%23111111%3B%0A%2D%2Dquarto%2Dhl%2Dbu%2Dcolor%3A%20inherit%3B%0A%2D%2Dquarto%2Dhl%2Dex%2Dcolor%3A%20inherit%3B%0A%2D%2Dquarto%2Dhl%2Dpp%2Dcolor%3A%20%23AD0000%3B%0A%2D%2Dquarto%2Dhl%2Din%2Dcolor%3A%20%235E5E5E%3B%0A%2D%2Dquarto%2Dhl%2Dvs%2Dcolor%3A%20%2320794D%3B%0A%2D%2Dquarto%2Dhl%2Dwa%2Dcolor%3A%20%235E5E5E%3B%0A%2D%2Dquarto%2Dhl%2Ddo%2Dcolor%3A%20%235E5E5E%3B%0A%2D%2Dquarto%2Dhl%2Dim%2Dcolor%3A%20%2300769E%3B%0A%2D%2Dquarto%2Dhl%2Dch%2Dcolor%3A%20%2320794D%3B%0A%2D%2Dquarto%2Dhl%2Ddt%2Dcolor%3A%20%23AD0000%3B%0A%2D%2Dquarto%2Dhl%2Dfl%2Dcolor%3A%20%23AD0000%3B%0A%2D%2Dquarto%2Dhl%2Dco%2Dcolor%3A%20%235E5E5E%3B%0A%2D%2Dquarto%2Dhl%2Dcv%2Dcolor%3A%20%235E5E5E%3B%0A%2D%2Dquarto%2Dhl%2Dcn%2Dcolor%3A%20%238f5902%3B%0A%2D%2Dquarto%2Dhl%2Dsc%2Dcolor%3A%20%235E5E5E%3B%0A%2D%2Dquarto%2Dhl%2Ddv%2Dcolor%3A%20%23AD0000%3B%0A%2D%2Dquarto%2Dhl%2Dkw%2Dcolor%3A%20%23003B4F%3B%0A%7D%0A%0A%3Aroot%20%7B%0A%2D%2Dquarto%2Dfont%2Dmonospace%3A%20SFMono%2DRegular%2C%20Menlo%2C%20Monaco%2C%20Consolas%2C%20%22Liberation%20Mono%22%2C%20%22Courier%20New%22%2C%20monospace%3B%0A%7D%0Apre%20%3E%20code%2EsourceCode%20%3E%20span%20%7B%0Acolor%3A%20%23003B4F%3B%0A%7D%0Acode%20span%20%7B%0Acolor%3A%20%23003B4F%3B%0A%7D%0Acode%2EsourceCode%20%3E%20span%20%7B%0Acolor%3A%20%23003B4F%3B%0A%7D%0Adiv%2EsourceCode%2C%0Adiv%2EsourceCode%20pre%2EsourceCode%20%7B%0Acolor%3A%20%23003B4F%3B%0A%7D%0Acode%20span%2Eot%20%7B%0Acolor%3A%20%23003B4F%3B%0Afont%2Dstyle%3A%20inherit%3B%0A%7D%0Acode%20span%2Eat%20%7B%0Acolor%3A%20%23657422%3B%0Afont%2Dstyle%3A%20inherit%3B%0A%7D%0Acode%20span%2Ess%20%7B%0Acolor%3A%20%2320794D%3B%0Afont%2Dstyle%3A%20inherit%3B%0A%7D%0Acode%20span%2Ean%20%7B%0Acolor%3A%20%235E5E5E%3B%0Afont%2Dstyle%3A%20inherit%3B%0A%7D%0Acode%20span%2Efu%20%7B%0Acolor%3A%20%234758AB%3B%0Afont%2Dstyle%3A%20inherit%3B%0A%7D%0Acode%20span%2Est%20%7B%0Acolor%3A%20%2320794D%3B%0Afont%2Dstyle%3A%20inherit%3B%0A%7D%0Acode%20span%2Ecf%20%7B%0Acolor%3A%20%23003B4F%3B%0Afont%2Dstyle%3A%20inherit%3B%0A%7D%0Acode%20span%2Eop%20%7B%0Acolor%3A%20%235E5E5E%3B%0Afont%2Dstyle%3A%20inherit%3B%0A%7D%0Acode%20span%2Eer%20%7B%0Acolor%3A%20%23AD0000%3B%0Afont%2Dstyle%3A%20inherit%3B%0A%7D%0Acode%20span%2Ebn%20%7B%0Acolor%3A%20%23AD0000%3B%0Afont%2Dstyle%3A%20inherit%3B%0A%7D%0Acode%20span%2Eal%20%7B%0Acolor%3A%20%23AD0000%3B%0Afont%2Dstyle%3A%20inherit%3B%0A%7D%0Acode%20span%2Eva%20%7B%0Acolor%3A%20%23111111%3B%0Afont%2Dstyle%3A%20inherit%3B%0A%7D%0Acode%20span%2Ebu%20%7B%0Afont%2Dstyle%3A%20inherit%3B%0A%7D%0Acode%20span%2Eex%20%7B%0Afont%2Dstyle%3A%20inherit%3B%0A%7D%0Acode%20span%2Epp%20%7B%0Acolor%3A%20%23AD0000%3B%0Afont%2Dstyle%3A%20inherit%3B%0A%7D%0Acode%20span%2Ein%20%7B%0Acolor%3A%20%235E5E5E%3B%0Afont%2Dstyle%3A%20inherit%3B%0A%7D%0Acode%20span%2Evs%20%7B%0Acolor%3A%20%2320794D%3B%0Afont%2Dstyle%3A%20inherit%3B%0A%7D%0Acode%20span%2Ewa%20%7B%0Acolor%3A%20%235E5E5E%3B%0Afont%2Dstyle%3A%20italic%3B%0A%7D%0Acode%20span%2Edo%20%7B%0Acolor%3A%20%235E5E5E%3B%0Afont%2Dstyle%3A%20italic%3B%0A%7D%0Acode%20span%2Eim%20%7B%0Acolor%3A%20%2300769E%3B%0Afont%2Dstyle%3A%20inherit%3B%0A%7D%0Acode%20span%2Ech%20%7B%0Acolor%3A%20%2320794D%3B%0Afont%2Dstyle%3A%20inherit%3B%0A%7D%0Acode%20span%2Edt%20%7B%0Acolor%3A%20%23AD0000%3B%0Afont%2Dstyle%3A%20inherit%3B%0A%7D%0Acode%20span%2Efl%20%7B%0Acolor%3A%20%23AD0000%3B%0Afont%2Dstyle%3A%20inherit%3B%0A%7D%0Acode%20span%2Eco%20%7B%0Acolor%3A%20%235E5E5E%3B%0Afont%2Dstyle%3A%20inherit%3B%0A%7D%0Acode%20span%2Ecv%20%7B%0Acolor%3A%20%235E5E5E%3B%0Afont%2Dstyle%3A%20italic%3B%0A%7D%0Acode%20span%2Ecn%20%7B%0Acolor%3A%20%238f5902%3B%0Afont%2Dstyle%3A%20inherit%3B%0A%7D%0Acode%20span%2Esc%20%7B%0Acolor%3A%20%235E5E5E%3B%0Afont%2Dstyle%3A%20inherit%3B%0A%7D%0Acode%20span%2Edv%20%7B%0Acolor%3A%20%23AD0000%3B%0Afont%2Dstyle%3A%20inherit%3B%0A%7D%0Acode%20span%2Ekw%20%7B%0Acolor%3A%20%23003B4F%3B%0Afont%2Dstyle%3A%20inherit%3B%0A%7D%0A%2Eprevent%2Dinlining%20%7B%0Acontent%3A%20%22%3C%2F%22%3B%0A%7D%0A%0A" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script>/*!
   * Bootstrap v5.3.1 (https://getbootstrap.com/)
   * Copyright 2011-2023 The Bootstrap Authors (https://github.com/twbs/bootstrap/graphs/contributors)
@@ -3170,9 +3161,6 @@ body:not(.glightbox-mobile) div.gslide-description .gslide-desc {
 color: var(--quarto-body-color);
 background-color: var(--quarto-body-bg);
 }
-body:not(.glightbox-mobile) div.gslide-media {
-background-color: var(--quarto-body-bg);
-}
 .goverlay {
 background: rgba(0, 0, 0, 0.7);
 }
@@ -3194,7 +3182,7 @@ font-family: inherit;
     <div id="quarto-embed-header" class="headroom fixed-top bg-primary">
       
       <a onclick="window.quartoBackToArticle(); return false;" class="btn btn-primary quarto-back-link" href><i class="bi bi-caret-left"></i> Back to Article</a>
-      <h6><i class="bi bi-journal-code"></i> Generate auROC plot for <code>r params$model</code> models of training jobs from CHTC for <code>r params$study</code> study with version <code>r params$version</code> using <code>r params$cv</code> CV</h6>
+      <h6><i class="bi bi-journal-code"></i> Calibrated auROC</h6>
 
             <a href="../notebooks/auROC_plot.qmd" class="btn btn-primary quarto-download-embed" download="auROC_plot.qmd">Download Source</a>
           </div>
@@ -3202,7 +3190,7 @@ font-family: inherit;
      <header id="title-block-header" class="quarto-title-block default toc-left page-columns page-full">
   <div class="quarto-title-banner page-columns page-full">
     <div class="quarto-title column-body">
-      <h1 class="title">Generate auROC plot for main models of training jobs from CHTC for gps study with version v6 using nested_1_x_10_3_x_10 CV</h1>
+      <h1 class="title">Calibrated auROC</h1>
           </div>
 
     
@@ -3874,7 +3862,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
     }
   }
 });
-</script>  </div> <!-- /content -->  <script>var lightboxQuarto = GLightbox({"closeEffect":"zoom","loop":false,"descPosition":"bottom","selector":".lightbox","openEffect":"zoom"});
+</script>  </div> <!-- /content -->  <script>var lightboxQuarto = GLightbox({"closeEffect":"zoom","openEffect":"zoom","descPosition":"bottom","selector":".lightbox","loop":false});
 window.onload = () => {
   lightboxQuarto.on('slide_before_load', (data) => {
     const { slideIndex, slideNode, slideConfig, player, trigger } = data;
