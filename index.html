@@ -267,6 +267,7 @@ div.csl-indent {
   <li><a href="#conclusion" id="toc-conclusion" class="nav-link" data-scroll-target="#conclusion">Conclusion</a></li>
   </ul></li>
   <li><a href="#references" id="toc-references" class="nav-link" data-scroll-target="#references">References</a></li>
+  <li><a href="#tables-and-figures" id="toc-tables-and-figures" class="nav-link" data-scroll-target="#tables-and-figures">Tables and Figures</a></li>
   </ul>
 <div class="quarto-alternate-notebooks"><h2>Notebooks</h2><ul><li><a href="index-preview.html"><i class="bi bi-journal-code"></i>Article Notebook</a></li><li><a href="notebooks/shaps-preview.html"><i class="bi bi-journal-code"></i>SHAPs</a></li><li><a href="notebooks/fairness-preview.html"><i class="bi bi-journal-code"></i>Subgroup Analysis</a></li><li><a href="notebooks/auROC_distribution_posterior-preview.html"><i class="bi bi-journal-code"></i>Evaluate inner auROC for `r params$model` models of training jobs from CHTC for `r params$study` study with version `r params$version` using `r params$cv` CV</a></li><li><a href="notebooks/calibration_plot-preview.html"><i class="bi bi-journal-code"></i>Generate INNER calibration</a></li><li><a href="notebooks/auROC_plot-preview.html"><i class="bi bi-journal-code"></i>Generate auROC plot for `r params$model` models of training jobs from CHTC for `r params$study` study with version `r params$version` using `r params$cv` CV</a></li></ul></div></nav>
 </div>
@@ -548,6 +549,9 @@ Wyant, Kendra, Sarah June Kittleson Sant’Ana, Gaylen Fronk, and John J. Curtin
 </div>
 </div>
 <div style="page-break-after: always;"></div>
+</section>
+<section id="tables-and-figures" class="level2">
+<h2 class="anchored" data-anchor-id="tables-and-figures">Tables and Figures</h2>
 <!--************************************************************************-->
 <!-- Table 1: Eligibility Criteria-->
 <div id="tbl-elig" class="quarto-float anchored">
@@ -583,6 +587,9 @@ Table&nbsp;1: Eligibility criteria for study enrollment. **Personal or study-pro
 </div>
 </figure>
 </div>
+<br>
+<br>
+<br>
 <div style="page-break-after: always;"></div>
 <!--************************************************************************-->
 <!-- Table 2: Collected demographic information-->
@@ -1257,7 +1264,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 });
 </script>
 </div> <!-- /content -->
-<script>var lightboxQuarto = GLightbox({"openEffect":"zoom","loop":false,"descPosition":"bottom","selector":".lightbox","closeEffect":"zoom"});
+<script>var lightboxQuarto = GLightbox({"openEffect":"zoom","closeEffect":"zoom","descPosition":"bottom","loop":false,"selector":".lightbox"});
 window.onload = () => {
   lightboxQuarto.on('slide_before_load', (data) => {
     const { slideIndex, slideNode, slideConfig, player, trigger } = data;

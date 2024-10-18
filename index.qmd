@@ -585,6 +585,8 @@ This study demonstrates that it is feasible to predict lapse with a fair level o
 
 \newpage
 
+## Tables and Figures
+
 <!--************************************************************************-->
 <!-- Table 1: Eligibility Criteria-->
 
@@ -597,6 +599,12 @@ This study demonstrates that it is feasible to predict lapse with a fair level o
 | Willing to use only one smartphone\*\* while on study          |
 
 : Eligibility criteria for study enrollment. \*\*Personal or study-provided. {#tbl-elig}
+
+```{=html}
+<br>
+<br>
+<br>
+```
 
 \newpage
 
