@@ -604,6 +604,8 @@ This study demonstrates that it is feasible to predict lapse with a fair level o
 <br>
 <br>
 <br>
+<br>
+<br>
 ```
 
 \newpage
@@ -627,6 +629,14 @@ This study demonstrates that it is feasible to predict lapse with a fair level o
 
 : Demographic and relevant alcohol use history variables sampled at screening visit. {#tbl-demo-1}
 
+```{=html}
+<br>
+<br>
+<br>
+<br>
+<br>
+```
+
 \newpage
 
 <!--************************************************************************-->
@@ -644,12 +654,28 @@ This study demonstrates that it is feasible to predict lapse with a fair level o
 
 : Location information collected from frequently visited locations. {#tbl-context}
 
+```{=html}
+<br>
+<br>
+<br>
+<br>
+<br>
+```
+
 \newpage
 
 <!--************************************************************************-->
 <!-- Table 4: Demographic responses-->
 
 ![Demographic characteristics of the sample (N = 146).](objects/table.png){#tbl-demo-2}
+
+```{=html}
+<br>
+<br>
+<br>
+<br>
+<br>
+```
 
 \newpage
 
@@ -658,12 +684,28 @@ This study demonstrates that it is feasible to predict lapse with a fair level o
 
 {{< embed notebooks/auROC_distribution_posterior.qmd#fig-auroc-histogram >}}
 
+```{=html}
+<br>
+<br>
+<br>
+<br>
+<br>
+```
+
 \newpage
 
 <!--************************************************************************-->
 <!-- Figure 2: auROC posterior probability distribution-->
 
 {{< embed notebooks/auROC_distribution_posterior.qmd#fig-pp >}}
+
+```{=html}
+<br>
+<br>
+<br>
+<br>
+<br>
+```
 
 \newpage
 
@@ -672,12 +714,28 @@ This study demonstrates that it is feasible to predict lapse with a fair level o
 
 {{< embed notebooks/calibration_plot.qmd#fig-calibration >}}
 
+```{=html}
+<br>
+<br>
+<br>
+<br>
+<br>
+```
+
 \newpage
 
 <!--************************************************************************-->
 <!-- Figure 4: Calibrated auROC plot-->
 
 {{< embed notebooks/auROC_plot.qmd#fig-auroc-plot >}}
+
+```{=html}
+<br>
+<br>
+<br>
+<br>
+<br>
+```
 
 \newpage
 
@@ -686,9 +744,25 @@ This study demonstrates that it is feasible to predict lapse with a fair level o
 
 {{< embed notebooks/shaps.qmd#fig-shaps-group >}}
 
+```{=html}
+<br>
+<br>
+<br>
+<br>
+<br>
+```
+
 \newpage
 
 <!--************************************************************************-->
 <!-- Figure 6: Posterior probability distribution 95% credible intervals by subgroup-->
 
 {{< embed notebooks/fairness.qmd#fig-fairness-subgroups >}}
+
+```{=html}
+<br>
+<br>
+<br>
+<br>
+<br>
+```
