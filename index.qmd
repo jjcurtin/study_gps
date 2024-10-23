@@ -1,7 +1,6 @@
 ---
 title: Performance and Equity of Geolocation Data for Lapse Prediction in AUD
 author:
-    #  - Investigation
   - name: Claire Punturieri 
     email: punturieri@wisc.edu
     #orcid: 0009-0003-7743-3736
@@ -17,8 +16,8 @@ author:
       #- Project administration
       #- Software
       #- Visualization
-    #affiliations:
-      #- Department of Psychology, University of Wisconsin-Madison 
+    affiliations:
+      - Department of Psychology, University of Wisconsin-Madison 
 keywords:
   - Substance use disorders
   - Precision mental health 
@@ -153,6 +152,7 @@ Finally, Bayesian group comparisons were used in order to identify the likelihoo
 #| echo: false
 
 library(tidyverse)
+library(tidyposterior)
 library(janitor)
 library(kableExtra)
 
@@ -508,48 +508,49 @@ A total of 192 individuals were eligible to participate in the study, of which 1
 The average age of the final sample was 40.9 years (SD = 12 years, range = 21-72 years). There was an approximately equal number of men (n = 74, 50.7%) and women (n = 72, 49.3%). The majority of the sample was White/Caucasian (n = 127, 86.99%) and non-Hispanic (n = 142, n = 97%). The mean income of participants was \$34,408 (SD = \$32,259, range = \$0-\$200,000). On average, participants self-reported a mean number of 8.9 DSM-V symptoms of AUD (range = 4-11). A detailed breakdown of participant characteristics is presented in @tbl-demo-2.
 
 ```{r}
-# 
-# options(knitr.kable.NA = "—")
-# #options(knitr.table.format = "markdown")
-# 
-# 
-# footnote_table_dem_a <- "N = 146"
-# 
-# footnote_table_dem_b <- "Two participants reported 100 or more quit attempts. We removed these outliers prior"
-# 
-# footnote_table_dem_c <- "to calculating the mean (M), standard deviation (SD), and range."
-# 
-# dem  |>
-#   bind_rows(auh |>
-#               mutate(across(mean:max, ~round(.x, 1))) |>
-#               mutate(across(mean:max, ~as.character(.x)))) |>
-#   bind_rows(lapse_info |>
-#               mutate(across(mean:max, ~round(.x, 1))) |>
-#               mutate(across(mean:max, ~as.character(.x)))) |>
-#   mutate(range = str_c(min, "-", max)) |>
-#   select(-c(min, max)) |>
-#   kbl(longtable = TRUE,
-#       booktabs = TRUE,
-#       col.names = c("", "N", "%", "M", "SD", "Range"),
-#       align = c("l", "c", "c", "c", "c", "c"),
-#       digits = 1,
-#       caption = "Demographics and clinical characteristics") |>
-#   kable_styling(position = "l") |>
-#   row_spec(row = 0, align = "c", italic = TRUE) |>
-#   column_spec(column = 1, width = "18em") |>
-#   pack_rows("Sex", 2, 3, bold = FALSE) |>
-#   pack_rows("Race", 4, 8, bold = FALSE) |>
-#   pack_rows("Hispanic, Latino, or Spanish Origin", 9, 10, bold = FALSE) |>
-#   pack_rows("Education", 11, 16, bold = FALSE) |>
-#   pack_rows("Employment", 17, 25, bold = FALSE) |>
-#   pack_rows("Marital Status", 27, 31, bold = FALSE) |>
-#   pack_rows("Alcohol Use Disorder Milestones", 32, 35, bold = FALSE) |>
-#   pack_rows("Lifetime History of Treatment (Can choose more than 1)", 37, 43, bold = FALSE) |>
-#   pack_rows("Received Medication for Alcohol Use Disorder", 44, 45, bold = FALSE) |>
-#   pack_rows("Current (Past 3 Month) Drug Use", 47, 54, bold = FALSE) |>
-#   pack_rows("Reported 1 or More Lapse During Study Period", 55, 56, bold = FALSE) |>
-#   kableExtra::footnote(general = c(footnote_table_dem_a, footnote_table_dem_b, footnote_table_dem_c), escape=FALSE) |> 
-#   save_kable(file = "objects/table.png")
+
+options(knitr.kable.NA = "—")
+#options(knitr.table.format = "markdown")
+
+
+footnote_table_dem_a <- "N = 146"
+
+footnote_table_dem_b <- "Two participants reported 100 or more quit attempts. We removed these outliers prior"
+
+footnote_table_dem_c <- "to calculating the mean (M), standard deviation (SD), and range."
+
+dem_table <- dem  |>
+  bind_rows(auh |>
+              mutate(across(mean:max, ~round(.x, 1))) |>
+              mutate(across(mean:max, ~as.character(.x)))) |>
+  bind_rows(lapse_info |>
+              mutate(across(mean:max, ~round(.x, 1))) |>
+              mutate(across(mean:max, ~as.character(.x)))) |>
+  mutate(range = str_c(min, "-", max)) |>
+  select(-c(min, max)) |>
+  kbl(longtable = TRUE,
+      booktabs = TRUE,
+      col.names = c("", "N", "%", "M", "SD", "Range"),
+      align = c("l", "c", "c", "c", "c", "c"),
+      digits = 1,
+      caption = "Demographics and clinical characteristics") |>
+  kable_styling(position = "l") |>
+  row_spec(row = 0, align = "c", italic = TRUE) |>
+  column_spec(column = 1, width = "18em") |>
+  pack_rows("Sex", 2, 3, bold = FALSE) |>
+  pack_rows("Race", 4, 8, bold = FALSE) |>
+  pack_rows("Hispanic, Latino, or Spanish Origin", 9, 10, bold = FALSE) |>
+  pack_rows("Education", 11, 16, bold = FALSE) |>
+  pack_rows("Employment", 17, 25, bold = FALSE) |>
+  pack_rows("Marital Status", 27, 31, bold = FALSE) |>
+  pack_rows("Alcohol Use Disorder Milestones", 32, 35, bold = FALSE) |>
+  pack_rows("Lifetime History of Treatment (Can choose more than 1)", 37, 43, bold = FALSE) |>
+  pack_rows("Received Medication for Alcohol Use Disorder", 44, 45, bold = FALSE) |>
+  pack_rows("Current (Past 3 Month) Drug Use", 47, 54, bold = FALSE) |>
+  pack_rows("Reported 1 or More Lapse During Study Period", 55, 56, bold = FALSE) |>
+  kableExtra::footnote(general = c(footnote_table_dem_a, footnote_table_dem_b, footnote_table_dem_c), escape=FALSE)
+
+dem_table |> save_kable(file = "objects/table.png")
 ```
 
 ### Model Evaluation
@@ -558,7 +559,7 @@ We selected and evaluated the best performing XGBoost model across all 300 valid
 
 The median auROC over all validation sets was `r sprintf("%1.3f", probs |> pull(roc_auc) |> median())`. This indicates that the model correctly assigns a higher probability of lapse to a positive case (rather than a negative case) `r sprintf("%1.3f", probs |> pull(roc_auc) |> median())` of the time. @fig-auroc-histogram displays a histogram of model performance distribution and @fig-auroc-plot displays a receiver operating characteristic curve representing aggregate predicted lapse probabilities across all folds. <!--ROC curve should be earlier when you are still focusing on auROC.  Maybe along with the histograms to characteristic the validation data.--><!--CP: better here?-->
 
-Posterior probability distributions for the auROCs for our best performing validation set model were then used to formally characterize model performance. The median auROC was `r sprintf("%1.3f", pp_tidy$median)` (95% CI [`r sprintf("%1.2f", pp_tidy$lower)`-`r sprintf("%1.2f", pp_tidy$upper)`]) with a probability of `r sprintf("%1.3f", pp_tidy |> summarize(prob = mean(posterior > .5)) )` that the model is performing above chance (i.e., auROC \> .5; @fig-pp).
+Posterior probability distributions for the auROCs for our best performing validation set model were then used to formally characterize model performance. The median auROC was `r sprintf("%1.3f", pp_tidy$median)` (95% CI [`r sprintf("%1.2f", pp_tidy$lower)`-`r sprintf("%1.2f", pp_tidy$upper)`]) with a probability of `r sprintf("%1.3f", pp_tidy |> summarize(prob = mean(median > .5)) )` that the model is performing above chance (i.e., auROC \> .5; @fig-pp). <!--CP: note to self to fix this pp tidy object -->
 
 Additionally, model calibration was performed in order to improve our trust in model predictions because XGBoost is not a probabilistic model. Results of model calibration are displayed in @fig-calibration, showing that this model *over* predicts lapse probability even after calibrating the model. In other words, our model is more likely to predict that an individual will lapse than the true observed rate of lapse in our sample. Despite this, calibrated probabilities are ordinal and sufficiently linear, suggesting that these scores may be useful for relative risk comparisons but not for exact lapse probabilities. <!--CP: added suggested expansion, not sure if I should port it down to the discussion section-->
 
@@ -706,7 +707,20 @@ This study demonstrates that it is feasible to predict lapse with a fair level o
 <!-- Table 4: Demographic responses-->
 ### Table 4: Demographic responses
 
+::: {.content-visible when-format="docx"}
+
 ![Demographic characteristics of the sample (N = 146).](objects/table.png){#tbl-demo-2}
+
+:::
+
+::: {.content-visible unless-format="docx"}
+
+```{r}
+#dem_table
+```
+
+:::
+
 
 ```{=html}
 <br>
@@ -721,6 +735,8 @@ This study demonstrates that it is feasible to predict lapse with a fair level o
 <!--************************************************************************-->
 <!-- Figure 1: auROC histogram-->
 ### Figure 1: auROC histogram
+
+Maybe add other div for when output is latex/pdf
 
 {{< embed notebooks/auROC_distribution_posterior.qmd#fig-auroc-histogram >}}
 
