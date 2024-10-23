@@ -703,19 +703,7 @@ This study demonstrates that it is feasible to predict lapse with a fair level o
 <!-- Table 4: Demographic responses-->
 ### Table 4: Demographic responses
 
-::: {.content-visible when-format="docx"}
-
 ![Demographic characteristics of the sample (N = 146).](objects/table.png){#tbl-demo-2}
-
-:::
-
-::: {.content-visible unless-format="docx"}
-
-```{r}
-#dem_table
-```
-
-:::
 
 
 ```{=html}
@@ -731,8 +719,6 @@ This study demonstrates that it is feasible to predict lapse with a fair level o
 <!--************************************************************************-->
 <!-- Figure 1: auROC histogram-->
 ### Figure 1: auROC histogram
-
-Maybe add other div for when output is latex/pdf
 
 {{< embed notebooks/auROC_distribution_posterior.qmd#fig-auroc-histogram >}}
 
