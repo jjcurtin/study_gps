@@ -163,7 +163,7 @@ pp_tidy <-  read_csv(here::here("objects", "pp_tidy.csv"),
 
 q <- c(0.025, 0.5, 0.975)
       
-pp_tidy <- pp_tidy |> 
+pp_tidy_sum <- pp_tidy |> 
   group_by(model) |> 
   summarize(median = quantile(posterior, probs = q[2]),
             lower = quantile(posterior, probs = q[1]), 
@@ -553,7 +553,7 @@ We selected and evaluated the best performing XGBoost model across all 300 valid
 
 The median auROC over all validation sets was `r sprintf("%1.3f", probs |> pull(roc_auc) |> median())`. This indicates that the model correctly assigns a higher probability of lapse to a positive case (rather than a negative case) `r sprintf("%1.3f", probs |> pull(roc_auc) |> median())` of the time. @fig-auroc-histogram displays a histogram of model performance distribution and @fig-auroc-plot displays a receiver operating characteristic curve representing aggregate predicted lapse probabilities across all folds. <!--ROC curve should be earlier when you are still focusing on auROC.  Maybe along with the histograms to characteristic the validation data.--><!--CP: better here?-->
 
-Posterior probability distributions for the auROCs for our best performing validation set model were then used to formally characterize model performance. The median auROC was `r sprintf("%1.3f", pp_tidy$median)` (95% CI [`r sprintf("%1.2f", pp_tidy$lower)`-`r sprintf("%1.2f", pp_tidy$upper)`]) with a probability of `r sprintf("%1.3f", pp_tidy |> summarize(prob = mean(median > .5)) )` that the model is performing above chance (i.e., auROC \> .5; @fig-pp). <!--CP: note to self to fix this pp tidy object, this gets the correct result but should actually be pulling the mean from all posteriors -->
+Posterior probability distributions for the auROCs for our best performing validation set model were then used to formally characterize model performance. The median auROC was `r sprintf("%1.3f", pp_tidy_sum$median)` (95% CI [`r sprintf("%1.2f", pp_tidy_sum$lower)`-`r sprintf("%1.2f", pp_tidy_sum$upper)`]) with a probability of `r sprintf("%1.3f", pp_tidy |> summarize(prob = mean(posterior > .5)) )` that the model is performing above chance (i.e., auROC \> .5; @fig-pp).
 
 Additionally, model calibration was performed in order to improve our trust in model predictions because XGBoost is not a probabilistic model. Results of model calibration are displayed in @fig-calibration, showing that this model *over* predicts lapse probability even after calibrating the model. In other words, our model is more likely to predict that an individual will lapse than the true observed rate of lapse in our sample. Despite this, calibrated probabilities are ordinal and sufficiently linear, suggesting that these scores may be useful for relative risk comparisons but not for exact lapse probabilities. <!--CP: added suggested expansion, not sure if I should port it down to the discussion section-->
 
@@ -704,7 +704,6 @@ This study demonstrates that it is feasible to predict lapse with a fair level o
 ### Table 4: Demographic responses
 
 ![Demographic characteristics of the sample (N = 146).](objects/table.png){#tbl-demo-2}
-
 
 ```{=html}
 <br>
