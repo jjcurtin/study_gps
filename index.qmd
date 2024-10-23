@@ -167,7 +167,8 @@ pp_tidy_sum <- pp_tidy |>
   group_by(model) |> 
   summarize(median = quantile(posterior, probs = q[2]),
             lower = quantile(posterior, probs = q[1]), 
-            upper = quantile(posterior, probs = q[3]))
+            upper = quantile(posterior, probs = q[3])) |> 
+  ungroup()
 
 pp_race_con <-  read_csv(here::here("objects", "pp_race_con.csv"),
                      show_col_types = FALSE) 
