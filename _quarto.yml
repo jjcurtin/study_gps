@@ -8,12 +8,8 @@ manuscript:
 format:
   html: default
   docx: default
-  apaish-manuscript-typst: default
-#  apaish-document-typst: default
-#  apaish-journal-typst: default
-#  pdf: default
-#  jats: default
-
+  apaish-typst: 
+    documentmode: man
 execute:
   freeze: auto 
 
