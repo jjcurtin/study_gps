@@ -128,29 +128,41 @@ if(file.exists(here::here(path_gps, "per-subj-geo.pdf"))){
 Create gifs displaying participant movement during study duration. Note: this takes a *long* time to run -- recommend subsetting data for a particular subject as opposed to generating map for entire duration on study.
 
 ```{r}
+gps <- read_csv(file.choose()) |>
+  janitor::clean_names() |> 
+  rename(lon = lng,
+         time = date) |> 
+  mutate(name = "claire",
+         time = ymd_hms(time))
+```
+
+```{r}
 #| eval: false
 #| label: Dynamic subject maps
 
-gps_mini <- gps |> filter(subid == "1" & time < "2017-03-02 16:07:24")
+#gps_mini <- gps |> filter(subid == "1" & time < "2017-03-02 16:07:24")
 
-gps_mini <- gps_mini[!duplicated(gps_mini$time),]
+#gps_mini <- gps_mini[!duplicated(gps_mini$time),]
 
-gps_mini_moves <- df2move(gps_mini,
+gps <- gps |> head(150)
+
+gps_moves <- df2move(gps,
         proj = "+init=epsg:4326 +proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0", 
-        x = "lon", y = "lat", time = "time", track_id = "subid")
+        x = "lon", y = "lat", time = "time", track_id = "name")
 
 # align move_data to a uniform time scale
-m <- align_move(gps_mini_moves, res = 4, unit = "mins")
+m <- align_move(gps_moves, res = 8, unit = "mins")
 
 
 frames <- frames_spatial(m, path_colours = c("darkred"),
                          map_service = "osm", map_type = "streets",
-                         alpha = 0.5) |>  
+                         alpha = 0.5, path_legend = FALSE) |>  
   add_labels(x = "Longitude", y = "Latitude") |>
   add_northarrow() |>  
   add_scalebar() |> 
   add_timestamps(type = "label") |>  
   add_progress()
+  
 
 frames[[10]] # preview frame
 
