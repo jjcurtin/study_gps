@@ -1,0 +1,32 @@
+---
+title: "Abstracts 2024"
+---
+
+# SOBP - Limit 250 words
+
+## Title: Performance and Equity of Geolocation Data for Lapse Prediction in Alcohol Use Disorder
+
+## Authors: Claire E. Punturieri, Susan Wanta, John J. Curtin
+> who else should be in here? :)
+
+Total: 249/250 words
+
+## Background (58 words)
+> think this needs a better, punchier opening sentence. sentence about fairness in intro? kind of short on space.
+
+Alcohol Use Disorder (AUD) is a chronic, relapsing condition. Anticipating precursors to lapses, or discrete events of goal-inconsistent use that precede a relapse, can be difficult for individuals in recovery. Moreover, these precursors vary between and within people. Machine learning techniques can be leveraged to predict and understand alcohol lapse in order to provide continued monitoring and support.
+
+## Methods (82 words)
+
+One hundred and forty-six participants (male=50.7%; mean age=40.9; white=87%, non-Hispanic=97.3%) in early recovery (1–8 weeks of abstinence) provided continuous geolocation data for three months. An XGBoost algorithm was trained to predict next-day alcohol lapse from geolocation data. A Bayesian hierarchical generalized linear model estimated posterior probability distributions of area under the receiver operating characteristic (auROC) curve. Shapley values were computed to evaluate global importance of each feature category. Posterior probability distributions of auROCs were evaluated across race, sex, age, and income.
+
+## Results (62 words)
+
+The median auROC was 0.714 (95% CI [0.70-0.73]). Shapley values revealed three important features: time spent at risky locations, time spent across location types, and time spent at locations with varying levels of alcohol availability. Differential model performance was identified (probability >.95), such that auROCs were lower for non-white (range=0.027-0.084), female (range=0.013-0.060), older participants (range=0.079-0.133), and those below the poverty line (range=0.033-0.078).
+
+## Conclusions (47 words)
+
+Geolocation data are able to predict next-day alcohol lapse at a fair level of performance, though not equally across demographic subgroups. This study represents foundational work exploring the predictive signal and fairness of this model for integration into a monitoring and support system for individuals in recovery.
+
+
+# CPA
