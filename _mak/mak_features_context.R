@@ -3,6 +3,7 @@
 # Constants
 dist_max <- 0.031   # only use context if places are within 50 meters (0.031 miles)
 window <- "1day"  #window for calculating labels
+roll_dur <- "day"
 
 devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true", 
                      sha1 = "a58e57da996d1b70bb9a5b58241325d6fd78890f")
@@ -46,7 +47,7 @@ data <- read_csv(here::here(path_gps, "gps_enriched.csv.xz"), show_col_types = F
                                    # this may change when need to figure out total duration
                                    # of observations in window in future
 
-labels <- read_csv(here::here(path_gps, "labels.csv"), show_col_types = FALSE) |>
+labels <- read_csv(here::here(path_gps, str_c("labels_", roll_dur, ".csv")), show_col_types = FALSE) |>
   # dttm_label represents label ONSET, required for score_ratesum function
   mutate(dttm_label = with_tz(day_start, tz = "America/Chicago"),
          day_end = with_tz(day_end, tz = "America/Chicago")) #|>  
@@ -234,4 +235,4 @@ features |>
   mutate(lapse = labels$lapse,
          label_num = 1:nrow(features)) |>  
   relocate(label_num, subid, dttm_label, lapse) |>
-  write_csv(here::here(path_gps, "features.csv"))
+  write_csv(here::here(path_gps, str_c("features_", roll_dur, ".csv")))

@@ -9,6 +9,8 @@ format:
     embed-resources: true
 editor_options: 
   chunk_output_type: console
+params:
+  roll_dur: "day"
 ---
 
 ## Code Status
@@ -107,7 +109,7 @@ labels <- study_dates |>
   rowwise() |>
   mutate(day_start = list(seq.POSIXt(study_start + days(1), study_end - days(1), by = "day"))) |> 
   unnest(day_start) |>
-  mutate(day_start = update(day_start, hour = 4, minute = 0)) |> 
+  mutate(day_start = update(day_start, hour = 4, minute = 0)) |> # make conditional, only for day level
   select(subid, day_start) |> 
   glimpse()
 
@@ -221,6 +223,6 @@ labels |>
 
 ```{r}
 labels |> 
-  write_csv(here(path_gps, "labels.csv")) |> 
+  write_csv(here(path_gps, str_c("labels_", params$roll_dur, ".csv"))) |> 
   glimpse()
 ```
