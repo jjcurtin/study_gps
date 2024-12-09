@@ -15,11 +15,15 @@ params:
 
 ## Code Status
 
-Complete and up to current lab practices as of 09/2024.
+Complete and up to current lab practices as of 012/2024.
 
 ## Notes
 
-Cleaning criteria:
+For HOUR ROLLS, the EMA lapse (`lapses.csv`) file was used.
+
+For DAY ROLLS, a day-level file (created by Coco and Claire, `lapses_day.csv`) was used.
+
+Cleaning criteria FOR DAY ROLLS:
 
 - Lapses longer than 24 hours were deemed unfeasible and were excluded
 - Lapses of a negative duration were inverted, unless they were longer than
@@ -29,7 +33,7 @@ collected during interviews or otherwise had unreliable times were retained (e.g
 trust that participants were accurate about the day they lapsed, even if retrospective
 hours of lapse might not be accurate)
 
-Special cases:
+Special cases FOR DAY ROLLS:
 
 - `lapse_start` for subid 213 was manually changed from one recorded lapse of ~150 hours
 to a week of successive lapses. The EMA identification label from this once instance of reporting
@@ -71,32 +75,14 @@ options(tibble.width = Inf, dplyr.print_max = Inf)
 
 ## Read in data
 
-
-add this to make study dates script
-
-ema <- vroom(here(path_processed, "ema_morning.csv"), col_types = vroom::cols()) %>% 
-    select(subid, start_date) %>%  
-  bind_rows(vroom(here(path_processed, "ema_later.csv"), col_types = vroom::cols()) %>% 
-    select(subid, start_date)) %>% 
-  mutate(subid = as.numeric(subid),
-         start_date = with_tz(start_date, tzone = "America/Chicago")) %>% 
-  rename(ema_end = start_date) %>% 
-  arrange(subid, desc(ema_end)) %>% 
-  group_by(subid) %>% 
-  slice(1) %>% 
-  glimpse
-
-
-
-
 Read in study_dates file specific to study_gps (lists start and end of data).
 ```{r}
 study_dates <- read_csv(here::here(path_gps, "study_dates.csv"),
                         col_types = cols(subid = "d", study_start = "c", 
                                          study_end = "c")) |> 
   mutate(study_start = as_datetime(study_start, tz = "America/Chicago"),
-         study_end = as_datetime(study_end, tz = "America/Chicago")) |> 
-  select(subid, study_start, study_end) |>
+         study_end = as_datetime(study_end, tz = "America/Chicago"),
+         ema_end = with_tz(ema_end, "America/Chicago")) |> 
   glimpse()
 ```
 
@@ -135,20 +121,27 @@ be able to predict on their last day, too. Is that meaningful?
 if (params$roll_dur == "day"){
   labels <- study_dates |> 
     rowwise() |>
-    mutate(day_start = list(seq.POSIXt(study_start + days(1), study_end - days(1), by = "day"))) |> 
+    #mutate(day_start = list(seq.POSIXt(study_start + days(1), study_end - days(1), by = "day"))) |> 
+    mutate(end = min(study_end, ema_end),
+           day_start = list(seq.POSIXt(study_start + days(1), end - days(1), by = "day"))) |> 
     unnest(day_start) |>
     mutate(day_start = update(day_start, hour = 4, minute = 0)) |>
     select(subid, day_start) 
+  
 } else {
   
- source(here::here("../proj_risk/shared/fun_local.R"))  # will need for ema paper function for hour rolls
- #add ema_end to study_dates
- study_dates <- study_dates |> 
-   left_join(lapses |> select(subid, ema_end), by = "subid") |> view()
- labels <- study_dates$subid |>  
-  map(\(subid) get_lapse_labels(subid, lapses, study_dates, 
+  source(here::here("../analysis_risk/shared/fun_local.R"))  # will need for ema paper function for hour rolls
+
+  labels <- study_dates$subid |>  
+   map(\(subid) get_lapse_labels(subid, lapses, study_dates, 
                                     buffer_start = 60 * 60 * 24, window_dur = 86400)) |>  
-   list_rbind()
+    list_rbind()
+  
+  # reformat labels
+  labels <- bind_labels(labels) |> 
+    rename(lapse = label) |>  
+    mutate(lapse = if_else(lapse == "lapse", "lapse", "no lapse")) |>  
+    arrange(subid, dttm_label)
 }
 
 # use to check to make sure individual labels look accurate for subs w filtered dates
@@ -157,66 +150,71 @@ if (params$roll_dur == "day"){
 
 If `lapse_start_time` is NA, `lapse_start` will be NA (even if `lapse_start_date` exists).
 This chunk fills in missing values with proxy end dates and times and sets all to
-America/Chicago time zone.
+America/Chicago time zone. This is relevant ONLY for the day model.
 ```{r}
-lapses <- lapses |> 
-  mutate(
-    lapse_end_date = if_else(is.na(lapse_end_date),
-                             format(mdy(lapse_start_date) + days(1), "%m/%d/%Y"),
-                             lapse_end_date),
-    lapse_start_time = if_else(is.na(lapse_start_time), "20:00", lapse_start_time),
-    lapse_end_time = if_else(is.na(lapse_end_time), "2:00", lapse_end_time),
-    lapse_start = mdy_hm(paste(lapse_start_date, lapse_start_time)),
-    lapse_start = force_tz(lapse_start, tzone = ema_1_6),
-    lapse_start = as_datetime(lapse_start, tz = "America/Chicago"),
-    lapse_end = mdy_hm(paste(lapse_end_date, lapse_end_time)),
-    lapse_end = force_tz(lapse_end, tzone = ema_1_6),
-    lapse_end = as_datetime(lapse_end, tz = "America/Chicago")
-    ) |> 
-  glimpse()
+if (params$roll_dur == "day"){
+  lapses <- lapses |> 
+    mutate(
+      lapse_end_date = if_else(is.na(lapse_end_date),
+                              format(mdy(lapse_start_date) + days(1), "%m/%d/%Y"),
+                              lapse_end_date),
+      lapse_start_time = if_else(is.na(lapse_start_time), "20:00", lapse_start_time),
+      lapse_end_time = if_else(is.na(lapse_end_time), "2:00", lapse_end_time),
+      lapse_start = mdy_hm(paste(lapse_start_date, lapse_start_time)),
+      lapse_start = force_tz(lapse_start, tzone = ema_1_6),
+      lapse_start = as_datetime(lapse_start, tz = "America/Chicago"),
+      lapse_end = mdy_hm(paste(lapse_end_date, lapse_end_time)),
+      lapse_end = force_tz(lapse_end, tzone = ema_1_6),
+      lapse_end = as_datetime(lapse_end, tz = "America/Chicago")
+      ) |> glimpse()
 
 any(is.na(lapses$lapse_start))
 any(is.na(lapses$lapse_end))
+
+}
 ```
 
-Merge lapses and labels dataframe.
+Merge lapses and labels dataframe. Again, ONLY relevant for day model because
 ```{r}
-# initiate blank lapse column
-labels <- labels |> 
-  mutate(day_end = day_start + days(1) - seconds(1),
-         lapse = NA)
-
-lapses_valid <- lapses |> 
-  filter(exclude == "FALSE") |> 
-  filter(!is.na(lapse_start))
-
-for (i in 1:nrow(lapses_valid)){
+if (params$roll_dur == "day"){
+  # initiate blank lapse column
   labels <- labels |> 
-    mutate(lapse = if_else(subid == lapses_valid$subid[i] &
-                             day_start <= lapses_valid$lapse_start[i] &
-                             day_end >= lapses_valid$lapse_start[i],
-                           "lapse", lapse))
-}
-
-lapses_exclude <- lapses |> 
-  filter(exclude == "TRUE") |> 
-  filter(!is.na(lapse_start))
-
-for (i in 1:nrow(lapses_exclude)){
+    mutate(day_end = day_start + days(1) - seconds(1),
+           lapse = NA)
+  
+  lapses_valid <- lapses |> 
+    filter(exclude == "FALSE") |> 
+    filter(!is.na(lapse_start))
+  
+  for (i in 1:nrow(lapses_valid)){
+    labels <- labels |> 
+      mutate(lapse = if_else(subid == lapses_valid$subid[i] &
+                               day_start <= lapses_valid$lapse_start[i] &
+                               day_end >= lapses_valid$lapse_start[i],
+                             "lapse", lapse))
+  }
+  
+  lapses_exclude <- lapses |> 
+    filter(exclude == "TRUE") |> 
+    filter(!is.na(lapse_start))
+  
+  for (i in 1:nrow(lapses_exclude)){
+    labels <- labels |> 
+      mutate(lapse = if_else(subid == lapses_exclude$subid[i] &
+                               day_start <= lapses_exclude$lapse_start[i] &
+                               day_end >= lapses_exclude$lapse_start[i],
+                             "exclude", lapse),
+             lapse = if_else(subid == lapses_exclude$subid[i] &
+                               day_start <= lapses_exclude$lapse_end[i] &
+                               day_end >= lapses_exclude$lapse_end[i],
+                             "exclude", lapse))
+  }
+  
   labels <- labels |> 
-    mutate(lapse = if_else(subid == lapses_exclude$subid[i] &
-                             day_start <= lapses_exclude$lapse_start[i] &
-                             day_end >= lapses_exclude$lapse_start[i],
-                           "exclude", lapse),
-           lapse = if_else(subid == lapses_exclude$subid[i] &
-                             day_start <= lapses_exclude$lapse_end[i] &
-                             day_end >= lapses_exclude$lapse_end[i],
-                           "exclude", lapse))
-}
+    mutate(lapse = if_else(is.na(lapse), "no lapse", lapse)) |> 
+    filter(lapse != "exclude")
 
-labels <- labels |> 
-  mutate(lapse = if_else(is.na(lapse), "no lapse", lapse)) |> 
-  filter(lapse != "exclude")
+}
 ```
 
 ## EDA
@@ -248,19 +246,10 @@ labels |>
   hist(breaks = 30)
 ```
 
-```{r}
-labels |>
-  group_by(subid) |> 
-  mutate(total = n(),
-         positive = count(lapse == "lapse")) |>
-  head()
-  hist()
-```
-
 ## Write-out csv
 
 ```{r}
 labels |> 
-  write_csv(here(path_gps, str_c("labels_", params$roll_dur, ".csv"))) |> 
+  write_csv(here::here(path_gps, str_c("labels_", params$roll_dur, ".csv"))) |> 
   glimpse()
 ```
