@@ -26,7 +26,7 @@ suppressPackageStartupMessages({
 #job_stop <- as.numeric(args[2])
 
 # read in data
-# CP: instead of reaading in this file, I will change this so that the file is created here
+# CP: instead of reading in this file, I will change this so that the file is created here
 # just leaving at as this for now while I am testing out code
 data <- read_csv(here::here(path_gps, "gps_enriched.csv.xz"), show_col_types = FALSE) |>
   # variable conversions

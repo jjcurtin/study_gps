@@ -8,24 +8,26 @@
 # v5: recalculate preliminary context features (location variance, time in transit, time spent out of the house in the evening)
 
 # Batches done:
-# xgboost all context features v1
-# glmnet all context features v1
-# xgboost all context features v2
-# xgboost raw and diff context features v3
-# xgboost affective + context features, raw and diff v4
-# xgboost recalculate affective and context features, raw and diff v5
+# xgboost all context features (v1)
+# glmnet all context features (v1)
+# xgboost all context features (v2)
+# xgboost raw and diff context features (v3)
+# xgboost affective + context features, raw and diff (v4)
+# xgboost recalculate affective and context features, raw and diff (v5)
 
 # Batches to do:
+# xgboost same v5 features but with hour roll (v6)
 
 
 # SET GLOBAL PARAMETERS--------------------
 study <- "gps"
 window <- "1day"
 lead <- 0
-version <- "v5" 
+version <- "v6" 
 algorithm <- "xgboost"
 model <- "main"
 
+# in the future: change these names to match new naming conventions
 feature_set <- c("context_affect_rawdiff") # GPS feature set name
 data_trn <- str_c("features_affect_context.csv")
 
