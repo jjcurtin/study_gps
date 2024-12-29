@@ -5,33 +5,87 @@ dist_max <- 0.031 # tolerance threshold for how far someone can be for know loca
 window <- "day"  #window for calculating labels
 roll_dur <- 1 # 1 24
 labels_version <- "v1" # corresponds to lapse labels version
-sample <- gps
-
-devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true",
-                     sha1 = "a58e57da996d1b70bb9a5b58241325d6fd78890f")
-
-path_gps <- format_path("studydata/risk/data_processed/gps")
+version <- "v1" # corresponds to version of mak_jobs script
+sample <- "gps"
 
 suppressPackageStartupMessages({
   library(dplyr)
   library(lubridate)
   library(readr)
   library(foreach)
-  source("../proj_risk/shared/fun_features.R")
+  source("fun_features.R")
 })
+
+# location variance scoring function
+score_location_variance <- function(the_subid, the_dttm_label, x_all, 
+                                    period_durations, data_start, 
+                                    lat, lon) {
+  
+  # Gets value for col_name and returns a raw variance and a variance change
+  
+  # the_subid: single integer subid
+  # the_dttm_label: single dttm for label onset
+  # x_all:  raw data for all subids and communications
+  # period_durations: vector of 1+ integer period_durations in hours
+  # data_start: a df with data_start = min(study_start, comm_start) for all subids
+  # col_name: column name for raw data for feature as string - should be continuous var
+  
+  # filter down to when stationary
+  data <- data |> filter(transit == FALSE)
+  
+  # define period_var function
+  period_var <- function (.x) {
+    if (length(.x) > 0) { 
+      if (!all(is.na(.x))) {
+        the_var <- var(.x, na.rm = TRUE)
+      } else the_var <- NA
+    } else the_var <- NA
+    
+    return(the_var)
+  }
+  
+  # get baseline variance using all data before label dttm
+  baseline <- data %>% 
+    get_x_period(the_subid, the_dttm_label, x_all = ., lead, period_duration = Inf) %>% # Inf gives all data back to first obs
+    #summarise("base" := period_var(.data[[col_name]])) %>% # base_lat, base lon, then add together and take log
+    #summarise("base" := log10(period_var(.data[[lat]]) + period_var(.data[[lon]]) + 1)) %>%
+    summarise("base" := log10(period_var(lat) + period_var(lon) + 1)) %>%
+    pull(base)
+  
+  features <- foreach (period_duration = period_durations, .combine = "cbind") %do% {
+    
+    raw <- data %>%
+      get_x_period(the_subid, the_dttm_label, ., lead, period_duration) %>% 
+      #summarise("raw" := log10(period_var(.data[[lat]]) + period_var(.data[[lon]]) + 1)) %>% # raw_lat, raw_lon, add together
+      summarise("raw" := log10(period_var(lat) + period_var(lon) + 1)) %>%
+      pull(raw)
+    
+    tibble(
+      "p{period_duration}.rvar_location" := raw,
+      "p{period_duration}.dvar_location" := raw - baseline) |> 
+      #"{data_type_value}.p{period_duration}.pvar_{col_name}" := (raw - baseline) / baseline) %>% 
+      rename_with(~str_remove_all(.x, ".NA")) %>% 
+      rename_with(~str_remove(.x, "^NA."))
+  }
+  
+  features <- features %>%
+    mutate(subid = the_subid,
+           dttm_label = the_dttm_label) %>%
+    relocate(subid, dttm_label)
+  
+  return(features)
+}
 
 # get chtc process num
 args <- commandArgs(trailingOnly = TRUE)
-job_start <- 2001
-job_stop <- 2002
+#job_start <- 2001
+#job_stop <- 2002
 job_start <- as.numeric(args[1]) # CHTC arg starts at 1 because using passed in row numbers
 job_stop <- as.numeric(args[2])
 
 # Read in data
 
-### MAYBE need to change something here because the mak_jobs script might rename some things
-
-data <- read_csv(here::here(path_gps, "gps_enriched.csv.xz"), show_col_types = FALSE) |>
+data <- read_csv("gps.csv.xz", show_col_types = FALSE) |>
   # variable conversions
   mutate(time = with_tz(time, tz = "America/Chicago"),
          dist = dist / 1609.344,
@@ -39,33 +93,40 @@ data <- read_csv(here::here(path_gps, "gps_enriched.csv.xz"), show_col_types = F
          speed = dist / duration,
          dist_context = dist_context / 1609.344) |>
   rename(dttm_obs = time) |>
-  # filtering, see: eda_places
   mutate(duration = if_else(dist > 0.01 & duration == 0, NA_real_, duration),
          duration = if_else(speed > 100, NA_real_, duration),
          duration = if_else(duration > 2 & dist > 0.31, NA_real_, duration),
          duration = if_else(duration > 24, 24, duration),
          known_loc = if_else(dist_context <= dist_max & speed <= 4, TRUE, FALSE),
-         known_loc = if_else(is.na(known_loc), FALSE, known_loc))
+         known_loc = if_else(is.na(known_loc), FALSE, known_loc),
+         transit = if_else(speed <= 4, FALSE, TRUE),
+         home = if_else(type == "home", TRUE, FALSE),
+         evening_out = if_else((as.numeric(hour(dttm_obs)) >= 19 | as.numeric(hour(dttm_obs)) < 4)
+                               & home == FALSE,
+                               TRUE, FALSE))
 
-labels <- read_csv(here::here(path_study, str_c("labels_", sample, "_",
-                                                window, "_",
-                                                roll_dur, "hour", "_",
-                                                labels_version, ".csv")),
-                   show_col_types = FALSE) |>
-  # dttm_label represents label ONSET, required for score_ratesum function
-  mutate(dttm_label = with_tz(day_start, tz = "America/Chicago"),
+labels <- read_csv("labels.csv",
+                   show_col_types = FALSE)
+
+if (roll_dur == 24) {
+  labels <- labels |> mutate(dttm_label = with_tz(day_start, tz = "America/Chicago"),
          day_end = with_tz(day_end, tz = "America/Chicago")) |>
-  # uncommented this, but do we need? think we said just run it as one big job
   slice(job_start:job_stop) |>
   mutate(label_num = seq(job_start, job_stop, by = 1))
+}
+if (roll_dur == 1) {
+  labels <- labels |> mutate(dttm_label = with_tz(dttm_label, tz = "America/Chicago")) |>
+  slice(job_start:job_stop) |>
+  mutate(label_num = seq(job_start, job_stop, by = 1))
+}
 
-dates <- read_csv(here::here(path_gps, "study_dates.csv"), show_col_types = FALSE)  |>
+dates <- read_csv("study_dates.csv", show_col_types = FALSE)  |>
   select(subid, data_start = study_start) |>
   mutate(data_start = with_tz(data_start, tz = "America/Chicago"))
 
 # Initialize period durations and lead hours ------------------
 period_durations <- c(6, 12, 24, 48, 72, 168)
-lead <-  0
+lead <- 0
 
 # Make features ------------------
 # CP: iterates through each subject by label. each feature_row represents
@@ -79,29 +140,24 @@ lead <-  0
 # pratecount: percent change between rate in period and rate across all data
 
 #labels <- labels |>
-#slice_head(n = 100)
+  #slice_head(n = 100)
 
 #i_label <- 1   # for testing
 
-cl <- parallel::makePSOCKcluster(parallel::detectCores(logical = FALSE))
-doParallel::registerDoParallel(cl)
-
 features <- foreach (i_label = 1:nrow(labels),
-                     .combine = "rbind",
-                     .packages = c("dplyr", "foreach", "lubridate", "stringr")) %dopar% {
+                     .combine = "rbind") %do% {
 
                        # for (the_label_num in job_start:job_stop) {
                        label <- labels |> slice(i_label)
                        subid <- label$subid
                        dttm_label <-  label$dttm_label
-                       #the_label_num <- label$label_num
+                       the_label_num <- label$label_num
 
                        # CONTEXT ---
 
                        # type
                        feature_row <- score_ratesum(subid,
                                                     dttm_label,
-                                                    # need to test that this filtering works
                                                     x_all  = (data |> filter(known_loc == TRUE)),
                                                     period_durations = period_durations,
                                                     lead = lead,
@@ -190,17 +246,17 @@ features <- foreach (i_label = 1:nrow(labels),
 
                        # transition time
                        # amount of time in non-stationary state
-                       # change to 4mph speed filter
                        feature_row <- feature_row |>
-                         score_ratesum(subid,
+                         full_join(score_ratesum(subid,
                                        dttm_label,
                                        x_all  = data,
-                                                    period_durations = period_durations,
-                                                    lead = lead,
-                                                    data_start = dates,
-                                                    col_name = "duration",
-                                                    context_col_name = "transit",
-                                                    context_values = c(TRUE, FALSE))
+                                       period_durations = period_durations,
+                                       lead = lead,
+                                       data_start = dates,
+                                       col_name = "duration",
+                                       context_col_name = "transit",
+                                       context_values = c(TRUE, FALSE)),
+                                       by = c("subid", "dttm_label"))
 
                        # evening
                        feature_row <- feature_row |>
@@ -211,7 +267,7 @@ features <- foreach (i_label = 1:nrow(labels),
                                                  lead = lead,
                                                  data_start = dates,
                                                  col_name = "duration",
-                                                 context_col_name = "evening",
+                                                 context_col_name = "evening_out",
                                                  context_values = c(TRUE, FALSE)),
                                    by = c("subid", "dttm_label"))
 
@@ -225,79 +281,20 @@ features <- foreach (i_label = 1:nrow(labels),
                                                            lat = lat, lon = lon),
                                    by = c("subid", "dttm_label"))
 
-                       # MAYBE this needs to be added back in???
-                       #feature_row <- feature_row |>
-                       #mutate(label_num = the_label_num)
+                       feature_row <- feature_row |>
+                          mutate(label_num = the_label_num)
 
                        feature_row
                      }
-
-# Quick EDA -----------
-
-## type
-features |> select(contains("rratesum") & contains("type")) |> skimr::skim()
-
-features |> select(contains("dratesum") & contains("type")) |>  skimr::skim()
-
-features |> select(contains("pratesum") & contains("type")) |> skimr::skim()
-
-## drank
-features |> select(contains("rratesum") & contains("drank")) |> skimr::skim()
-
-features |> select(contains("dratesum") & contains("drank")) |> skimr::skim()
-
-features |> select(contains("pratesum") & contains("drank")) |> skimr::skim()
-
-## alcohol
-features |> select(contains("rratesum") & contains("alcohol")) |> skimr::skim()
-
-features |> select(contains("dratesum") & contains("alcohol")) |> skimr::skim()
-
-features |> select(contains("pratesum") & contains("alcohol")) |> skimr::skim()
-
-## emotion
-features |> select(contains("rratesum") & contains("emotion")) |> skimr::skim()
-
-features |> select(contains("dratesum") & contains("emotion")) |> skimr::skim()
-
-features |> select(contains("pratesum") & contains("emotion")) |> skimr::skim()
-
-## risk
-features |> select(contains("rratesum") & contains("risk")) |> skimr::skim()
-
-features |> select(contains("dratesum") & contains("risk")) |> skimr::skim()
-
-features |> select(contains("pratesum") & contains("risk")) |> skimr::skim()
-
-## avoid
-features |> select(contains("rratesum") & contains("avoid")) |> skimr::skim()
-
-features |> select(contains("dratesum") & contains("avoid")) |> skimr::skim()
-
-features |> select(contains("pratesum") & contains("avoid")) |> skimr::skim()
-
-## transit
-features |> select(contains("rratesum") & contains("transit")) |> skimr::skim()
-
-features |> select(contains("dratesum") & contains("transit")) |>  skimr::skim()
-
-features |> select(contains("pratesum") & contains("transit")) |> skimr::skim()
-
-## evening
-features |> select(contains("rratesum") & contains("evening")) |> skimr::skim()
-
-features |> select(contains("dratesum") & contains("evening")) |>  skimr::skim()
-
-features |> select(contains("pratesum") & contains("evening")) |> skimr::skim()
-
-## location variance
-features |> select(contains("rvar") & contains("location")) |> skimr::skim()
-
-features |> select(contains("dvar") & contains("location")) |>  skimr::skim()
 
 # Add outcome label and other info to features ------------------
 features |>
   mutate(lapse = labels$lapse,
          label_num = 1:nrow(features)) |>
   relocate(label_num, subid, dttm_label, lapse) |>
-  write_csv(here::here(path_gps, str_c("features_", roll_dur, ".csv")))
+  write_csv((str_c("features_", window,
+                                       "_",
+                                       roll_dur, "_hour_",
+                                       version, "_",
+                                       job_start, "_",
+                                       job_stop, ".csv")))

@@ -1,6 +1,6 @@
 # features.sub
 universe = vanilla
-requirements = (OpSysMajorVer == 8) && ((PoolName == "CHTC") || (SINGULARITY_CAN_USE_SIF))
+requirements = ((OpSysMajorVer == 8) || (OpSysMajorVer == 9)) && ((PoolName == "CHTC") || (SINGULARITY_CAN_USE_SIF))
 +SingularityImage = "features.sif"
 
 executable = features.sh
@@ -11,7 +11,7 @@ error = error/error_$(job_start)_$(job_stop).err
 
 should_transfer_files = YES
 when_to_transfer_output = ON_EXIT
-transfer_input_files = features.sif, fun_features.R, mak_features.R, study_dates.csv, gps.csv, lapses.csv, labels.csv, jobs.csv
+transfer_input_files = features.sif, fun_features.R, mak_features.R, study_dates.csv, gps.csv.xz, lapses.csv, labels.csv, jobs.csv
 on_exit_hold = exitcode != 0
 max_retries = 1
 
@@ -20,7 +20,7 @@ materialize_max_idle = 1000
 request_cpus = 1
 request_memory = 2000MB
 request_disk = 700000KB
-+wantFlocking = true
-+wantGlideIn = true
++wantFlocking = false
++wantGlideIn = false
 
 queue job_start, job_stop from jobs.csv

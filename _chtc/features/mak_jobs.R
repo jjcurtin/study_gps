@@ -2,8 +2,7 @@
 
 # Constants
 window <- "day" # hour day week
-roll_dur: 1 # 1 24
-lead <- 0
+roll_dur <- 1 # 1 24
 sample <- "gps"
 labels_version <- "v1" # corresponds to version of lapse_labels file
 version <- "v1" # corresponds to version of mak_jobs script
@@ -15,11 +14,9 @@ library(lubridate)
 devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true",
                      sha1 = "a58e57da996d1b70bb9a5b58241325d6fd78890f")
 
-path_gps <- format_path("studydata/risk/data_processed/gps")
-
 # Paths and filenames
 path_jobs <- format_path("studydata/risk/chtc/gps")
-name_job <- str_c("features_", window, "_", roll_dur, "hour_", lead, "_", version)
+name_job <- str_c("features_", window, "_", roll_dur, "hour_", version)
 
 path_processed <- format_path("studydata/risk/data_processed/gps")
 name_gps <- "gps_enriched.csv.xz"
@@ -52,19 +49,21 @@ if (!dir.exists(file.path(path_jobs, name_job))) {
 }
 
 # save out jobs csv file for queue
-n_jobs <- nrow(read_csv(file.path(path_processed, name_labels), show_col_types = FALSE))
+n_labels <- nrow(read_csv(file.path(path_processed, name_labels),
+                          show_col_types = FALSE))
 labels_per_job <- 300
-job_start <- seq(1, n_jobs, by = labels_per_job)
-job_stop <- c(seq(job_start[2] - 1, n_jobs, by = labels_per_job), n_jobs)
-tibble(job_start, job_stop) %>%
+job_start <- seq(1, n_labels, by = labels_per_job)
+job_stop <- c(seq(job_start[2] - 1, n_labels, by = labels_per_job), n_labels)
+tibble(job_start, job_stop) |> 
   write_csv(file.path(path_jobs, name_job, "input", "jobs.csv"),
               col_names = FALSE, append = FALSE)
 
 # select and format relevant variables and then copy gps
-read_csv(file.path(path_processed, name_gps), show_col_types = FALSE) |> 
-  arrange(subid, dttm_obs) |> 
-  # this probably still needs to be the compressed file?
-  write_csv(file.path(path_jobs, name_job, "input", "gps.csv"))
+read_csv(file.path(path_processed, name_gps), show_col_types = FALSE) |>
+  select(-street_address, -city, -state, -full_address,
+         -sgmnt_type, -trckpnt_type, -app_source, -data_type) |> 
+  arrange(subid, time) |>
+  write_csv(file.path(path_jobs, name_job, "input", "gps.csv.xz"))
 
 # select and format relevant variables and then copy lapses
 read_csv(file.path(path_shared, name_lapses), show_col_types = FALSE) |> 
@@ -81,14 +80,16 @@ file.copy(from = file.path(path_processed, name_study_dates),
           to = file.path(path_jobs, name_job, "input", "study_dates.csv"))
 
 # copy over function script
-file.copy(from = file.path("shared", name_fun),
+file.copy(from = file.path("../proj_risk/shared", name_fun),
           to = file.path(path_jobs, name_job, "input", name_fun))
 
 # copy over unix files(run script, submit)
-file.copy(from = file.path("gps", "chtc", "features", "unix", c(list.files(file.path("gps", "chtc", "features", "unix")))),
+file.copy(from = file.path("_chtc", "features", "unix",
+                           c(list.files(file.path("_chtc",
+                                                  "features", "unix")))),
           to = file.path(path_jobs, name_job, "input"),
           recursive = TRUE)
 
 # copy R script
-file.copy(from = file.path("gps", "chtc", "features", name_script),
+file.copy(from = file.path("_chtc", "features", name_script),
           to = file.path(path_jobs, name_job, "input", name_script))
