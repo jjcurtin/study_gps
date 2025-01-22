@@ -1,11 +1,18 @@
 # setup jobs to make GPS features on CHTC
 
+# Tracking notes
+# labels_version v1 used an old version of the get_lapse_labels() function
+# old version excluded no lapses 6 hours within lapse event
+# new version uses prior system of 24 hour exclusion rule
+# labels_version v2 uses this updated version of the function
+# version v2 of this mak_jobs script corresponds to the same
+
 # Constants
 window <- "day" # hour day week
-roll_dur <- 1 # 1 24
+roll_dur <- "hour" # "day"
 sample <- "gps"
-labels_version <- "v1" # corresponds to version of lapse_labels file
-version <- "v1" # corresponds to version of mak_jobs script
+labels_version <- "v2" # corresponds to version of lapse_labels file
+version <- "v2" # corresponds to version of mak_jobs script
 
 # load packages
 library(tidyverse)
@@ -20,17 +27,19 @@ name_job <- str_c("features_", window, "_", roll_dur, "hour_", version)
 
 path_processed <- format_path("studydata/risk/data_processed/gps")
 name_gps <- "gps_enriched.csv.xz"
-name_labels <- str_c("labels_", sample, "_",
-                     window, "_",
-                     roll_dur, "hour", "_",
-                     labels_version, ".csv")
+#name_labels <- str_c("labels_", sample, "_",
+                     #window, "_",
+                     #roll_dur, "hour", "_",
+                     #labels_version, ".csv")
+  
+name_labels <- str_c("labels_", roll_dur, ".csv")
 name_study_dates <- "study_dates.csv"
 
 path_shared <- format_path("studydata/risk/data_processed/shared")
-if (roll_dur == 1) {
+if (roll_dur == "hour") {
   name_lapses <- "lapses.csv"
 }
-if (roll_dur == 24) {
+if (roll_dur == "day") {
   name_lapses <- "lapses_day.csv"
 }
 

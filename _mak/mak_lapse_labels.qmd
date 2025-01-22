@@ -10,12 +10,12 @@ format:
 editor_options: 
   chunk_output_type: console
 params:
-  roll_dur: "day"
+  roll_dur: "hour"
 ---
 
 ## Code Status
 
-Complete and up to current lab practices as of 012/2024.
+Complete and up to current lab practices as of 1/2025.
 
 ## Notes
 
@@ -130,7 +130,7 @@ if (params$roll_dur == "day"){
   
 } else {
   
-  source(here::here("../analysis_risk/shared/fun_local.R"))  # will need for ema paper function for hour rolls
+  source(here::here("../proj_risk/shared/fun_local.R"))  # will need for ema paper function for hour rolls
 
   labels <- study_dates$subid |>  
    map(\(subid) get_lapse_labels(subid, lapses, study_dates, 
