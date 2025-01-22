@@ -34,6 +34,7 @@ params:
 options(conflicts.policy = "depends.ok")
 devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true", 
                       sha1 = "a58e57da996d1b70bb9a5b58241325d6fd78890f")
+library(tidyverse)
 ```
 
 ## Paths
@@ -85,12 +86,18 @@ features |>
   summary()
 ```
 
+
 ```{r}
 features |>  
   skimr::skim_without_charts() |> 
-  select(skim_variable, n_missing, complete_rate) |> 
-  arrange(desc(n_missing), skim_variable) |> 
-  filter(complete_rate < .70)
+  select(skim_variable, n_missing, complete_rate, numeric.p0, numeric.p50, 
+         numeric.p100) |>
+  filter(!str_detect(skim_variable, "prate")) |> 
+  arrange(desc(numeric.p100), skim_variable) 
+```
+
+```{r}
+
 ```
 
 ```{r}
