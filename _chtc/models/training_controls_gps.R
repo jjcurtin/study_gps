@@ -112,9 +112,7 @@ format_data <- function (df){
     # set pos class first
     mutate(y = factor(y, levels = c(!!y_level_pos, !!y_level_neg)), 
            across(where(is.character), factor)) |>
-    select(-c(dttm_label)) |> 
-    select(-(contains("pratesum"))) #|>  # for raw, diff -- remove pratesum
-    #select(-c(contains("pvar"))) # for raw, diff -- remove pvar
+    select(-c(dttm_label))
   # Now include additional mutates to change classes for columns as needed
   # see https://jjcurtin.github.io/dwt/file_and_path_management.html#using-a-separate-mutate
 }
