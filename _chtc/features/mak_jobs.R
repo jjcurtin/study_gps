@@ -1,18 +1,22 @@
 # setup jobs to make GPS features on CHTC
 
 # Tracking notes
+
 # labels_version v1 used an old version of the get_lapse_labels() function
 # old version excluded no lapses 6 hours within lapse event
 # new version uses prior system of 24 hour exclusion rule
+
 # labels_version v2 uses this updated version of the function
 # version v2 of this mak_jobs script corresponds to the same
+
+# version v3 - made updates to location variance function in mak_features script
 
 # Constants
 window <- "day" # hour day week
 roll_dur <- "hour" # "day"
 sample <- "gps"
 labels_version <- "v2" # corresponds to version of lapse_labels file
-version <- "v2" # corresponds to version of mak_jobs script
+version <- "v3" # corresponds to version of mak_jobs script
 
 # load packages
 library(tidyverse)
@@ -23,7 +27,7 @@ devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/format_p
 
 # Paths and filenames
 path_jobs <- format_path("studydata/risk/chtc/gps")
-name_job <- str_c("features_", window, "_", roll_dur, "hour_", version)
+name_job <- str_c("features_", window, "_", roll_dur, "-roll_", version)
 
 path_processed <- format_path("studydata/risk/data_processed/gps")
 name_gps <- "gps_enriched.csv.xz"

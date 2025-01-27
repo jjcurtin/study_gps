@@ -3,9 +3,9 @@
 # Constants
 dist_max <- 0.031 # tolerance threshold for how far someone can be for know location (~=50m)
 window <- "day"  #window for calculating labels
-roll_dur <- 1 # 1 24
-labels_version <- "v1" # corresponds to lapse labels version
-version <- "v1" # corresponds to version of mak_jobs script
+roll_dur <- "hour" # "day"
+labels_version <- "v2" # corresponds to lapse labels version
+version <- "v3" # corresponds to version of mak_jobs script
 sample <- "gps"
 
 suppressPackageStartupMessages({
@@ -31,18 +31,35 @@ score_location_variance <- function(the_subid, the_dttm_label, x_all,
   # col_name: column name for raw data for feature as string - should be continuous var
   
   # filter down to when stationary
-  data <- data |> filter(transit == FALSE)
+  data <- data |> filter(transit == "no")
   
   # define period_var function
   period_var <- function (.x) {
-    if (length(.x) > 0) { 
-      if (!all(is.na(.x))) {
+    if (!is.numeric(.x)) stop("Input must be a numeric vector.")
+    
+    #print(paste("Input:", paste(.x, collapse = ", ")))
+    #print(paste("Length:", length(.x)))
+    
+    if (length(.x) == 1) { # if single value, AKA no change in location, variance is 0
+      #print("Single value, setting variance to 0")
+      the_var <- 0
+    } else if (length(.x) > 0) { # calculate variance if length greater than 0
+      if (!all(is.na(.x))) { 
+        #print("Not all values are NA, calculating variance")
         the_var <- var(.x, na.rm = TRUE)
-      } else the_var <- NA
-    } else the_var <- NA
+      } else {
+        #print("All values are NA, setting variance to NA")
+        the_var <- NA
+      }
+    } else {
+      #print("Empty vector, setting variance to NA")
+      the_var <- NA
+    }
     
     return(the_var)
   }
+  
+  
   
   # get baseline variance using all data before label dttm
   baseline <- data %>% 
@@ -78,8 +95,8 @@ score_location_variance <- function(the_subid, the_dttm_label, x_all,
 
 # get chtc process num
 args <- commandArgs(trailingOnly = TRUE)
-#job_start <- 2001
-#job_stop <- 2002
+#job_start <- 2000
+#job_stop <- 2100
 job_start <- as.numeric(args[1]) # CHTC arg starts at 1 because using passed in row numbers
 job_stop <- as.numeric(args[2])
 
@@ -97,24 +114,24 @@ data <- read_csv("gps.csv.xz", show_col_types = FALSE) |>
          duration = if_else(speed > 100, NA_real_, duration),
          duration = if_else(duration > 2 & dist > 0.31, NA_real_, duration),
          duration = if_else(duration > 24, 24, duration),
-         known_loc = if_else(dist_context <= dist_max & speed <= 4, TRUE, FALSE),
-         known_loc = if_else(is.na(known_loc), FALSE, known_loc),
-         transit = if_else(speed <= 4, FALSE, TRUE),
-         home = if_else(type == "home", TRUE, FALSE),
+         known_loc = if_else(dist_context <= dist_max & speed <= 4, "yes", "no"),
+         known_loc = if_else(is.na(known_loc), "no", known_loc),
+         transit = if_else(speed <= 4, "no", "yes"),
+         home = if_else(type == "home", "yes", "no"),
          evening_out = if_else((as.numeric(hour(dttm_obs)) >= 19 | as.numeric(hour(dttm_obs)) < 4)
-                               & home == FALSE,
-                               TRUE, FALSE))
+                               & home == "no",
+                               "yes", "no"))
 
 labels <- read_csv("labels.csv",
                    show_col_types = FALSE)
 
-if (roll_dur == 24) {
+if (roll_dur == "day") {
   labels <- labels |> mutate(dttm_label = with_tz(day_start, tz = "America/Chicago"),
          day_end = with_tz(day_end, tz = "America/Chicago")) |>
   slice(job_start:job_stop) |>
   mutate(label_num = seq(job_start, job_stop, by = 1))
 }
-if (roll_dur == 1) {
+if (roll_dur == "hour") {
   labels <- labels |> mutate(dttm_label = with_tz(dttm_label, tz = "America/Chicago")) |>
   slice(job_start:job_stop) |>
   mutate(label_num = seq(job_start, job_stop, by = 1))
@@ -158,7 +175,7 @@ features <- foreach (i_label = 1:nrow(labels),
                        # type
                        feature_row <- score_ratesum(subid,
                                                     dttm_label,
-                                                    x_all  = (data |> filter(known_loc == TRUE)),
+                                                    x_all  = (data |> filter(known_loc == "yes")),
                                                     period_durations = period_durations,
                                                     lead = lead,
                                                     data_start = dates,
@@ -180,7 +197,7 @@ features <- foreach (i_label = 1:nrow(labels),
                        feature_row <- feature_row |>
                          full_join(score_ratesum(subid,
                                                  dttm_label,
-                                                 x_all  = (data |> filter(known_loc == TRUE)),
+                                                 x_all  = (data |> filter(known_loc == "yes")),
                                                  period_durations = period_durations,
                                                  lead = lead,
                                                  data_start = dates,
@@ -193,7 +210,7 @@ features <- foreach (i_label = 1:nrow(labels),
                        feature_row <- feature_row |>
                          full_join(score_ratesum(subid,
                                                  dttm_label,
-                                                 x_all  = (data |> filter(known_loc == TRUE)),
+                                                 x_all  = (data |> filter(known_loc == "yes")),
                                                  period_durations = period_durations,
                                                  lead = lead,
                                                  data_start = dates,
@@ -206,7 +223,7 @@ features <- foreach (i_label = 1:nrow(labels),
                        feature_row <- feature_row |>
                          full_join(score_ratesum(subid,
                                                  dttm_label,
-                                                 x_all  = (data |> filter(known_loc == TRUE)),
+                                                 x_all  = (data |> filter(known_loc == "yes")),
                                                  period_durations = period_durations,
                                                  lead = lead,
                                                  data_start = dates,
@@ -219,7 +236,7 @@ features <- foreach (i_label = 1:nrow(labels),
                        feature_row <- feature_row |>
                          full_join(score_ratesum(subid,
                                                  dttm_label,
-                                                 x_all  = (data |> filter(known_loc == TRUE)),
+                                                 x_all  = (data |> filter(known_loc == "yes")),
                                                  period_durations = period_durations,
                                                  lead = lead,
                                                  data_start = dates,
@@ -232,7 +249,7 @@ features <- foreach (i_label = 1:nrow(labels),
                        feature_row <- feature_row |>
                          full_join(score_ratesum(subid,
                                                  dttm_label,
-                                                 x_all  = (data |> filter(known_loc == TRUE)),
+                                                 x_all  = (data |> filter(known_loc == "yes")),
                                                  period_durations = period_durations,
                                                  lead = lead,
                                                  data_start = dates,
@@ -255,7 +272,7 @@ features <- foreach (i_label = 1:nrow(labels),
                                        data_start = dates,
                                        col_name = "duration",
                                        context_col_name = "transit",
-                                       context_values = c(TRUE, FALSE)),
+                                       context_values = c("yes", "no")),
                                        by = c("subid", "dttm_label"))
 
                        # evening
@@ -268,7 +285,7 @@ features <- foreach (i_label = 1:nrow(labels),
                                                  data_start = dates,
                                                  col_name = "duration",
                                                  context_col_name = "evening_out",
-                                                 context_values = c(TRUE, FALSE)),
+                                                 context_values = c("yes", "no")),
                                    by = c("subid", "dttm_label"))
 
                        # location variance
