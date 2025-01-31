@@ -11,8 +11,8 @@ editor_options:
   chunk_output_type: console
 params:
   window: "day"
-  roll_dur: 1 # 1 24
-  version: "v2"
+  roll_dur: "hour" # 1 24
+  version: "v3"
 ---
 
 # Housekeeping
@@ -40,7 +40,7 @@ library(tidyverse)
 ## Paths
 
 ```{r}
-name_job <- str_c("features_", params$window, "_", params$roll_dur, "hour_", params$version)
+name_job <- str_c("features_", params$window, "_", params$roll_dur, "-roll_", params$version)
 
 path_chtc <- format_path(str_c("studydata/risk/chtc/gps/", name_job, "/output"))
 ```
@@ -69,42 +69,57 @@ options(tibble.width = Inf, dplyr.print_max = Inf)
 ## Load in data
 
 ```{r}
-features <- read_csv(here::here(path_chtc, "batch_results.csv"), 
+features <- read_csv(here::here(path_chtc, "features_chtc.csv"), 
                  show_col_types = FALSE)
 ```
 
 ## EDA
 
+Verify percentage of lapses looks reasonable.
 ```{r}
 features |> 
   janitor::tabyl(lapse)
 ```
 
-```{r}
-features |>  
-  skimr::skim_without_charts() |> 
-  summary()
-```
-
-
+Overview across all categories.
 ```{r}
 features |>  
   skimr::skim_without_charts() |> 
   select(skim_variable, n_missing, complete_rate, numeric.p0, numeric.p50, 
          numeric.p100) |>
-  filter(!str_detect(skim_variable, "prate")) |> 
+  filter(!skim_variable == "subid" & !skim_variable == "label_num") |> 
   arrange(desc(numeric.p100), skim_variable) 
 ```
 
-```{r}
-
-```
-
+Check raw scores (numeric.p0 should = 0).
 ```{r}
 features |>  
   skimr::skim_without_charts() |> 
-  skimr::yank("numeric") |> 
-  select(skim_variable, mean, p50, p0, p100) |> 
-  filter(!skim_variable == "subid" & !skim_variable == "label_num") |> 
-  arrange(desc(mean), skim_variable)
+  select(skim_variable, n_missing, complete_rate, numeric.p0, numeric.p50, 
+         numeric.p100) |>
+  filter(!skim_variable == "subid" & !skim_variable == "label_num") |>
+  filter(grepl("rrate|rvar", skim_variable)) |> 
+  arrange(desc(numeric.p0), skim_variable)
+```
+
+Check difference scores (numeric.p0 can be less than 0)
+```{r}
+features |>  
+  skimr::skim_without_charts() |> 
+  select(skim_variable, n_missing, complete_rate, numeric.p0, numeric.p50, 
+         numeric.p100) |>
+  filter(!skim_variable == "subid" & !skim_variable == "label_num") |>
+  filter(grepl("drate|dvar", skim_variable)) |> 
+  arrange(desc(numeric.p0), skim_variable)
+```
+
+Location variance scores, sorted by missingness.
+```{r}
+features |>  
+  skimr::skim_without_charts() |> 
+  select(skim_variable, n_missing, complete_rate, numeric.p0, numeric.p50, 
+         numeric.p100) |>
+  filter(!skim_variable == "subid" & !skim_variable == "label_num") |>
+  filter(grepl("rvar|dvar", skim_variable)) |> 
+  arrange(desc(n_missing), skim_variable)
 ```
