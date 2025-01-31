@@ -33,48 +33,38 @@ score_location_variance <- function(the_subid, the_dttm_label, x_all,
   # filter down to when stationary
   data <- data |> filter(transit == "no")
   
-  # define period_var function
-  period_var <- function (.x) {
-    if (!is.numeric(.x)) stop("Input must be a numeric vector.")
+  # define period_var function - UPDATE NAME THROUGHOUT
+  rate_var <- function (.x, duration) {
     
     #print(paste("Input:", paste(.x, collapse = ", ")))
     #print(paste("Length:", length(.x)))
     
-    if (length(.x) == 1) { # if single value, AKA no change in location, variance is 0
+    if (length(.x) < 2) { # if single value, AKA no change in location, variance is 0
       #print("Single value, setting variance to 0")
       the_var <- 0
-    } else if (length(.x) > 0) { # calculate variance if length greater than 0
-      if (!all(is.na(.x))) { 
-        #print("Not all values are NA, calculating variance")
-        the_var <- var(.x, na.rm = TRUE)
-      } else {
-        #print("All values are NA, setting variance to NA")
-        the_var <- NA
-      }
     } else {
-      #print("Empty vector, setting variance to NA")
-      the_var <- NA
-    }
+        the_var <- var(.x) # na.rm = TRUE ? check this
+      }
     
-    return(the_var)
+    return(the_var / duration)
   }
   
+  base_duration <- "fill in"
   
+  true_period_duration <- "fill in"
   
   # get baseline variance using all data before label dttm
   baseline <- data %>% 
     get_x_period(the_subid, the_dttm_label, x_all = ., lead, period_duration = Inf) %>% # Inf gives all data back to first obs
-    #summarise("base" := period_var(.data[[col_name]])) %>% # base_lat, base lon, then add together and take log
-    #summarise("base" := log10(period_var(.data[[lat]]) + period_var(.data[[lon]]) + 1)) %>%
-    summarise("base" := log10(period_var(lat) + period_var(lon) + 1)) %>%
+    summarise("base" := log10(period_var(lat, base_duration) + period_var(lon, base_duration) + 1)) %>%
     pull(base)
   
   features <- foreach (period_duration = period_durations, .combine = "cbind") %do% {
     
     raw <- data %>%
       get_x_period(the_subid, the_dttm_label, ., lead, period_duration) %>% 
-      #summarise("raw" := log10(period_var(.data[[lat]]) + period_var(.data[[lon]]) + 1)) %>% # raw_lat, raw_lon, add together
-      summarise("raw" := log10(period_var(lat) + period_var(lon) + 1)) %>%
+      # do we need log10 transform???
+      summarise("raw" := log10(period_var(lat, true_period_duration) + period_var(lon, true_period_duration) + 1)) %>%
       pull(raw)
     
     tibble(
