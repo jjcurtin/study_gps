@@ -11,8 +11,9 @@ editor_options:
   chunk_output_type: console
 params:
   window: "day"
-  roll_dur: "hour" # 1 24
-  version: "v3"
+  roll_dur: 1 # 1 24
+  version: "v4" # go back and remove this
+  sample: "gps" # ema messages
 ---
 
 # Housekeeping
@@ -40,9 +41,10 @@ library(tidyverse)
 ## Paths
 
 ```{r}
-name_job <- str_c("features_", params$window, "_", params$roll_dur, "-roll_", params$version)
+name_job <- str_c("features_", params$sample, "_", params$window, "_", params$roll_dur, "h_", params$version)
 
 path_chtc <- format_path(str_c("studydata/risk/chtc/gps/", name_job, "/output"))
+path_shared <- format_path("studydata/risk/data_processed/shared")
 ```
 
 ## Packages and source
@@ -122,4 +124,12 @@ features |>
   filter(!skim_variable == "subid" & !skim_variable == "label_num") |>
   filter(grepl("rvar|dvar", skim_variable)) |> 
   arrange(desc(n_missing), skim_variable)
+```
+
+### Save out to shared folder
+```{r}
+features |>
+  write_csv(here::here(path_shared, str_c("features_", params$sample, "_",
+                                       params$window, "_",
+                                       params$roll_dur, "h.csv")))
 ```
