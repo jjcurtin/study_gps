@@ -847,8 +847,8 @@ places |>
          duration = if_else(speed > 100, NA_real_,
                             duration)) |>
   filter(!(duration > 2 & dist > 0.31)) |>
-  filter(duration > 24) |>
-  nrow()
+  filter(duration > 24) |> view()
+ # nrow()
 ```
 
 Create tables to ensure that we are successfully amending duration values for these points.
@@ -1245,8 +1245,8 @@ places |>
   mutate(num_na_dur = sum(is.na(duration))) |> 
   select(subid, num_na_dur) |> 
   unique() |>
-  ungroup() |>
-  mutate(total = sum(num_na_dur))
+  ungroup()
+
 ```
 
 Calculate difference between `study_duration` and `sum_duration`. A negative value means that `sum_duration` is larger, a positive value means that our `study_duration` is larger.
