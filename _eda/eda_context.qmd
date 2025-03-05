@@ -151,7 +151,7 @@ if(file.exists(here::here(path_shared, "gps_enriched.csv.xz"))){
   message("Merging raw GPS and context information...")
   
   message("...loading study_dates_gps.csv")
-  study_dates <- read_csv(here::here(path_gps, "study_dates_gps.csv"),
+  study_dates <- read_csv(here::here(path_shared, "study_dates_gps.csv"),
                           show_col_types = FALSE) |>
     mutate(study_start = as_date(study_start),
            study_end = as_date(study_end))  |>
@@ -1094,10 +1094,12 @@ places <- places |>
                             duration),
          clean_duration = if_else(speed > 100, NA_real_,
                             clean_duration),
-         clean_duration = if_else(clean_duration > 2 & dist > 0.31, NA_real_,
+         # change from 2 hours to 30 minutes
+         clean_duration = if_else(clean_duration > .5 & dist > 0.31, NA_real_,
                             clean_duration),
-         clean_duration = if_else(clean_duration > 24, 24,
-                            clean_duration),
+         # removed bc many instances where this appears to be valid i.e., at home or home of friend/family
+         #clean_duration = if_else(clean_duration > 24, 24,
+                            #clean_duration),
          known_loc = if_else(dist_context <= 0.031 & speed <= 4,
                              TRUE, FALSE),
          known_loc = if_else(is.na(known_loc), FALSE, known_loc))
