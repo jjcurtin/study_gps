@@ -1090,14 +1090,14 @@ Apply final filter.
 
 ```{r}
 places <- places |>
-  mutate(duration = if_else(dist > 0.01 & duration == 0, NA_real_,
+  mutate(clean_duration = if_else(dist > 0.01 & duration == 0, NA_real_,
                             duration),
-         duration = if_else(speed > 100, NA_real_,
-                            duration),
-         duration = if_else(duration > 2 & dist > 0.31, NA_real_,
-                            duration),
-         duration = if_else(duration > 24, 24,
-                            duration),
+         clean_duration = if_else(speed > 100, NA_real_,
+                            clean_duration),
+         clean_duration = if_else(clean_duration > 2 & dist > 0.31, NA_real_,
+                            clean_duration),
+         clean_duration = if_else(clean_duration > 24, 24,
+                            clean_duration),
          known_loc = if_else(dist_context <= 0.031 & speed <= 4,
                              TRUE, FALSE),
          known_loc = if_else(is.na(known_loc), FALSE, known_loc))
@@ -1214,7 +1214,7 @@ Summary of `avoid` responses.
 places |> tab(avoid)
 ```
 
-### Calculate overall duration
+### Calculate overall duration 
 
 Calculate duration start to end (from first to last GPS point of a given subject on study). Compare to duration we are calculating. Then, compare to time at known locations (sum again after filtering to known locations).
 
@@ -1230,7 +1230,8 @@ Sum up duration. Duration is currently in hours.
 ```{r}
 places <- places |> 
   group_by(subid) |> 
-  mutate(sum_duration = sum(duration, na.rm = TRUE)) |> 
+  mutate(sum_duration = sum(duration, na.rm = TRUE),
+         sum_clean_duration = sum(clean_duration, na.rm = TRUE)) |> 
   ungroup()
 ```
 
@@ -1247,13 +1248,25 @@ places |>
   unique() |>
   ungroup()
 
+places |>
+  filter((is.na(clean_duration))) |> 
+  nrow()
+
+places |>
+  group_by(subid) |> 
+  mutate(num_na_dur = sum(is.na(clean_duration))) |> 
+  select(subid, num_na_dur) |> 
+  unique() |>
+  ungroup()
+
 ```
 
 Calculate difference between `study_duration` and `sum_duration`. A negative value means that `sum_duration` is larger, a positive value means that our `study_duration` is larger.
 ```{r}
 places <- places |> 
   group_by(subid) |> 
-  mutate(duration_diff = study_duration - sum_duration) |> 
+  mutate(duration_diff = study_duration - sum_duration,
+         clean_duration_diff = study_duration - sum_clean_duration) |> 
   ungroup()
 ```
 
@@ -1261,19 +1274,14 @@ Examine the differences between these two.
 ```{r}
 places |> 
   group_by(subid) |> 
-  select(subid, duration_diff) |> 
+  select(subid, duration_diff, clean_duration_diff) |> 
   unique() |> 
-  arrange(desc(duration_diff))
+  arrange(desc(clean_duration_diff))
 ```
 
-Super different for some folks! Maybe due to our 24 hour thresholding? Let's check subid 185. Note to discuss with JC.
-```{r}
-places |> 
-  filter(subid == 185) |> 
-  select(subid, duration) |> 
-  arrange(desc(duration)) |> 
-  head(n = 50)
-```
+To discuss with JC -- the majority of points lost are actually lost because of our 2hr > .31 mile jump filter. See chunk 54, there are 2389 points that are removed from that filtering which account for the majority of this time. Maybe we want to reconsider this filter?
+
+48 * 12 = 576 hours of anticipated weekend time over the course of 3 months on study. We could consider removing subjects who have a duration discrepancy greater than 576 hours (which would be 10 subjects).
 
 ### Calculate duration for known locations
 
