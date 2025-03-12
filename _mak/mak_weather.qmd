@@ -1,0 +1,425 @@
+---
+title: "Get weather data"
+author: "Claire Punturieri"
+date: "`r lubridate::today()`"
+format: 
+  html:
+    toc: true
+    toc_depth: 4
+    embed-resources: true
+editor_options: 
+  chunk_output_type: console
+---
+
+# Housekeeping
+
+## Code Status
+
+In progress as of 3/2025.
+
+## Notes
+
+This script pulls weather data using the ACIS RCC query builder.
+
+Acronyms:
+
+ - ACIS = Applied Climate Information System
+ - RCC = Regional Climate Center, part of NOAA
+ - NOAA = National Oceanic and Atmospheric Administration
+ - WBAN = Weather Bureau Army Navy identifier, five digit numeric code that identifies a weather station
+ - ICAO =  International Civil Aviation Organization identifier, four digit alphanumeric identifier that identifies a weather station
+ 
+Links:
+
+ - Information on weather station code abbreviations: https://mrcc.purdue.edu/CLIMATE/stnchooserIdDescrip.jsp
+ - Documentation for RCC ACIS: https://www.rcc-acis.org/docs_webservices.html
+ - RCC ACIS query builder: https://builder.rcc-acis.org/
+
+To do:
+
+ - CP is confirming this with someone at the Midwest RCC that WBANs less than 5 digits should have a 0 appended to them
+ - Some stations might use identifiers other than a WBAN number or ICAO code, CP is working with someone at Midwest RCC to make sure we are pulling maximal weather station data
+
+# Set up
+
+## Set up environment
+
+```{r}
+#| message: false
+#| warning: false
+
+options(conflicts.policy = "depends.ok")
+devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true", 
+                      sha1 = "3a9b0c96be90d370dc16fd0b603135a6c68093f5")
+```
+
+## Paths
+
+```{r}
+path_shared <- format_path("studydata/risk/data_processed/shared")
+```
+
+## Packages and source
+
+```{r}
+#| message: false
+#| warning: false
+#| echo: false
+
+# for data wrangling
+library(tidyverse)
+library(janitor, exclude = c("chisq.test", 
+                             "fisher.test"))
+library(lubridate)
+library(future)
+
+source(here::here("../lab_support/fun_gps.R"))
+```
+
+## Load in data
+
+```{r}
+gps <- read_csv(here::here(path_shared, "gps_enriched.csv.xz"), 
+                 show_col_types = FALSE) |>
+    mutate(time = with_tz(time, tz = "America/Chicago"),
+           dist = dist / 1609.344,
+           duration = duration / 60,
+           speed = dist / duration,
+           dist_context = dist_context / 1609.344) |> 
+  mutate(duration = if_else(dist > 0.01 & duration == 0, NA_real_,
+                            duration),
+         duration = if_else(speed > 100, NA_real_,
+                            duration),
+         duration = if_else(duration > .5 & dist > 0.31, NA_real_,
+                            duration),
+         known_loc = if_else(dist_context <= 0.031 & speed <= 4,
+                             TRUE, FALSE),
+         known_loc = if_else(is.na(known_loc), FALSE, known_loc))
+```
+
+## Prepare data for weather pulling
+
+Create a day-level identifier for subjects. This will enable us to apply this filter at the day level.
+```{r}
+gps <- gps |>
+  group_by(subid, date) |> 
+  mutate(day_label = cur_group_id()) |> 
+  ungroup()
+
+gps |> 
+  select(subid, lat, lon, time, day_label) |>
+  distinct(subid, .keep_all = TRUE) |> 
+  head()
+```
+
+Round lat/lon points to 4th decimal place per: https://blis.com/precision-matters-critical-importance-decimal-places-five-lowest-go/#:~:text=The%20number%20of%20decimal%20places%20correlates%20directly%20to%20the%20level,a%20large%20city%20or%20district.
+```{r}
+gps <- gps |>
+  mutate(lat_rounded = round(lat, 4),
+         lon_rounded = round(lon, 4))
+```
+
+Calculate modal lat/lon on a given day. If no mode, then select the first point. **Not currently being used but saving just in case!!*
+```{r}
+get_mode <- function(x) {
+  unique_x <- unique(x)
+  freq <- table(x)
+  mode_value <- unique_x[which.max(freq)]
+  return(mode_value)
+}
+
+
+get_modal_latlon <- function(day_label_arg, gps) {
+
+  context_tmp <- gps |> filter(day_label_arg == day_label)
+
+  context_tmp <- context_tmp |>
+    mutate(latlon = str_c(lat_rounded, ", ",lon_rounded))
+
+  mode_value <- get_mode(context_tmp$latlon)
+
+  freq <- table(context_tmp$latlon)
+
+  if (max(freq) > 1) {
+    # keep rows where the column value equals the mode
+    #context_tmp <- context_tmp[context_tmp[[latlon]] == mode_value, ]
+    context_tmp <- context_tmp[context_tmp$latlon == mode_value, ]
+  } else {
+    # take first row if unique
+    context_tmp <- context_tmp[1, , drop = FALSE]
+  }
+
+  return(context_tmp)
+}
+```
+
+```{r}
+#| eval: false
+gps_modal <- gps$day_label |>
+  unique() |>
+  furrr::future_map(\(day_label) get_modal_latlon(day_label_arg = day_label,
+                                                gps)) |>
+  list_rbind() |> 
+  distinct(day_label, .keep_all = TRUE)
+```
+
+Calculate lat/lon where individual spent the most time on a given day. If multiple maximum duration points, pull first from list.
+```{r}
+get_long_dur <- function(day_label_arg, gps) {
+
+  context_tmp <- gps |> filter(day_label_arg == day_label)
+
+  context_tmp <- context_tmp |>
+    mutate(latlon = str_c(lat_rounded, ", ",lon_rounded))
+
+  longest <- context_tmp |> 
+    group_by(latlon) |> 
+    summarize(duration = sum(duration), .groups = "drop") |> 
+    slice_max(order_by = duration, n = 1) |> 
+    slice_head(n = 1) # handles multiple maximums by taking the first 
+  
+  context_tmp <- context_tmp |> 
+    filter(latlon == longest$latlon)
+
+  return(context_tmp)
+}
+```
+
+```{r}
+gps_longest <- gps$day_label |>
+  unique() |>
+  furrr::future_map(\(day_label) get_long_dur(day_label_arg = day_label,
+                                                gps)) |>
+  list_rbind() |> 
+  distinct(day_label, .keep_all = TRUE)
+
+gps_longest |> 
+  select(subid, lat, lon, time, day_label) |>
+  distinct(subid, .keep_all = TRUE) |> 
+  head()
+```
+
+## Get weather
+
+Retrieve database of existing weather stations.
+```{r}
+first_date <- gps_longest |> arrange(date) |> mutate(first_date = first(date)) |> pull(first_date) |> unique()
+
+last_date <- gps_longest |> arrange(date) |> mutate(last_date = last(date)) |> pull(last_date) |> unique()
+
+weather_stns <- FluMoDL::NOAA_countryStations(fips = "US", from = first_date - 1, to = last_date + 1)
+
+weather_stns |> head()
+```
+
+All WBANs should be five digits. If a WBAN is not five digits, we should append one or two 0s to the beginning of the WBAN. **CP is confirming this with someone at the Midwest RCC**
+```{r}
+weather_stns <- weather_stns |> 
+  mutate(wban = ifelse(nchar(wban) == 3, paste0(00, wban), wban),
+         wban = ifelse(nchar(wban) == 4, paste0(0, wban), wban))
+```
+
+Define function to identify closest weather station. This function makes queries using WBAN numbers and ICAO identifiers. **Midwest RCC has informed CP that not all stations use the same identifying code, so might need to use an additional code to get all of the data! Will update.**
+```{r}
+identify_wban <- function(gps_arg, stn_arg, day_label_arg){
+  gps_tmp <- gps_arg |> filter(day_label == day_label_arg)
+  
+  dist_matrix <- matrix(nrow = nrow(gps_tmp), ncol = nrow(stn_arg))
+
+  for (i in 1:nrow(gps_tmp)) {
+    for (j in 1:nrow(stn_arg)) {
+      dist_matrix[i, j] <- distGeo(
+        c(gps_tmp$lon[i], gps_tmp$lat[i]),
+        c(stn_arg$lon[j], stn_arg$lat[j])
+      )
+    }
+  }
+
+  closest <- apply(dist_matrix, 1, function(row) {
+    which.min(row)
+  })
+
+  closest_stn <- stn_arg$wban[closest]
+  closest_icao <- stn_arg$icao[closest]
+  
+  # if closest_stn is 99999 and closest_icao is NA, find next closest station
+  
+  if (any(closest_stn == 99999 & is.na(closest_icao))) {
+    message("Invalid WBAN and ICAO... Searching for second closest station...")
+    
+    # Loop through the rows where the WBAN is 99999 and ICAO is NA
+    for (i in which(closest_stn == 99999 & is.na(closest_icao))) {
+      
+      # Find the index of the second smallest distance in this row
+      row_dist <- dist_matrix[i, ]
+      sorted_indices <- order(row_dist)
+      second_closest_index <- sorted_indices[2]  # Index of the second closest station
+      
+      # Update the closest station for this entry
+      closest_stn[i] <- stn_arg$wban[second_closest_index]
+      closest_icao[i] <- stn_arg$icao[second_closest_index]
+      }
+    }
+  
+  return(list(subid = gps_tmp$subid, day_label = day_label_arg, wban = closest_stn,
+              icao = closest_icao, date = gps_tmp$date))
+  
+}
+```
+
+Match each longest duration lat/lon to closest weather station.
+```{r}
+match_stns <- gps_longest$day_label |>
+  unique() |>
+  furrr::future_map(\(day_label) identify_wban(day_label_arg = day_label,
+                                               stn_arg = weather_stns,
+                                               gps_arg = gps_longest)) |> 
+  purrr::map_dfr(~ data.frame(subid = .x$subid, day_label = .x$day_label, wban = .x$wban,
+                              icao = .x$icao, date = .x$date))
+
+match_stns |> 
+  distinct(subid, .keep_all = TRUE) |> 
+  head()
+```
+
+
+Create a function which queries RCC ACIS for each date and weather station.
+```{r}
+pull_weather <- function(day_label_arg, stn_arg) {
+  
+  stn_tmp <- stn_arg |> filter(day_label == day_label_arg)
+  
+  subid <- stn_tmp$subid
+  wban <- stn_tmp$wban
+  icao <- stn_tmp$icao
+  query_date <- stn_tmp$date
+  
+  # Try WBAN first
+  tryCatch({
+    api_url <- paste0(
+      'https://data.rcc-acis.org/StnData',
+      '?sid=', wban, 
+      '&date=', query_date, 
+      '&elems=avgt,mint,maxt,snow,snwd,pcpn',
+      '&output=csv'
+    )
+    
+    temp_data <- read.csv(url(api_url), header = FALSE, skip = 1,
+                        colClasses = c("V2" = "character", "V3" = "character", "V4" = "character",
+                                       "V5" = "character", "V6" = "character", "V7" = "character"))
+    
+    # Check if the dataframe is empty
+    if (nrow(temp_data) == 0) {
+      message("Empty CSV for WBAN: ", wban, " on ", query_date)
+      return(data.frame(date = as.Date(character()), 
+                        avgt = character(),
+                        mint = character(),
+                        maxt = character(),
+                        snow = character(),
+                        snwd = character(),
+                        pcpn = character(), 
+                        wban = character(),
+                        icao = character(),
+                        subid = integer()))
+    }
+  
+    # Process the data
+    processed_data <- temp_data |> 
+      rename("date" = "V1", "avgt" = "V2", "mint" = "V3", "maxt" = "V4",
+             "snow" = "V5", "snwd" = "V6", "pcpn" = "V7") |> 
+      mutate(date = as.Date(date),
+             wban = wban,
+             icao = icao,
+             subid = subid)
+    
+    # Return the processed data
+    return(processed_data)
+  
+  }, error = function(e) {
+    message("Error fetching data for WBAN: ", wban, " on ", query_date, ". Trying ICAO...")
+    
+    # Try ICAO if WBAN fails
+    tryCatch({
+      api_url <- paste0(
+        'https://data.rcc-acis.org/StnData',
+        '?sid=', icao, 
+        '&date=', query_date, 
+        '&elems=avgt,mint,maxt,snow,snwd,pcpn',
+        '&output=csv'
+      )
+      
+      temp_data <- read.csv(url(api_url), header = FALSE, skip = 1,
+                            colClasses = c("V2" = "character", "V3" = "character", "V4" = "character",
+                                           "V5" = "character", "V6" = "character", "V7" = "character"))
+      
+      # Check if the dataframe is empty
+      if (nrow(temp_data) == 0) {
+        message("Empty CSV for ICAO: ", icao, " on ", query_date)
+        return(data.frame(date = as.Date(character()), 
+                          avgt = character(),
+                          mint = character(),
+                          maxt = character(),
+                          snow = character(),
+                          snwd = character(),
+                          pcpn = character(), 
+                          wban = integer(),
+                          icao = character(),
+                          subid = integer()))
+      }
+      
+      # Process the data
+      processed_data <- temp_data |> 
+        rename("date" = "V1", "avgt" = "V2", "mint" = "V3", "maxt" = "V4",
+               "snow" = "V5", "snwd" = "V6", "pcpn" = "V7") |> 
+        mutate(date = as.Date(date),
+               wban = wban,
+               icao = icao,
+               subid = subid)
+      
+      return(processed_data)
+      
+    }, error = function(e) {
+      message("Error fetching data for ICAO: ", icao, " on ", query_date)
+      
+      # If both fail, return a blank dataframe
+      return(data.frame(date = query_date, 
+                        avgt = NA,
+                        mint = NA,
+                        maxt = NA,
+                        snow = NA,
+                        snwd = NA,
+                        pcpn = NA, 
+                        wban = wban,
+                        icao = icao,
+                        subid = subid))
+    })
+  })
+}
+
+```
+
+Pull relevant weather data for a given subject on a given day.
+```{r}
+weather <- match_stns$day_label |>
+  unique() |>
+  furrr::future_map(\(day_label) pull_weather(day_label_arg = day_label,
+                                               stn_arg = match_stns)) |> 
+  bind_rows()
+
+weather |> 
+  distinct(subid, .keep_all = TRUE) |> 
+  head()
+```
+
+For how many points are we missing data?
+```{r}
+sum(is.na(weather$avgt))
+```
+
+What percentage of our total is that?
+```{r}
+missing <- sum(is.na(weather$avgt))
+total <- nrow(weather)
+
+missing/total
+```
