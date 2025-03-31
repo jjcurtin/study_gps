@@ -12,7 +12,7 @@ format:
 params:
   study: "gps"
   window: "1day"
-  version: "v6"
+  version: "v7"
   cv: "nested_1_x_10_3_x_10"
   model: "main" 
 editor_options: 

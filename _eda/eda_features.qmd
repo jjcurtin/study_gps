@@ -12,7 +12,6 @@ editor_options:
 params:
   window: "day"
   roll_dur: 1 # 1 24
-  version: "v4" # go back and remove this
   sample: "gps" # ema messages
 ---
 
@@ -41,7 +40,7 @@ library(tidyverse)
 ## Paths
 
 ```{r}
-name_job <- str_c("features_", params$sample, "_", params$window, "_", params$roll_dur, "h_", params$version)
+name_job <- str_c("features_", params$sample, "_", params$window, "_", params$roll_dur, "h")
 
 path_chtc <- format_path(str_c("studydata/risk/chtc/gps/", name_job, "/output"))
 path_shared <- format_path("studydata/risk/data_processed/shared")

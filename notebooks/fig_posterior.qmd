@@ -207,6 +207,19 @@ pp_tidy |>
   scale_y_continuous(expand = c(0,0)) +
   ylab("Posterior Probability Density") +
   xlab("Area Under ROC Curve")
+
+# new one!
+pp_tidy |> 
+  ggplot(aes(x = posterior)) + 
+  geom_histogram(color = "white", fill = "#333333", alpha = .85, lwd = .8) +
+  geom_segment(aes(x = ci_day$median, xend = ci_day$median, y = 14500, yend = 15500), 
+               color = "darkred", lwd = .3) +
+  geom_errorbar(aes(y = 15000, xmin = ci_day$lower, xmax = ci_day$upper), color = "darkred", lwd = .3) +
+  geom_vline(xintercept = .5, lwd = .5, linetype="dotted", color = "darkblue") +
+  scale_x_continuous(limits=c(0.49,.76)) +
+  scale_y_continuous(expand = c(0,0), limits = c(0,20000)) +
+  ylab("Posterior Probability Density") +
+  xlab("Area Under ROC Curve")
 ```
 
 ```{r}

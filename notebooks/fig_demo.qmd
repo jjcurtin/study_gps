@@ -1,5 +1,7 @@
 ---
 title: "Make GPS demographics"
+editor_options: 
+  chunk_output_type: console
 ---
 
 # Housekeeping
@@ -20,7 +22,7 @@ In progress as of 07/2024.
 
 options(conflicts.policy = "depends.ok")
 devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true", 
-                      sha1 = "a58e57da996d1b70bb9a5b58241325d6fd78890f")
+                      sha1 = "d5d4cd8e60c50328ca66795beb9d1f8c08b92803")
 ```
 
 ## Paths
@@ -54,7 +56,7 @@ options(tibble.width = Inf, dplyr.print_max = Inf)
 Load in study_dates.
 
 ```{r}
-study_dates <- read_csv(file.path(path_gps,"study_dates.csv"),
+study_dates <- read_csv(file.path(path_shared,"study_dates_gps.csv"),
                         show_col_types = FALSE)
 ```
 
@@ -172,9 +174,9 @@ tiff("age.tiff", units="in",width=5, height=5, res=300)
 dem_data |> 
   ggplot(aes(x = age)) +
   geom_histogram(aes(y = after_stat(density)),
-                 color = "#132157FF", fill = "white", bins = 15) +
-  geom_density(color = "darkred", fill = "firebrick2", alpha = .3) +
-  geom_vline(xintercept = median(dem_data$age), color = "#132157FF", lwd = .5, linetype="dashed") +
+                 color = "white", fill = "#e8e8e8", bins = 15, binwidth = 1) +
+  geom_density(color = "#910000", fill = "#b50000", alpha = .2) +
+  geom_vline(xintercept = median(dem_data$age), color = "black", lwd = .5, linetype="dashed") +
   xlab("Age") +
   ylab("Density") +
   scale_y_continuous(expand = c(0,0))
@@ -196,6 +198,17 @@ dem_data |>
   labs(fill = "Sex") +
   theme(legend.text = element_text(size = 20),
         legend.title = element_text(size = 24))
+dev.off()
+```
+
+```{r}
+tiff("sex.tiff", units="in",width=5, height=5, res=300)
+dem_data |> 
+ggplot(aes(x = sex)) +
+  geom_bar(color = "white", fill = "darkred", width = .5) +
+  xlab("Sex") +
+  ylab("Count") +
+  scale_y_continuous(expand = c(0,0))
 dev.off()
 ```
 
@@ -251,16 +264,13 @@ dev.off()
 
 ```{r}
 tiff("income.tiff", units="in",width=5, height=5, res=300)
-dem_data |> 
-  ggplot(aes(x = income)) +
-  geom_density(fill = "blue", color = "darkblue", alpha = .1, size = .8)
 
 dem_data |> 
   ggplot(aes(x = income)) +
   geom_histogram(aes(y = after_stat(density)),
-                 color = "#132157FF", fill = "white", bins = 15) +
-  geom_density(color = "#EE6100FF", fill = "#FFAD0AFF", alpha = .3) +
-  geom_vline(xintercept = median(dem_data$income), color = "#132157FF", lwd = .5, linetype="dashed") +
+                 color = "white", fill = "#e8e8e8", bins = 40) +
+  geom_density(color = "#910000", fill = "#b50000", alpha = .2) +
+  geom_vline(xintercept = median(dem_data$income), color = "black", lwd = .5, linetype="dashed") +
   xlab("Income") +
   ylab("Density") +
   scale_y_continuous(expand = c(0,0))
@@ -289,9 +299,9 @@ dem_data |>
                             dsm5_8, dsm5_9, dsm5_10, dsm5_11))) |> 
   ggplot(aes(x = dsm5_total)) +
   geom_histogram(aes(y = after_stat(density)),
-                 color = "#132157FF", fill = "white", binwidth = 1) +
-  geom_density(color = "#132157FF", fill = "#1BB6AFFF", alpha = .3) +
-  geom_vline(xintercept = 9, color = "#132157FF", lwd = .5, linetype="dashed") +
+                 color = "white", fill = "#e8e8e8", binwidth = 1) +
+  geom_density(color = "#910000", fill = "#b50000", alpha = .2) +
+  geom_vline(xintercept = 9, color = "black", lwd = .5, linetype="dashed") +
   xlab("DSM-5 Total Symptom Count") +
   ylab("Density") +
   scale_y_continuous(expand = c(0,0)) +
