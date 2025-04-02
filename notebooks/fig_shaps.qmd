@@ -65,6 +65,7 @@ shaps_grp <- read_rds(file.path(path_models, str_c("inner_shapsgrp_septype_",
 #| fig-height: 5
 #| fig-width: 5
 
+tiff("shaps.tiff", units="in",width=5, height=5, res=300)
 shaps_grp |>
   group_by(variable_grp) |>
   summarize(mean_value = (mean(abs(value)))) |> 
@@ -74,5 +75,16 @@ shaps_grp |>
   geom_bar(aes(x = group, y = mean_value), stat = "identity", fill = "#af1f21") +
   ylab("Mean |SHAP| value (in Log-Odds)") +
   xlab("") +
-  coord_flip()
+  coord_flip() +
+  theme(
+    # LABELS APPEARANCE
+    axis.title.y = element_text(size=12, colour = "black"), 
+    axis.text.x = element_text(size=10, colour = "black"), 
+    axis.text.y = element_text(size=10, colour = "black"),
+    strip.text.x = element_text(size = 10, face="bold", colour = "black" ),
+    strip.text.y = element_text(size = 10, face="bold", colour = "black"),
+    axis.line.x = element_line(color="black", size = 0.3),
+    axis.line.y = element_line(color="black", size = 0.3)
+  )
+dev.off()
 ```

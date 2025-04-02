@@ -176,10 +176,21 @@ dem_data |>
   geom_histogram(aes(y = after_stat(density)),
                  color = "white", fill = "#e8e8e8", bins = 15, binwidth = 1) +
   geom_density(color = "#af1f21", fill = "#af1f21", alpha = .2) +
-  geom_vline(xintercept = median(dem_data$age), color = "black", lwd = .5, linetype="dashed") +
+  geom_vline(xintercept = median(dem_data$age), color = "black", lwd = .6, linetype="dotted") +
   xlab("Age") +
   ylab("Density") +
-  scale_y_continuous(expand = c(0,0))
+  scale_y_continuous(expand = c(0,0)) +
+         theme(
+    # LABELS APPEARANCE
+     axis.title.x = element_text(size=12, colour = "black"),
+    axis.title.y = element_text(size=12, colour = "black"), 
+    axis.text.x = element_text(size=10, colour = "black"), 
+    axis.text.y = element_text(size=10, colour = "black"),
+    strip.text.x = element_text(size = 10, face="bold", colour = "black" ),
+    strip.text.y = element_text(size = 10, face="bold", colour = "black"),
+    axis.line.x = element_line(color="black", size = 0.3),
+    axis.line.y = element_line(color="black", size = 0.3)
+  )
 dev.off()
 ```
 
@@ -269,11 +280,22 @@ dem_data |>
   ggplot(aes(x = income)) +
   geom_histogram(aes(y = after_stat(density)),
                  color = "white", fill = "#e8e8e8", bins = 40) +
-  geom_density(color = "#910000", fill = "#b50000", alpha = .2) +
-  geom_vline(xintercept = median(dem_data$income), color = "black", lwd = .5, linetype="dashed") +
+  geom_density(color = "#af1f21", fill = "#af1f21", alpha = .5) +
+  geom_vline(xintercept = median(dem_data$income), color = "black", lwd = .6, linetype="dotted") +
   xlab("Income") +
   ylab("Density") +
-  scale_y_continuous(expand = c(0,0))
+  scale_y_continuous(expand = c(0,0)) +
+         theme(
+    # LABELS APPEARANCE
+     axis.title.x = element_text(size=12, colour = "black"),
+    axis.title.y = element_text(size=12, colour = "black"), 
+    axis.text.x = element_text(size=10, colour = "black"), 
+    axis.text.y = element_text(size=10, colour = "black"),
+    strip.text.x = element_text(size = 10, face="bold", colour = "black" ),
+    strip.text.y = element_text(size = 10, face="bold", colour = "black"),
+    axis.line.x = element_line(color="black", size = 0.3),
+    axis.line.y = element_line(color="black", size = 0.3)
+  )
 dev.off()
 ```
 
@@ -300,11 +322,22 @@ dem_data |>
   ggplot(aes(x = dsm5_total)) +
   geom_histogram(aes(y = after_stat(density)),
                  color = "white", fill = "#e8e8e8", binwidth = 1) +
-  geom_density(color = "#910000", fill = "#b50000", alpha = .2) +
-  geom_vline(xintercept = 9, color = "black", lwd = .5, linetype="dashed") +
+  geom_density(color = "#af1f21", fill = "#af1f21", alpha = .2) +
+  geom_vline(xintercept = 9, color = "black", lwd = .6, linetype="dotted") +
   xlab("DSM-5 Total Symptom Count") +
   ylab("Density") +
   scale_y_continuous(expand = c(0,0)) +
-  scale_x_continuous(limits = c(0,11.5), breaks = (0:11))
+  scale_x_continuous(limits = c(0,11.5), breaks = (0:11)) +
+           theme(
+    # LABELS APPEARANCE
+     axis.title.x = element_text(size=12, colour = "black"),
+    axis.title.y = element_text(size=12, colour = "black"), 
+    axis.text.x = element_text(size=10, colour = "black"), 
+    axis.text.y = element_text(size=10, colour = "black"),
+    strip.text.x = element_text(size = 10, face="bold", colour = "black" ),
+    strip.text.y = element_text(size = 10, face="bold", colour = "black"),
+    axis.line.x = element_line(color="black", size = 0.3),
+    axis.line.y = element_line(color="black", size = 0.3)
+  )
 dev.off()
 ```
