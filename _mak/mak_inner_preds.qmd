@@ -12,7 +12,7 @@ format:
 params:
   study: "gps"
   window: "1day"
-  version: "v7"
+  version: "v6"
   cv: "nested_1_x_10_3_x_10"
   model: "main" 
 editor_options: 
@@ -393,7 +393,7 @@ Now group SHAPs
 - NOTE: not run for baseline models
 
 ```{r}
-if(!file.exists(here::here(path_models, str_c("inner_shapsgrp_",
+if(!file.exists(here::here(path_models, str_c("inner_shapsgrp_septype3_",
                                             window, "_", version, "_",
                                             cv, ".rds"))) & model != "baseline"){
 
@@ -407,8 +407,30 @@ if(!file.exists(here::here(path_models, str_c("inner_shapsgrp_",
   shaps_out_grp <- shaps_out |> 
     # collapse across duration and raw + change
     mutate(variable_grp = if_else(str_detect(variable, ".risk"), "risky location", variable),
-           # maybe this should be stratified by specific types of locations?
-           variable_grp = if_else(str_detect(variable_grp, ".type"), "type of location", variable_grp),
+           #variable_grp = if_else(str_detect(variable_grp, ".type"), "type of location", variable_grp),
+           variable_grp = if_else(str_detect(variable_grp, ".type.aa"), "AA", variable_grp),
+           variable_grp = if_else(str_detect(variable_grp, ".type.airport"), "airport", variable_grp),
+           variable_grp = if_else(str_detect(variable_grp, ".type.bar"), "bar", variable_grp),
+           variable_grp = if_else(str_detect(variable_grp, ".type.cafe"), "cafe", variable_grp),
+           variable_grp = if_else(str_detect(variable_grp, ".type.church"), "church", variable_grp),
+           variable_grp = if_else(str_detect(variable_grp, ".type.communityspacerecreation"), "community space/recreation", variable_grp),
+           variable_grp = if_else(str_detect(variable_grp, ".type.errands"), "errands", variable_grp),
+           variable_grp = if_else(str_detect(variable_grp, ".type.family"), "home of family member", variable_grp),
+           variable_grp = if_else(str_detect(variable_grp, ".type.fitness"), "gym or other fitness location", variable_grp),
+           variable_grp = if_else(str_detect(variable_grp, ".type.friend"), "home of friend", variable_grp),
+           variable_grp = if_else(str_detect(variable_grp, ".type.healthcare"), "healthcare", variable_grp),
+           variable_grp = if_else(str_detect(variable_grp, ".type.home"), "home", variable_grp),
+           variable_grp = if_else(str_detect(variable_grp, ".type.library"), "library", variable_grp),
+           variable_grp = if_else(str_detect(variable_grp, ".type.liquorstore"), "liquor store", variable_grp),
+           variable_grp = if_else(str_detect(variable_grp, ".type.other"), "other unspecified location", variable_grp),
+           variable_grp = if_else(str_detect(variable_grp, ".type.park"), "park", variable_grp),
+           variable_grp = if_else(str_detect(variable_grp, ".type.publicdrinkingspace"), "public drinking space", variable_grp),
+           variable_grp = if_else(str_detect(variable_grp, ".type.restaurant"), "restaurant", variable_grp),
+           variable_grp = if_else(str_detect(variable_grp, ".type.school"), "school", variable_grp),
+           variable_grp = if_else(str_detect(variable_grp, ".type.temporaryresidence"), "temporary residence", variable_grp),
+           variable_grp = if_else(str_detect(variable_grp, ".type.travelstop"), "stop while traveling", variable_grp),
+           variable_grp = if_else(str_detect(variable_grp, ".type.volunteer"), "volunteering activity", variable_grp),
+           variable_grp = if_else(str_detect(variable_grp, ".type.work"), "work", variable_grp),
            variable_grp = if_else(str_detect(variable_grp, ".alcohol"), "alcohol availability at location", variable_grp),
            variable_grp = if_else(str_detect(variable_grp, ".avoid"), "location to avoid in recovery", variable_grp),
            variable_grp = if_else(str_detect(variable_grp, ".emotion"), "location valence", variable_grp),
@@ -422,7 +444,7 @@ if(!file.exists(here::here(path_models, str_c("inner_shapsgrp_",
     summarize(value = sum(value))
   
   shaps_out_grp |>  write_rds(here::here(path_models, 
-                                          str_c("inner_shapsgrp_", window, "_", 
+                                          str_c("inner_shapsgrp_septype_", window, "_", 
                                                 version, "_",
                                                 cv, "_", model, ".rds")))
 }

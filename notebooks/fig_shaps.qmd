@@ -34,7 +34,7 @@ model <- params$model
 library(tidyverse)
 theme_set(theme_classic()) 
 devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true",
-                     sha1 = "a58e57da996d1b70bb9a5b58241325d6fd78890f")
+                     sha1 = "d1f1c542783f2e9a6ff50a400f909ba175ac618e")
 path_models <- format_path(str_c("studydata/risk/models/", study))
 ```
 
@@ -50,7 +50,7 @@ shaps <- read_rds(file.path(path_models, str_c("inner_shaps_",
                #values_to = ".pred_Lapse") |>
   glimpse()
 
-shaps_grp <- read_rds(file.path(path_models, str_c("inner_shapsgrp_", 
+shaps_grp <- read_rds(file.path(path_models, str_c("inner_shapsgrp_septype_", 
                                            window, "_", version, "_", 
                                            cv, "_", model, ".rds"))) |>
   #pivot_longer(cols = starts_with("prob"), 
