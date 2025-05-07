@@ -50,7 +50,7 @@ To do:
 
 options(conflicts.policy = "depends.ok")
 devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true", 
-                      sha1 = "3a9b0c96be90d370dc16fd0b603135a6c68093f5")
+                      sha1 = "de12d764438078a9341db9bc0b2472c87e0ae846")
 ```
 
 ## Paths
@@ -207,81 +207,87 @@ first_date <- gps_longest |> arrange(date) |> mutate(first_date = first(date)) |
 
 last_date <- gps_longest |> arrange(date) |> mutate(last_date = last(date)) |> pull(last_date) |> unique()
 
-weather_stns <- FluMoDL::NOAA_countryStations(fips = "US", from = first_date - 1, to = last_date + 1)
+weather_stns <- rbind(FluMoDL::NOAA_countryStations(fips = "US",
+                                                    from = first_date - 1, to = last_date + 1),
+                      FluMoDL::NOAA_countryStations(fips = "MX",
+                                                    from = first_date - 1, to = last_date + 1))
 
 weather_stns |> head()
 ```
 
-All WBANs should be five digits. If a WBAN is not five digits, we should append one or two 0s to the beginning of the WBAN. **CP is confirming this with someone at the Midwest RCC**
+All WBANs should be five digits. If a WBAN is not five digits, we should append one or two 0s to the beginning of the WBAN. We also need to ensure that blank rows in the ICAO column are set to NA for later filtering purposes.
 ```{r}
 weather_stns <- weather_stns |> 
   mutate(wban = ifelse(nchar(wban) == 3, paste0(00, wban), wban),
-         wban = ifelse(nchar(wban) == 4, paste0(0, wban), wban))
+         wban = ifelse(nchar(wban) == 4, paste0(0, wban), wban),
+         icao = na_if(icao, ""))
 ```
 
-Define function to identify closest weather station. This function makes queries using WBAN numbers and ICAO identifiers. **Midwest RCC has informed CP that not all stations use the same identifying code, so might need to use an additional code to get all of the data! Will update.**
+Define function to identify closest weather station. This function makes queries using WBAN numbers and ICAO identifiers. Prior to filtering, remove stations which do not have a valid WBAN or ICAO (might be buoys, etc.).
 ```{r}
-identify_wban <- function(gps_arg, stn_arg, day_label_arg){
+identify_stn <- function(gps_arg, stn_arg, day_label_arg) {
+  library(geosphere)
   gps_tmp <- gps_arg |> filter(day_label == day_label_arg)
-  
-  dist_matrix <- matrix(nrow = nrow(gps_tmp), ncol = nrow(stn_arg))
 
+  # Pre-filter stations that have either a valid WBAN or ICAO
+  valid_stn <- stn_arg[!(stn_arg$wban == 99999 & is.na(stn_arg$icao)), ]
+
+  # Create a distance matrix between GPS points and valid stations
+  dist_matrix <- matrix(nrow = nrow(gps_tmp), ncol = nrow(valid_stn))
   for (i in 1:nrow(gps_tmp)) {
-    for (j in 1:nrow(stn_arg)) {
+    for (j in 1:nrow(valid_stn)) {
       dist_matrix[i, j] <- distGeo(
         c(gps_tmp$lon[i], gps_tmp$lat[i]),
-        c(stn_arg$lon[j], stn_arg$lat[j])
+        c(valid_stn$lon[j], valid_stn$lat[j])
       )
     }
   }
 
-  closest <- apply(dist_matrix, 1, function(row) {
-    which.min(row)
-  })
+  # Find the index of the closest valid station for each GPS point
+  closest <- apply(dist_matrix, 1, which.min)
 
-  closest_stn <- stn_arg$wban[closest]
-  closest_icao <- stn_arg$icao[closest]
-  
-  # if closest_stn is 99999 and closest_icao is NA, find next closest station
-  
-  if (any(closest_stn == 99999 & is.na(closest_icao))) {
-    message("Invalid WBAN and ICAO... Searching for second closest station...")
-    
-    # Loop through the rows where the WBAN is 99999 and ICAO is NA
-    for (i in which(closest_stn == 99999 & is.na(closest_icao))) {
-      
-      # Find the index of the second smallest distance in this row
-      row_dist <- dist_matrix[i, ]
-      sorted_indices <- order(row_dist)
-      second_closest_index <- sorted_indices[2]  # Index of the second closest station
-      
-      # Update the closest station for this entry
-      closest_stn[i] <- stn_arg$wban[second_closest_index]
-      closest_icao[i] <- stn_arg$icao[second_closest_index]
-      }
-    }
-  
-  return(list(subid = gps_tmp$subid, day_label = day_label_arg, wban = closest_stn,
-              icao = closest_icao, date = gps_tmp$date))
-  
+  closest_wban <- valid_stn$wban[closest]
+  closest_icao <- valid_stn$icao[closest]
+  closest_distance <- (mapply(function(i, j) dist_matrix[i, j], 1:nrow(gps_tmp), closest)) / 1609.344
+
+  return(list(
+    subid = gps_tmp$subid,
+    day_label = day_label_arg,
+    wban = closest_wban,
+    icao = closest_icao,
+    distance = closest_distance,
+    date = gps_tmp$date
+  ))
 }
+
 ```
 
 Match each longest duration lat/lon to closest weather station.
 ```{r}
 match_stns <- gps_longest$day_label |>
   unique() |>
-  furrr::future_map(\(day_label) identify_wban(day_label_arg = day_label,
+  furrr::future_map(\(day_label) identify_stn(day_label_arg = day_label,
                                                stn_arg = weather_stns,
                                                gps_arg = gps_longest)) |> 
   purrr::map_dfr(~ data.frame(subid = .x$subid, day_label = .x$day_label, wban = .x$wban,
-                              icao = .x$icao, date = .x$date))
+                              icao = .x$icao, distance = .x$distance, date = .x$date))
 
 match_stns |> 
   distinct(subid, .keep_all = TRUE) |> 
   head()
 ```
 
+Explore distances.
+```{r}
+match_stns |> 
+  pull(distance) |> 
+  skimr::skim()
+
+match_stns |>
+  filter(distance < 15) |>
+  pull(distance) |>
+  hist()
+```
 
 Create a function which queries RCC ACIS for each date and weather station.
 ```{r}
@@ -422,4 +428,22 @@ missing <- sum(is.na(weather$avgt))
 total <- nrow(weather)
 
 missing/total
+```
+
+Which stations are missing the most?
+
+> It looks like most of these are airports, so we might be able to pull information from KMSN?
+
+```{r}
+weather |> 
+  filter(is.na(avgt)) |> 
+  count(icao, sort = TRUE)
+```
+
+Which stations that are not missing data have the most points?
+```{r}
+weather |> 
+  filter(!(is.na(avgt))) |> 
+  count(icao, sort = TRUE) |> 
+  head(n = 15)
 ```
