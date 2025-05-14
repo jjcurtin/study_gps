@@ -15,7 +15,7 @@ editor_options:
 
 ## Code Status
 
-In progress as of 3/2025.
+Complete as of 05/2025.
 
 ## Notes
 
@@ -35,10 +35,10 @@ Links:
  - Documentation for RCC ACIS: https://www.rcc-acis.org/docs_webservices.html
  - RCC ACIS query builder: https://builder.rcc-acis.org/
 
-To do:
+Units of measurement:
 
- - CP is confirming this with someone at the Midwest RCC that WBANs less than 5 digits should have a 0 appended to them
- - Some stations might use identifiers other than a WBAN number or ICAO code, CP is working with someone at Midwest RCC to make sure we are pulling maximal weather station data
+ - All temperatures are denoted *by default* in Fahrenheit
+ - Snow, snow depth, and precipitation are all denoted *by default* in inches
 
 # Set up
 
@@ -97,7 +97,7 @@ gps <- read_csv(here::here(path_shared, "gps_enriched.csv.xz"),
          known_loc = if_else(is.na(known_loc), FALSE, known_loc))
 ```
 
-## Prepare data for weather pulling
+# Prepare data for weather pulling
 
 Create a day-level identifier for subjects. This will enable us to apply this filter at the day level.
 ```{r}
@@ -117,50 +117,6 @@ Round lat/lon points to 4th decimal place per: https://blis.com/precision-matter
 gps <- gps |>
   mutate(lat_rounded = round(lat, 4),
          lon_rounded = round(lon, 4))
-```
-
-Calculate modal lat/lon on a given day. If no mode, then select the first point. **Not currently being used but saving just in case!!*
-```{r}
-get_mode <- function(x) {
-  unique_x <- unique(x)
-  freq <- table(x)
-  mode_value <- unique_x[which.max(freq)]
-  return(mode_value)
-}
-
-
-get_modal_latlon <- function(day_label_arg, gps) {
-
-  context_tmp <- gps |> filter(day_label_arg == day_label)
-
-  context_tmp <- context_tmp |>
-    mutate(latlon = str_c(lat_rounded, ", ",lon_rounded))
-
-  mode_value <- get_mode(context_tmp$latlon)
-
-  freq <- table(context_tmp$latlon)
-
-  if (max(freq) > 1) {
-    # keep rows where the column value equals the mode
-    #context_tmp <- context_tmp[context_tmp[[latlon]] == mode_value, ]
-    context_tmp <- context_tmp[context_tmp$latlon == mode_value, ]
-  } else {
-    # take first row if unique
-    context_tmp <- context_tmp[1, , drop = FALSE]
-  }
-
-  return(context_tmp)
-}
-```
-
-```{r}
-#| eval: false
-gps_modal <- gps$day_label |>
-  unique() |>
-  furrr::future_map(\(day_label) get_modal_latlon(day_label_arg = day_label,
-                                                gps)) |>
-  list_rbind() |> 
-  distinct(day_label, .keep_all = TRUE)
 ```
 
 Calculate lat/lon where individual spent the most time on a given day. If multiple maximum duration points, pull first from list.
@@ -199,7 +155,7 @@ gps_longest |>
   head()
 ```
 
-## Get weather
+# Get weather
 
 Retrieve database of existing weather stations.
 ```{r}
@@ -223,16 +179,16 @@ weather_stns <- weather_stns |>
          icao = na_if(icao, ""))
 ```
 
-Define function to identify closest weather station. This function makes queries using WBAN numbers and ICAO identifiers. Prior to filtering, remove stations which do not have a valid WBAN or ICAO (might be buoys, etc.).
+Define function to identify the five closest weather stations. This function makes queries using WBAN numbers and ICAO identifiers. Prior to filtering, remove stations which do not have a valid WBAN or ICAO (might be buoys, etc.).
 ```{r}
 identify_stn <- function(gps_arg, stn_arg, day_label_arg) {
   library(geosphere)
   gps_tmp <- gps_arg |> filter(day_label == day_label_arg)
 
-  # Pre-filter stations that have either a valid WBAN or ICAO
+  # pre-filter stations that have either a valid WBAN or ICAO
   valid_stn <- stn_arg[!(stn_arg$wban == 99999 & is.na(stn_arg$icao)), ]
 
-  # Create a distance matrix between GPS points and valid stations
+  # create a distance matrix between GPS points and valid stations
   dist_matrix <- matrix(nrow = nrow(gps_tmp), ncol = nrow(valid_stn))
   for (i in 1:nrow(gps_tmp)) {
     for (j in 1:nrow(valid_stn)) {
@@ -242,35 +198,35 @@ identify_stn <- function(gps_arg, stn_arg, day_label_arg) {
       )
     }
   }
+  
+  closest <- dist_matrix |> 
+    as_tibble() |>
+    pivot_longer(cols = everything(), names_to = "station_index", values_to = "distance") |>
+    mutate(station_index = as.integer(gsub("V", "", station_index))) |> 
+    slice_min(n = 5, order_by = distance) |> 
+    mutate(subid = gps_tmp$subid,
+           day_label = day_label_arg,
+           date = gps_tmp$date,
+           wban = valid_stn$wban[station_index],
+           icao = valid_stn$icao[station_index],
+           distance = distance / 1609.344) # convert to miles
 
-  # Find the index of the closest valid station for each GPS point
-  closest <- apply(dist_matrix, 1, which.min)
-
-  closest_wban <- valid_stn$wban[closest]
-  closest_icao <- valid_stn$icao[closest]
-  closest_distance <- (mapply(function(i, j) dist_matrix[i, j], 1:nrow(gps_tmp), closest)) / 1609.344
-
-  return(list(
-    subid = gps_tmp$subid,
-    day_label = day_label_arg,
-    wban = closest_wban,
-    icao = closest_icao,
-    distance = closest_distance,
-    date = gps_tmp$date
-  ))
+  return(closest)
 }
 
 ```
 
-Match each longest duration lat/lon to closest weather station.
+Match each longest duration lat/lon to closest weather station. Running this without the filter demonstrates that the majority of stations are within 50 miles, so set a distance threshold of 50.
 ```{r}
 match_stns <- gps_longest$day_label |>
   unique() |>
   furrr::future_map(\(day_label) identify_stn(day_label_arg = day_label,
                                                stn_arg = weather_stns,
-                                               gps_arg = gps_longest)) |> 
+                                               gps_arg = gps_longest)) |>
   purrr::map_dfr(~ data.frame(subid = .x$subid, day_label = .x$day_label, wban = .x$wban,
-                              icao = .x$icao, distance = .x$distance, date = .x$date))
+                              icao = .x$icao, distance = .x$distance, date = .x$date)) |>
+  filter(distance < 50) |> 
+  mutate(obs_label = 1:n())
 
 match_stns |> 
   distinct(subid, .keep_all = TRUE) |> 
@@ -284,16 +240,15 @@ match_stns |>
   skimr::skim()
 
 match_stns |>
-  filter(distance < 15) |>
   pull(distance) |>
   hist()
 ```
 
 Create a function which queries RCC ACIS for each date and weather station.
 ```{r}
-pull_weather <- function(day_label_arg, stn_arg) {
+pull_weather <- function(obs_label_arg, stn_arg) {
   
-  stn_tmp <- stn_arg |> filter(day_label == day_label_arg)
+  stn_tmp <- stn_arg |> filter(obs_label == obs_label_arg)
   
   subid <- stn_tmp$subid
   wban <- stn_tmp$wban
@@ -358,7 +313,7 @@ pull_weather <- function(day_label_arg, stn_arg) {
                             colClasses = c("V2" = "character", "V3" = "character", "V4" = "character",
                                            "V5" = "character", "V6" = "character", "V7" = "character"))
       
-      # Check if the dataframe is empty
+      # Check if the data frame is empty
       if (nrow(temp_data) == 0) {
         message("Empty CSV for ICAO: ", icao, " on ", query_date)
         return(data.frame(date = as.Date(character()), 
@@ -387,7 +342,7 @@ pull_weather <- function(day_label_arg, stn_arg) {
     }, error = function(e) {
       message("Error fetching data for ICAO: ", icao, " on ", query_date)
       
-      # If both fail, return a blank dataframe
+      # If both fail, return a blank data frame
       return(data.frame(date = query_date, 
                         avgt = NA,
                         mint = NA,
@@ -398,23 +353,47 @@ pull_weather <- function(day_label_arg, stn_arg) {
                         wban = wban,
                         icao = icao,
                         subid = subid))
+      
+      
     })
   })
+  
 }
 
 ```
 
-Pull relevant weather data for a given subject on a given day.
-```{r}
-weather <- match_stns$day_label |>
+Pull relevant weather data for a given subject on a given day. Missing data points are sometimes recorded as "M", so make sure to set these to be NA.
+```{r, max.height='100px'}
+weather <- match_stns$obs_label |>
   unique() |>
-  furrr::future_map(\(day_label) pull_weather(day_label_arg = day_label,
+  furrr::future_map(\(obs_label) pull_weather(obs_label_arg = obs_label,
                                                stn_arg = match_stns)) |> 
-  bind_rows()
+  bind_rows() |>
+  # missing datapoints are sometimes recorded as "M"
+  mutate(across(where(is.character), ~na_if(., "M")))
 
 weather |> 
   distinct(subid, .keep_all = TRUE) |> 
   head()
+```
+
+Create mean weather across rows. All "trace" values for precipitation, snow, and snow depth (denoted as "T") are set to .001 for purposes of averaging across rows. "Trace" represents values too small to be reliably measured.
+
+> Could consider doing weighted means here, but most of the stations that end up getting pulled do not have data (likely buoys or other similar things).
+
+```{r}
+weather <- weather |> 
+  group_by(subid, date) |>
+  mutate(avgt = as.numeric(avgt),
+         mint = as.numeric(mint),
+         maxt = as.numeric(maxt),
+         snow = if_else(snow == "T", ".001", snow),
+         snwd = if_else(snwd == "T", ".001", snwd),
+         pcpn = if_else(pcpn == "T", ".001", pcpn),
+         snow = as.numeric(snow),
+         snwd = as.numeric(snwd),
+         pcpn = as.numeric(pcpn)) |> 
+  summarise(across(where(is.numeric), ~ mean(.x, na.rm = TRUE)), .groups = "drop")
 ```
 
 For how many points are we missing data?
@@ -430,20 +409,8 @@ total <- nrow(weather)
 missing/total
 ```
 
-Which stations are missing the most?
-
-> It looks like most of these are airports, so we might be able to pull information from KMSN?
-
+## Save out data for further feature engineering.
 ```{r}
-weather |> 
-  filter(is.na(avgt)) |> 
-  count(icao, sort = TRUE)
-```
-
-Which stations that are not missing data have the most points?
-```{r}
-weather |> 
-  filter(!(is.na(avgt))) |> 
-  count(icao, sort = TRUE) |> 
-  head(n = 15)
+weather |>
+  write_csv(here::here(path_shared, "gps_weather.csv"))
 ```
