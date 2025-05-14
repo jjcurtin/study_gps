@@ -33,7 +33,7 @@ params:
 
 options(conflicts.policy = "depends.ok")
 devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true", 
-                      sha1 = "a58e57da996d1b70bb9a5b58241325d6fd78890f")
+                      sha1 = "de12d764438078a9341db9bc0b2472c87e0ae846")
 library(tidyverse)
 ```
 
