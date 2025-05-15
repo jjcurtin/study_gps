@@ -112,11 +112,18 @@ gps |>
   head()
 ```
 
-Round lat/lon points to 4th decimal place per: https://blis.com/precision-matters-critical-importance-decimal-places-five-lowest-go/#:~:text=The%20number%20of%20decimal%20places%20correlates%20directly%20to%20the%20level,a%20large%20city%20or%20district.
+Round lat/lon points to 1st decimal place per: https://blis.com/precision-matters-critical-importance-decimal-places-five-lowest-go/#:~:text=The%20number%20of%20decimal%20places%20correlates%20directly%20to%20the%20level,a%20large%20city%20or%20district.
 ```{r}
 gps <- gps |>
-  mutate(lat_rounded = round(lat, 4),
-         lon_rounded = round(lon, 4))
+  mutate(lat_rounded = round(lat, 1),
+         lon_rounded = round(lon, 1))
+```
+
+We are most interested in people's activities during the waking hours. Filter down GPS data to be from 8a-8p.
+```{r}
+gps <- gps |> 
+  # filtering by 19 will go up until 7:59, I know that 20 is 8 for the record
+  filter((as.numeric(hour(time)) <= 19 | as.numeric(hour(time)) > 8))
 ```
 
 Calculate lat/lon where individual spent the most time on a given day. If multiple maximum duration points, pull first from list.
@@ -124,18 +131,15 @@ Calculate lat/lon where individual spent the most time on a given day. If multip
 get_long_dur <- function(day_label_arg, gps) {
 
   context_tmp <- gps |> filter(day_label_arg == day_label)
-
-  context_tmp <- context_tmp |>
-    mutate(latlon = str_c(lat_rounded, ", ",lon_rounded))
-
+  
   longest <- context_tmp |> 
-    group_by(latlon) |> 
-    summarize(duration = sum(duration), .groups = "drop") |> 
-    slice_max(order_by = duration, n = 1) |> 
-    slice_head(n = 1) # handles multiple maximums by taking the first 
+    group_by(lat_rounded, lon_rounded) |> 
+    summarize(duration = sum(duration), .groups = "drop") |>
+    slice_max(order_by = duration, n = 1)
   
   context_tmp <- context_tmp |> 
-    filter(latlon == longest$latlon)
+    filter(lat_rounded == longest$lat_rounded & lon_rounded == longest$lon_rounded) |> 
+    select(subid, date, day_label, lat_rounded, lon_rounded)
 
   return(context_tmp)
 }
@@ -153,6 +157,20 @@ gps_longest |>
   select(subid, lat, lon, time, day_label) |>
   distinct(subid, .keep_all = TRUE) |> 
   head()
+```
+
+Check how many unique places there are per participant.
+```{r}
+gps_longest |> 
+  group_by(subid) |>
+  summarise(n_places = n_distinct(paste(lat_rounded, lon_rounded))) |> 
+  pull(n_places) |> 
+  hist()
+
+gps_longest |> 
+  group_by(subid) |>
+  summarise(n_places = n_distinct(paste(lat_rounded, lon_rounded))) |> 
+  skimr::skim(n_places)
 ```
 
 # Get weather
@@ -193,7 +211,7 @@ identify_stn <- function(gps_arg, stn_arg, day_label_arg) {
   for (i in 1:nrow(gps_tmp)) {
     for (j in 1:nrow(valid_stn)) {
       dist_matrix[i, j] <- distGeo(
-        c(gps_tmp$lon[i], gps_tmp$lat[i]),
+        c(gps_tmp$lon_rounded[i], gps_tmp$lat_rounded[i]),
         c(valid_stn$lon[j], valid_stn$lat[j])
       )
     }
