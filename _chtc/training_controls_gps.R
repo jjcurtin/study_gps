@@ -161,13 +161,13 @@ build_recipe <- function(d, config) {
   
   # Set recipe steps generalizable to all model configurations
   rec <- recipe(y ~ ., data = d) |>
-    step_rm(subid, label_num) |>  # needed to retain until now for grouped CV in splits
+    step_rm(subid, label_num, matches(cv_strat)) |>  # needed to retain until now for grouped CV in splits
     step_impute_median(all_numeric_predictors()) |> 
     step_impute_mode(all_nominal_predictors()) |> 
     step_dummy(all_factor_predictors()) |> 
     step_select(where(~ !any(is.na(.)))) |>
     step_nzv(all_predictors())
- 
+  
   
   # resampling options for unbalanced outcome variable
   if (resample == "down") {
