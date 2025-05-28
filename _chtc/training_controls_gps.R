@@ -28,9 +28,9 @@ source("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true
 study <- "gps"
 window <- "day"
 lead <- 0
-version <- "v8" 
+version <- "v9" 
 algorithm <- "xgboost"
-model <- "strat_lh" # strat_yn strat_lh strat_nlh
+model <- "strat_nlh" # strat_yn strat_lh strat_nlh
 
 feature_set <- c("context_movement") # GPS feature set name
 data_trn <- str_c("features_gps_day_1h.csv")
@@ -38,7 +38,7 @@ data_trn <- str_c("features_gps_day_1h.csv")
 seed_splits <- 102030
 
 ml_mode <- "classification"   # regression or classification
-configs_per_job <- 50 # number of model configurations that will be fit/evaluated within each CHTC
+configs_per_job <- 10 # number of model configurations that will be fit/evaluated within each CHTC
 
 # RESAMPLING FOR OUTCOME-----------------------------------
 # note that ratio is under_ratio, which is used by downsampling as is
@@ -49,11 +49,11 @@ resample <- c("none", "up_1", "up_2", "up_3", "up_4", "up_5",
               "down_1", "down_2", "down_3", "down_4", "down_5")
 
 # CHTC SPECIFIC CONTROLS------ ---------------------
-username <- "jjcurtin" # for setting staging directory (until we have group staging folder)
+username <- "punturieri" # for setting staging directory (until we have group staging folder)
 stage_data <- TRUE # If FALSE .sif will still be staged, just not data_trn
 max_idle <- 1000
 request_cpus <- 1 
-request_memory <- "75000MB"
+request_memory <- "20000MB"
 request_disk <- "2000MB"
 want_campus_pools <- TRUE
 want_ospool <- TRUE
@@ -66,12 +66,12 @@ y_level_neg <- "no lapse"
 
 
 # CV SETTINGS---------------------------------
-cv_resample_type <- "nested" # can be boot, kfold, or nested
-cv_resample = NULL # can be repeats_x_folds (e.g., 1_x_10, 10_x_10) or number of bootstraps (e.g., 100)
-cv_inner_resample <- "1_x_10" # can also be a single number for bootstrapping (i.e., 100)
-cv_outer_resample <- "3_x_10" # outer resample will always be kfold
+cv_resample_type <- "kfold" # can be boot, kfold, or nested
+cv_resample = "3_x_10" # can be repeats_x_folds (e.g., 1_x_10, 10_x_10) or number of bootstraps (e.g., 100)
+cv_inner_resample <- NULL # can also be a single number for bootstrapping (i.e., 100)
+cv_outer_resample <- NULL # outer resample will always be kfold
 cv_group <- "subid" # set to NULL if not grouping
-stratify <- model # using variable names saved as model 
+stratify <- model  #or other method
 
 cv_name <- if_else(cv_resample_type == "nested",
                    str_c(cv_resample_type, "_", cv_inner_resample, "_",
@@ -117,7 +117,8 @@ hp3_xgboost <- c(10, 15, 20, 30, 40, 50)  # mtry, no. feats. to split on at each
 
 format_data <- function (df){
   
-  strat_info <- read_csv("lapse_counts.csv") |>
+  strat_info <- read_csv("lapse_counts.csv",
+                         show_col_types = FALSE) |>
     select(subid, model) # select only column you want to stratify by
 
   df |> 
