@@ -28,7 +28,7 @@ source("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true
 study <- "gps"
 window <- "day"
 lead <- 0
-version <- "v9" 
+version <- "v8" 
 algorithm <- "xgboost"
 model <- "strat_nlh" # strat_yn strat_lh strat_nlh
 
@@ -38,7 +38,7 @@ data_trn <- str_c("features_gps_day_1h.csv")
 seed_splits <- 102030
 
 ml_mode <- "classification"   # regression or classification
-configs_per_job <- 10 # number of model configurations that will be fit/evaluated within each CHTC
+configs_per_job <- 50 # number of model configurations that will be fit/evaluated within each CHTC
 
 # RESAMPLING FOR OUTCOME-----------------------------------
 # note that ratio is under_ratio, which is used by downsampling as is
@@ -71,7 +71,10 @@ cv_resample = "3_x_10" # can be repeats_x_folds (e.g., 1_x_10, 10_x_10) or numbe
 cv_inner_resample <- NULL # can also be a single number for bootstrapping (i.e., 100)
 cv_outer_resample <- NULL # outer resample will always be kfold
 cv_group <- "subid" # set to NULL if not grouping
-stratify <- model  #or other method
+cv_strat <- model # using variable names saved as model (can also pass in string or set to NULL)
+cv_strat_file_name <- "lapse_strat.csv" # This file is in the shared path_data and contains all EMA subids
+# we left join strat variables so all studies with smaller samples can still use it
+
 
 cv_name <- if_else(cv_resample_type == "nested",
                    str_c(cv_resample_type, "_", cv_inner_resample, "_",
@@ -114,20 +117,29 @@ hp3_xgboost <- c(10, 15, 20, 30, 40, 50)  # mtry, no. feats. to split on at each
 # FORMAT DATA-----------------------------------------
 # load in data set which constraint strat conditions
   
-
-format_data <- function (df){
+format_data <- function (df, lapse_strat = NULL){
   
-  strat_info <- read_csv("lapse_counts.csv",
-                         show_col_types = FALSE) |>
-    select(subid, model) # select only column you want to stratify by
-
-  df |> 
-    rename(y = !!y_col_name) |> 
-    # set pos class first
-    mutate(y = factor(y, levels = c(!!y_level_pos, !!y_level_neg)), 
-           across(where(is.character), factor)) |>
-    select(-c(dttm_label)) |> 
-    left_join(strat_info, by = "subid")
+  if(!is.null(lapse_strat)) {
+    df <- df |> 
+      rename(y = !!y_col_name) |> 
+      # set pos class first
+      mutate(y = factor(y, levels = c(!!y_level_pos, !!y_level_neg)), 
+             across(where(is.character), factor)) |>
+      select(-c(dttm_label)) |> 
+      left_join(lapse_strat |> 
+                  select(subid, all_of(cv_strat)), by = "subid")
+  }
+  
+  if(is.null(lapse_strat)) {
+    df <- df |> 
+      rename(y = !!y_col_name) |> 
+      # set pos class first
+      mutate(y = factor(y, levels = c(!!y_level_pos, !!y_level_neg)), 
+             across(where(is.character), factor)) |>
+      select(-c(dttm_label)) 
+  }
+  
+  return(df)
 }
 
 
