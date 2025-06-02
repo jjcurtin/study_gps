@@ -20,6 +20,7 @@
 # xgboost with yn strat (kendra)
 # xgboost with lh strat (john)
 # xgboost with nlh strat (claire)
+# xgboost with no strat (claire)
 
 # source format_path
 source("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true")
@@ -30,7 +31,7 @@ window <- "day"
 lead <- 0
 version <- "v8" 
 algorithm <- "xgboost"
-model <- "strat_nlh" # strat_yn strat_lh strat_nlh
+model <- "no_strat" # strat_yn strat_lh strat_nlh
 
 feature_set <- c("context_movement") # GPS feature set name
 data_trn <- str_c("features_gps_day_1h.csv")
@@ -38,7 +39,7 @@ data_trn <- str_c("features_gps_day_1h.csv")
 seed_splits <- 102030
 
 ml_mode <- "classification"   # regression or classification
-configs_per_job <- 50 # number of model configurations that will be fit/evaluated within each CHTC
+configs_per_job <- 25 # number of model configurations that will be fit/evaluated within each CHTC
 
 # RESAMPLING FOR OUTCOME-----------------------------------
 # note that ratio is under_ratio, which is used by downsampling as is
@@ -71,7 +72,7 @@ cv_resample = "3_x_10" # can be repeats_x_folds (e.g., 1_x_10, 10_x_10) or numbe
 cv_inner_resample <- NULL # can also be a single number for bootstrapping (i.e., 100)
 cv_outer_resample <- NULL # outer resample will always be kfold
 cv_group <- "subid" # set to NULL if not grouping
-cv_strat <- model # using variable names saved as model (can also pass in string or set to NULL)
+cv_strat <- NULL # using variable names saved as model (can also pass in string or set to NULL)
 cv_strat_file_name <- "lapse_strat.csv" # This file is in the shared path_data and contains all EMA subids
 # we left join strat variables so all studies with smaller samples can still use it
 
@@ -160,8 +161,18 @@ build_recipe <- function(d, config) {
   }
   
   # Set recipe steps generalizable to all model configurations
-  rec <- recipe(y ~ ., data = d) |>
-    step_rm(subid, label_num, matches(cv_strat)) |>  # needed to retain until now for grouped CV in splits
+  if(!is.null(lapse_strat)) {
+    rec <- recipe(y ~ ., data = d) |>
+      step_rm(subid, label_num, matches(cv_strat)) # needed to retain until now for grouped CV in splits
+    
+  }
+  
+  if(is.null(lapse_strat)) {
+    rec <- recipe(y ~ ., data = d) |>
+      step_rm(subid, label_num)
+  }
+  
+  rec <- rec |> 
     step_impute_median(all_numeric_predictors()) |> 
     step_impute_mode(all_nominal_predictors()) |> 
     step_dummy(all_factor_predictors()) |> 
