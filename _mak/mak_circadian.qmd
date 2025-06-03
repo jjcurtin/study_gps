@@ -1,0 +1,184 @@
+---
+title: "Circadian testing"
+author: "Claire Punturieri"
+date: "`r lubridate::today()`"
+output: 
+  html_document:
+    toc: true 
+    toc_depth: 4
+format:
+  html:
+    embed-resources: true
+editor_options: 
+  chunk_output_type: console
+---
+
+# Housekeeping
+
+## Status
+
+In progress as of 6/2025.
+
+## Notes
+
+Using the lomb package (https://cran.r-project.org/web/packages/lomb/lomb.pdf).
+
+Basic math notes for those of us who never took physics (me):
+https://www.physicsclassroom.com/class/waves/Lesson-2/Frequency-and-Period-of-a-Wave
+ - Frequency (f) = number of cycles per hour
+ - Period (T) how long one cycle takes = 1 / f
+
+# Set up
+
+## Set up environment
+
+```{r}
+#| message: false
+#| warning: false
+
+options(conflicts.policy = "depends.ok")
+devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true", 
+                      sha1 = "de12d764438078a9341db9bc0b2472c87e0ae846")
+```
+
+## Paths
+
+```{r}
+path_shared <- format_path("risk/data_processed/shared")
+```
+
+## Packages and source
+
+```{r}
+#| message: false
+#| warning: false
+#| echo: false
+
+# for data wrangling
+library(tidyverse)
+library(janitor, exclude = c("chisq.test", 
+                             "fisher.test"))
+library(lubridate)
+library(future)
+# for periodogram
+library(lomb)
+
+source(here::here("../lab_support/fun_gps.R"))
+```
+
+## Load in data
+
+```{r}
+gps <- read_csv(here::here(path_shared, "gps_enriched.csv.xz"), 
+                 show_col_types = FALSE) |>
+  # basic conversions
+  mutate(time = with_tz(time, tz = "America/Chicago"),
+         dist = dist / 1609.344,
+          duration = duration / 60,
+          speed = dist / duration,
+          dist_context = dist_context / 1609.344) |>
+  # processing messy data
+  mutate(duration = if_else(dist > 0.01 & duration == 0, NA_real_,
+                            duration),
+         duration = if_else(speed > 100, NA_real_,
+                            duration),
+         duration = if_else(duration > .5 & dist > 0.31, NA_real_,
+                            duration),
+         known_loc = if_else(dist_context <= 0.031 & speed <= 4,
+                             TRUE, FALSE),
+         known_loc = if_else(is.na(known_loc), FALSE, known_loc)) |>
+  # create new variable which represents time since start of study
+  # we will use this for our spectral analyses!
+  mutate(time_hr =  as.numeric(difftime(time, min(time), units = "hours")))
+```
+
+# Caculate circadian movement per Saeb 2015
+
+First grab one person's data.
+```{r}
+gps_one <- gps |> filter(subid == 1)
+```
+
+
+## STEP 1: Spectral data
+
+> To calculate circadian movement, we first used the least-squares spectral analysis, also known as the Lomb-Scargle method [32], to obtain the spectrum of the GPS location data.
+
+Step one is to get the spectrum of the GPS data.
+
+The `lsp()` function takes several arguments (only the first of which is required to be specified).
+
+`ofac`: represents the oversampling factor; a value between 4-8 is reasonable (https://sites.smith.edu/circada/4-lomb-scargle/) or 5-10 (https://iopscience.iop.org/article/10.3847/1538-4365/aab766). A higher number means a larger computational burden. Essentially this increases the resolution/ability to detect meaningful peaks.
+
+`from` and `to`: represents frequencies between X and Y which we want analyzed. By setting this to .01 and .1, I am looking at periodic patterns which repeat between 10 and 100 hours (1/0.1 = 10, 1/0.01 = 100). I'm electing to ignore very fast rhythms but also very slow ones because I'm assuming that routine behaviors will probably occur within that 10-100 hour window.
+
+`type`: sets the x-axis for the periodogram. I have it set to frequency. It could also be set to period if that was preferred.
+
+Information on the first argument:
+
+> x: The data to be analysed. x can be either a two-column numerical dataframe or matrix, with sampling times in column 1 and measurements in column 2, a single numerical vector containing measurements, or a single vector ts object (which will be converted to a numerical vector).
+
+For the first column I am using time (sampling times) and for the second column (for measurement) I am using whether or not someone was at a known location at that time. This essentially asks how regularly does a given person spend time at known locations (we could argue at meaningful locations) over time.
+```{r}
+lomb_full <- gps_one |> 
+  select(time_hr, known_loc) |> 
+  lsp(ofac = 4, from = 0.01, to = 0.1, type = "frequency")
+```
+
+We might also think about how we could make this more meaningful to regular patterns (e.g., just restricting to work and home). However, this only captures presence but not duration. We could also consider creating a variable that represents something like minutes per hour spent at known locations.
+
+```{r}
+lomb_hw <- gps_one |>
+  mutate(hw = ifelse(known_loc == TRUE & (type == "work" | type == "home"), 1, 0)) |> 
+  select(time_hr, hw) |> 
+  lsp(ofac = 4, from = 0.01, to = 0.1, type = "frequency")
+```
+
+```{r}
+df <- data.frame(
+  frequency = lomb_hw$scanned,
+  power = lomb_hw$power
+)
+
+ggplot(df, aes(x = frequency, y = power)) +
+  geom_line() +
+  geom_vline(xintercept = 1/24, color = "red", linetype = "dashed", size = 1, alpha = .5) +  # 24h line
+  geom_vline(xintercept = 1/12, color = "blue", linetype = "dashed", size = 1, alpha = .5) + # 12h line
+  labs(
+    title = "Lomb-Scargle Periodogram",
+    x = "Frequency (cycles per hour)",
+    y = "Power"
+  ) +
+  theme_minimal()
+```
+
+## STEP 2: Frequency bins
+
+> Then, we calculated the amount of energy that fell into the frequency bins within a 24±0.5 hour period, in the following way:
+E = ∑ i psd(f i ) ∕ (i 1 −i 2 )
+where i = i 1, i 1+1, i 1+2, …, i 2, and i 1 and i 2 represent the frequency bins corresponding to 24.5 and 23.5 hour periods. psd(f i ) denotes the power spectral density at each frequency bin f i . We calculated E separately for longitude and latitude and obtained the total circadian movement as:
+CM = log(E lat + E long)
+We applied the logarithm to account for the skewness in the distribution.
+
+```{r}
+freqs <- lomb_hw$scanned # frequencies in cycles per hour
+powers <- lomb_hw$power # corresponding power values
+```
+
+```{r}
+periods <- 1 / freqs  # Convert frequencies to periods in hours
+# Filter out non-positive frequencies to avoid divide-by-zero issues
+valid_idx <- which(freqs > 0)
+
+freqs_valid <- freqs[valid_idx]
+powers_valid <- powers[valid_idx]
+
+# Convert to periods
+periods <- 1 / freqs_valid  # Periods in hours
+target_idx <- which(periods >= 23.5 & periods <= 24.5)
+
+```
+
+```{r}
+E <- sum(powers_valid[target_idx]) / length(target_idx)
+```
