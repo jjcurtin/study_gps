@@ -1,0 +1,31 @@
+---
+title: "Study GPS Notes"
+author: "Claire Punturieri"
+editor: visual
+---
+
+# Housekeeping
+
+## Notes
+
+Last updated 6/2/2025.
+
+## To do/next steps
+
+-   Compare no stratification against three different stratification options
+
+-   Feature engineering for weather
+
+-   Rerun features with updated cleaning procedures
+
+# File storage
+
+This section details where different data are stored relating to the GPS study.
+
+# Feature engineering
+
+# Modeling
+
+# Presenting
+
+# Writing
