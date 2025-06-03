@@ -73,7 +73,7 @@ strat_none |>
            resample == strat_none_best$resample) |> 
   ggplot() +
   geom_histogram(aes(x = roc_auc), bins = 15, color = "black", fill = "light grey")  +
-  geom_vline(aes(xintercept = median(strat_none$roc_auc)), color = "red") +
+  geom_vline(aes(xintercept = median(strat_none_best$median_roc_auc)), color = "red") +
   xlim(0.5,1.0)
 ```
 
@@ -94,7 +94,7 @@ strat_yn |>
            resample == strat_yn_best$resample) |> 
   ggplot() +
   geom_histogram(aes(x = roc_auc), bins = 15, color = "black", fill = "light grey")  +
-  geom_vline(aes(xintercept = median(strat_yn$roc_auc)), color = "red") +
+  geom_vline(aes(xintercept = median(strat_yn_best$median_roc_auc)), color = "red") +
   xlim(0.5,1.0)
 ```
 
@@ -115,7 +115,7 @@ strat_lh |>
            resample == strat_lh_best$resample) |> 
   ggplot() +
   geom_histogram(aes(x = roc_auc), bins = 15, color = "black", fill = "light grey")  +
-  geom_vline(aes(xintercept = median(strat_lh$roc_auc)), color = "red") +
+  geom_vline(aes(xintercept = median(strat_lh_best$median_roc_auc)), color = "red") +
   xlim(0.5,1.0)
 ```
 
@@ -136,7 +136,7 @@ strat_nlh |>
            resample == strat_nlh_best$resample) |> 
   ggplot() +
   geom_histogram(aes(x = roc_auc), bins = 15, color = "black", fill = "light grey")  +
-  geom_vline(aes(xintercept = median(strat_nlh$roc_auc)), color = "red") +
+  geom_vline(aes(xintercept = median(strat_nlh_best$median_roc_auc)), color = "red") +
   xlim(0.5,1.0)
 ```
 
