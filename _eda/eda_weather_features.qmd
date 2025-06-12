@@ -1,0 +1,116 @@
+---
+title: "EDA of WEATHER CHTC features"
+author: "Claire Punturieri"
+date: "`r lubridate::today()`"
+format: 
+  html:
+    toc: true
+    toc_depth: 4
+    embed-resources: true
+editor_options: 
+  chunk_output_type: console
+---
+
+# Housekeeping
+
+## Code Status
+
+
+## Notes
+
+
+# Set up
+
+## Set up environment
+
+```{r}
+#| message: false
+#| warning: false
+
+options(conflicts.policy = "depends.ok")
+devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true")
+library(tidyverse)
+```
+
+## Paths
+
+```{r}
+name_job <- str_c("features_weather")
+
+path_chtc <- format_path(str_c("risk/chtc/shared/features_weather/output"))
+path_shared <- format_path("risk/data_processed/shared")
+features_file <- str_c(name_job, ".csv")
+```
+
+## Packages and source
+
+```{r}
+#| message: false
+#| warning: false
+#| echo: false
+
+# for data wrangling
+library(tidyverse)
+library(lubridate)
+
+# helpful lab functions
+devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/fun_eda.R?raw=true")
+
+# adjust plot visuals
+theme_set(theme_classic())
+options(tibble.width = Inf, dplyr.print_max = Inf)
+```
+
+## Load in data
+
+```{r}
+features <- read_csv(here::here(path_chtc, features_file), 
+                 show_col_types = FALSE)
+```
+
+## EDA
+
+Verify percentage of lapses looks reasonable.
+```{r}
+features |> 
+  janitor::tabyl(lapse)
+```
+
+Overview across all categories.
+```{r}
+features |>  
+  skimr::skim_without_charts() |> 
+  select(skim_variable, n_missing, complete_rate, numeric.p0, numeric.p50, 
+         numeric.p100) |>
+  filter(!skim_variable == "subid" & !skim_variable == "label_num") |> 
+  arrange(desc(numeric.p100), skim_variable) 
+```
+
+Check raw scores (numeric.p0 should = 0).
+```{r}
+features |>  
+  skimr::skim_without_charts() |> 
+  select(skim_variable, n_missing, complete_rate, numeric.p0, numeric.p50, 
+         numeric.p100) |>
+  filter(!skim_variable == "subid" & !skim_variable == "label_num") |>
+  filter(grepl("rrate|rmin|rmax|rmedian", skim_variable)) |> 
+  arrange(desc(numeric.p0), skim_variable)
+```
+
+Check difference scores (numeric.p0 can be less than 0)
+```{r}
+features |>  
+  skimr::skim_without_charts() |> 
+  select(skim_variable, n_missing, complete_rate, numeric.p0, numeric.p50, 
+         numeric.p100) |>
+  filter(!skim_variable == "subid" & !skim_variable == "label_num") |>
+  filter(grepl("drate|dmin|dmax|dmedian", skim_variable)) |> 
+  arrange(desc(numeric.p0), skim_variable)
+```
+
+
+### Save out to shared folder
+```{r}
+features |>
+  write_csv(here::here(path_shared, str_c("features_weather.csv")))
+```
