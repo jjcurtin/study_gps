@@ -24,6 +24,14 @@ This section details where different data are stored relating to the GPS study.
 
 # Feature engineering
 
+6/11/2025
+
+-   After rerunning GPS features on 6/10 (v6), noticed that community space / recreation, public drinking space, temporary residence, and travel stop all have 0s for p0 p50 p100 – I suspect this has to do with spacing in variable names. I checked and this was also the case with the previous version of features, so I'm also guessing this hasn't been caught before. Confirmed has to do with spacing.
+
+-   V7 GPS features were checked and saved out. Now there are no features that are all 0s!
+
+-   Weather features were generated (generated very fast so ask John about how to string batches together better so CHTC doesn't get mad at me). The features look fine, but there are some very low temps (checked in the weather raw file and confirmed those exist so it's not a calculation error). Note to manually check the weather for some of those days as a sanity check.
+
 # Modeling
 
 # Presenting
