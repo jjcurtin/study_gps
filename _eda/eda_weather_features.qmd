@@ -114,3 +114,18 @@ features |>
 features |>
   write_csv(here::here(path_shared, str_c("features_weather.csv")))
 ```
+
+### Load in GPS features and combine
+```{r}
+gps_features <- read_csv(here::here(path_shared, str_c("features_gps_day_1h.csv")))
+```
+
+```{r}
+features_combo <- features |>
+  left_join(gps_features, by = c("subid", "dttm_label", "lapse"))
+```
+
+```{r}
+features_combo |>
+  write_csv(here::here(path_shared, str_c("features_gps_weather.csv")))
+```
