@@ -34,7 +34,7 @@ algorithm <- "xgboost"
 model <- # make more informative
 
 feature_set <- c("context_movement_weather") # GPS feature set name
-data_trn <- str_c("features_gps_weather.csv")
+data_trn <- str_c("features_combined.csv")
 
 seed_splits <- 102030
 
@@ -55,7 +55,7 @@ stage_data <- TRUE # If FALSE .sif will still be staged, just not data_trn
 max_idle <- 1000
 request_cpus <- 1 
 request_memory <- "20000MB"
-request_disk <- "2000MB"
+request_disk <- "3000MB"
 want_campus_pools <- TRUE
 want_ospool <- TRUE
 
@@ -86,7 +86,7 @@ name_batch <- str_c("train_", algorithm, "_", cv_name, "_", version, "_", model)
 # the path to the batch of jobs to put the folder name
 path_batch <- format_path(str_c("risk/chtc/", study, "/", name_batch)) 
 # location of data set
-path_data <- format_path(str_c("risk/data_processed/shared")) 
+path_data <- format_path(str_c("risk/data_processed/gps")) 
 
 # ALGORITHM-SPECIFIC HYPERPARAMETERS-----------
 #hp1_glmnet <- c(0.05, seq(.1, 1, length.out = 10)) # alpha (mixture)
@@ -147,7 +147,7 @@ build_recipe <- function(d, config) {
   
   # Set recipe steps generalizable to all model configurations
   rec <- recipe(y ~ ., data = d) |> 
-    step_rm(subid, label_num, matches(cv_strat)) # be sure to remove strat variable if stratifying
+    step_rm(subid)
   
   if(cv_strat) {
     rec <- rec |> 
