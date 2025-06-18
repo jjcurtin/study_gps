@@ -8,21 +8,31 @@ editor: visual
 
 ## Notes
 
-Last updated 6/2/2025.
+Last updated 6/18/2025.
 
 ## To do/next steps
 
--   Compare no stratification against three different stratification options
+-   Run model which includes gps and weather features!
 
--   Feature engineering for weather
-
--   Rerun features with updated cleaning procedures
+-   Finish circadian movement feature engineering
 
 # File storage
 
 This section details where different data are stored relating to the GPS study.
 
 # Feature engineering
+
+6/18/2025
+
+-   Created a new file which combines gps features, weather features, and the stratification file to create a combine features file. This file is in data_processed/gps. Eventually will need to add in circadian movement.
+
+-   Worked more on processing circadian movement. Turns out there's only about 3% of missing data, and there are certain subjects who have more missing data than others. Next step is to explore interpolation options or potentially nixing some subjects.
+
+6/17/2025
+
+-   Was concerned about some very cold weather variables (avgt of -18!) so manually queried using RCC-ACIS. Looks like these values are correct and it was just a cold January in 2019.
+
+-   Circadian movement processing needs closer inspection. Need to first assess how much missing data there is and then figure out an imputation strategy.
 
 6/11/2025
 
@@ -34,6 +44,42 @@ This section details where different data are stored relating to the GPS study.
 
 # Modeling
 
+6/18/2025
+
+-   V9 model started, which includes hour roll features for GPS and weather and the stratification variable (low/high lapse counts).
+
+-   Training controls file was updated in meeting with JC to 1) work across different model types; and 2) to anticipate taking in a features file which already includes the stratification variable.
+
+Model history prior to V9:
+
+-   V8: same V6/V7 features but testing out different forms of stratification
+
+-   V7: Claire thought she made filtering changes but she accidentally didn't, so is functionally the same as V6 :\^) Oops!
+
+-   V6: same model as V5 but updated features to roll by hour instead of by 24 hours
+
+-   V5: recalculate preliminary context features (location variance, time in transit, time spent out of the house in the evening)
+
+-   V4: add in preliminary context features (location variance, time in transit, time spent out of the house in the evening)
+
+-   V3: remove pratesum features due to high missingness
+
+-   V2: update context feature "type" with more information for values labeled other, expand mtry hyperparameter range downwards to include 10 and 15
+
 # Presenting
 
+April 2025:
+
+-   Poster presented at Society of Biological Psychiatry
+
+-   Poster presented at Collaborative Perspectives on Addiction
+
+October 2024:
+
+-   First Year Project Symposium
+
 # Writing
+
+October 2024:
+
+-   First Year Project final paper to committee
