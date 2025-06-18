@@ -21,6 +21,8 @@ In progress as of 6/2025.
 
 ## Notes
 
+Many papers have used a Lomb Scargle periodogram to calculate regularity of activity patterns as a proxy for circadian rhythms from GPS data. LS periodograms work well for unevenly sampled data. Here is the reference paper for this code, though others have used this same calculation: https://pmc.ncbi.nlm.nih.gov/articles/PMC4526997/.
+
 Using the lomb package (https://cran.r-project.org/web/packages/lomb/lomb.pdf).
 
 Basic math notes for those of us who never took physics (me):
@@ -89,14 +91,31 @@ gps <- read_csv(here::here(path_shared, "gps_enriched.csv.xz"),
          known_loc = if_else(is.na(known_loc), FALSE, known_loc)) |>
   # create new variable which represents time since start of study
   # we will use this for our spectral analyses!
-  mutate(time_hr =  as.numeric(difftime(time, min(time), units = "hours")))
+  group_by(subid) |> 
+  mutate(time_hr =  as.numeric(difftime(time, min(time), units = "hours"))) |> 
+  ungroup()
 ```
 
-# Caculate circadian movement per Saeb 2015
+Saeb and colleagues calculate the periodogram of the latitude and longitude of location clusters. Since we already have participants' frequently visited locations, we don't need to use a clustering algorithm to determine location clusters. Instead, we will compute a centroid latitude/longitude coordinate for each frequently visited location cluster.
+```{r}
+gps_centroid <- gps |>
+  filter(known_loc == TRUE) |> 
+  group_by(context_id) |> 
+  mutate(
+    lat_centroid = mean(lat, na.rm = TRUE),
+    lon_centroid = mean(lon, na.rm = TRUE)
+  ) |> 
+  ungroup() |>
+  select(subid, time, time_hr, lat_centroid, lon_centroid, context_id, type)
+```
+
+# Proof of concept: calculate circadian movement per Saeb 2015
+
+This proof of concept looks at one person's data over their entire course on study.
 
 First grab one person's data.
 ```{r}
-gps_one <- gps |> filter(subid == 1)
+gps_one <- gps_centroid |> filter(subid == 1)
 ```
 
 
@@ -108,39 +127,48 @@ Step one is to get the spectrum of the GPS data.
 
 The `lsp()` function takes several arguments (only the first of which is required to be specified).
 
-`ofac`: represents the oversampling factor; a value between 4-8 is reasonable (https://sites.smith.edu/circada/4-lomb-scargle/) or 5-10 (https://iopscience.iop.org/article/10.3847/1538-4365/aab766). A higher number means a larger computational burden. Essentially this increases the resolution/ability to detect meaningful peaks.
+`ofac`: represents the oversampling factor; a value between 4-8 is reasonable (https://sites.smith.edu/circada/4-lomb-scargle/) or 5-10 (https://iopscience.iop.org/article/10.3847/1538-4365/aab766). A higher number means a larger computational burden. Essentially this increases the resolution/ability to detect meaningful peaks. Larger number = better resolution. Saeb and colleagues cite Press 2007, which suggests 4 as a common ofac value. However, because I am going by a shifting one-week window, I want a higher oversampling factor to make sure I have better resolution to capture the signal accurately.
 
-`from` and `to`: represents frequencies between X and Y which we want analyzed. By setting this to .01 and .1, I am looking at periodic patterns which repeat between 10 and 100 hours (1/0.1 = 10, 1/0.01 = 100). I'm electing to ignore very fast rhythms but also very slow ones because I'm assuming that routine behaviors will probably occur within that 10-100 hour window.
+Here's some math for how I'm determining my `ofac` value:
+ - delta f = 1 / T*ofac
+ - T = total length of time series (168h because I want to calculate in 1 week bins)
+ - delta f = how far apart frequency bins are without oversampling (= w no ofac)
+ - 1/168 = .00595 is the smallest amount of space between frequency bins
+ - My target frequency window is 1/24.5 to 1/23.5 (~0.0408 to 0.0426, about .0018 wide)
+ - The selected `ofac` will help determine the increment by which frequencies are sampled
+ - This value needs to be small enough that it will sample multiple times in that .0018 band
+ - `ofac` = 1 (no oversampling): .0426-.0408/.00595 ~= .17 bins (less than 1 bin!)
+ - `ofac` = 5: 1/168*5 ~= .00119; .0426-.0408/.00119 ~= 1.51 bins
+ - `ofac` = 10: 1/168*10 ~= .000595; .0426-.0408/.000595 ~= 3 bins
+ - We can see that increasing our oversampling factor makes the spacing smaller/more refined than it otherwise would have been (i.e., better resolution).
 
-`type`: sets the x-axis for the periodogram. I have it set to frequency. It could also be set to period if that was preferred.
+`from` and `to`: represents frequencies between X and Y which we want analyzed. By setting this to 1/30 and 1/20, I am looking at periodic patterns which repeat between 20 and 30 hours. I'm electing to ignore very fast rhythms but also very slow ones. Eventually I'm only looking between 23.5 and 24.5 so this is in that window.
+
+`type`: sets the x-axis for the periodogram. I have it set to frequency. It could also be set to period if that was preferred. This is just for visualization so it's less important.
 
 Information on the first argument:
 
 > x: The data to be analysed. x can be either a two-column numerical dataframe or matrix, with sampling times in column 1 and measurements in column 2, a single numerical vector containing measurements, or a single vector ts object (which will be converted to a numerical vector).
 
-For the first column I am using time (sampling times) and for the second column (for measurement) I am using whether or not someone was at a known location at that time. This essentially asks how regularly does a given person spend time at known locations (we could argue at meaningful locations) over time.
+In the Saeb paper, it looks like they calculate this based on latitude and longitude. Let's try getting periodograms for latitude and longitude separately and see what happens. I have also played around with using whether or not someone is at a known location as input, but decided to try to follow the Saeb methods more closely.
 ```{r}
-lomb_full <- gps_one |> 
-  select(time_hr, known_loc) |> 
+lomb_lat <- gps_one |>
+  select(time_hr, lat_centroid) |> 
+  lsp(ofac = 4, from = 0.01, to = 0.1, type = "frequency")
+
+lomb_lon <- gps_one |>
+  select(time_hr, lon_centroid) |> 
   lsp(ofac = 4, from = 0.01, to = 0.1, type = "frequency")
 ```
 
-We might also think about how we could make this more meaningful to regular patterns (e.g., just restricting to work and home). However, this only captures presence but not duration. We could also consider creating a variable that represents something like minutes per hour spent at known locations.
-
+We can also plot these to see different movement patterns. Here I'm highlighting cycles that occur at the 24 and 12 hour marks. This participant has very clear peaks in their longitude but not their latitude data, which probably means that their movement is more regular longitudinally (e.g., maybe their work and home are on the same latitude but different longitudes, so we can pick up that pattern only in the longitudinal data).
 ```{r}
-lomb_hw <- gps_one |>
-  mutate(hw = ifelse(known_loc == TRUE & (type == "work" | type == "home"), 1, 0)) |> 
-  select(time_hr, hw) |> 
-  lsp(ofac = 4, from = 0.01, to = 0.1, type = "frequency")
-```
-
-```{r}
-df <- data.frame(
-  frequency = lomb_hw$scanned,
-  power = lomb_hw$power
+df_lat <- data.frame(
+  frequency = lomb_lat$scanned,
+  power = lomb_lat$power
 )
 
-ggplot(df, aes(x = frequency, y = power)) +
+ggplot(df_lat, aes(x = frequency, y = power)) +
   geom_line() +
   geom_vline(xintercept = 1/24, color = "red", linetype = "dashed", size = 1, alpha = .5) +  # 24h line
   geom_vline(xintercept = 1/12, color = "blue", linetype = "dashed", size = 1, alpha = .5) + # 12h line
@@ -152,6 +180,34 @@ ggplot(df, aes(x = frequency, y = power)) +
   theme_minimal()
 ```
 
+```{r}
+df_lon <- data.frame(
+  frequency = lomb_lon$scanned,
+  power = lomb_lon$power
+)
+
+ggplot(df_lon, aes(x = frequency, y = power)) +
+  geom_line() +
+  geom_vline(xintercept = 1/24, color = "red", linetype = "dashed", size = 1, alpha = .5) +  # 24h line
+  geom_vline(xintercept = 1/12, color = "blue", linetype = "dashed", size = 1, alpha = .5) + # 12h line
+  labs(
+    title = "Lomb-Scargle Periodogram",
+    x = "Frequency (cycles per hour)",
+    y = "Power"
+  ) +
+  theme_minimal()
+```
+
+We can visualize someone's frequently visited locations spatially to get a sense if this makes sense. Home and work are longitudinally opposed, so this seems like a plausible activity pattern.
+```{r}
+ggplot(gps_one, aes(x = lon_centroid, y = lat_centroid)) +
+  geom_point(color = "blue", size = 3) +
+  geom_text(aes(label = type), hjust = -0.1, vjust = -0.1, size = 3) +
+  labs(title = "Known Location Centroids",
+       x = "Longitude",
+       y = "Latitude")
+```
+
 ## STEP 2: Frequency bins
 
 > Then, we calculated the amount of energy that fell into the frequency bins within a 24±0.5 hour period, in the following way:
@@ -160,25 +216,284 @@ where i = i 1, i 1+1, i 1+2, …, i 2, and i 1 and i 2 represent the frequency b
 CM = log(E lat + E long)
 We applied the logarithm to account for the skewness in the distribution.
 
+Test with Saeb method.
 ```{r}
-freqs <- lomb_hw$scanned # frequencies in cycles per hour
-powers <- lomb_hw$power # corresponding power values
+freqs_lat <- lomb_lat$scanned
+power_lat <- lomb_lat$power
+periods_lat <- 1 / freqs_lat
+target_idx_lat <- which(periods_lat >= 23.5 & periods_lat <= 24.5)
+
+E_lat <- sum(power_lat[target_idx_lat]) / length(target_idx_lat)
+
+freqs_lon <- lomb_lon$scanned
+power_lon <- lomb_lon$power
+periods_lon <- 1 / freqs_lon
+target_idx_lon <- which(periods_lon >= 23.5 & periods_lon <= 24.5)
+
+
+# Compute total energy in that band
+E_lon <- sum(power_lon[target_idx_lon]) / length(target_idx_lon)
+
+
+CM <- log(E_lat + E_lon)
+```
+
+# Proof of concept: sliding windows over time
+
+| You have...        | You're asking...                                   |
+| ------------------ | -------------------------------------------------- |
+| A full time series | "Are there rhythms that repeat every X hours?"     |
+| A frequency range  | "Please only look for rhythms between 10–100h"     |
+| Output frequencies | Each = "Did the person move in a \~X-hour rhythm?" |
+| Power at that freq | Higher = Stronger rhythmicity at that period       |
+
+Stronger rhythmicity = more regularity/consistency of behavior
+
+
+This type of data works well when collected for a long period of time. Therefore, it might make sense to use some of these data as "baseline" data to make comparisons off of. To test this, I will start by using the first week of data as our baseline.
+
+First let's see if our first week of data produces results similar to above. Let's start by filtering down to one week of data.
+```{r}
+gps_one_fw <- gps_one |> filter(time_hr < 168)
+```
+
+Let's remake our plots.
+```{r}
+lomb_lat_fw <- gps_one_fw |>
+  select(time_hr, lat_centroid) |> 
+  lsp(ofac = 8, from = 0.01, to = 0.1, type = "frequency")
+
+lomb_lon_fw <- gps_one_fw |>
+  select(time_hr, lon_centroid) |> 
+  lsp(ofac = 8, from = 0.01, to = 0.1, type = "frequency")
+```
+
+
+```{r}
+df_lat_fw <- data.frame(
+  frequency = lomb_lat_fw$scanned,
+  power = lomb_lat_fw$power
+)
+
+ggplot(df_lat_fw, aes(x = frequency, y = power)) +
+  geom_line() +
+  geom_vline(xintercept = 1/24, color = "red", linetype = "dashed", size = 1, alpha = .5) +  # 24h line
+  geom_vline(xintercept = 1/12, color = "blue", linetype = "dashed", size = 1, alpha = .5) + # 12h line
+  labs(
+    title = "Lomb-Scargle Periodogram",
+    x = "Frequency (cycles per hour)",
+    y = "Power"
+  ) +
+  theme_minimal()
 ```
 
 ```{r}
-periods <- 1 / freqs  # Convert frequencies to periods in hours
-# Filter out non-positive frequencies to avoid divide-by-zero issues
-valid_idx <- which(freqs > 0)
+df_lon_fw <- data.frame(
+  frequency = lomb_lon_fw$scanned,
+  power = lomb_lon_fw$power
+)
 
-freqs_valid <- freqs[valid_idx]
-powers_valid <- powers[valid_idx]
-
-# Convert to periods
-periods <- 1 / freqs_valid  # Periods in hours
-target_idx <- which(periods >= 23.5 & periods <= 24.5)
-
+ggplot(df_lon_fw, aes(x = frequency, y = power)) +
+  geom_line() +
+  geom_vline(xintercept = 1/24, color = "red", linetype = "dashed", size = 1, alpha = .5) +  # 24h line
+  geom_vline(xintercept = 1/12, color = "blue", linetype = "dashed", size = 1, alpha = .5) + # 12h line
+  labs(
+    title = "Lomb-Scargle Periodogram",
+    x = "Frequency (cycles per hour)",
+    y = "Power"
+  ) +
+  theme_minimal()
 ```
 
+Our plots are much sparser, probably because there is a lot less data for us to work with.
+
+Next let's try to compute CM over a week period with a sliding one day window.
+
+First we need a function to compute CM.
 ```{r}
-E <- sum(powers_valid[target_idx]) / length(target_idx)
+calc_cm <- function(df) {
+  
+  compute_e <- function(time_series) {
+    time_series <- na.omit(time_series)
+
+    # Validate: need at least 3 rows and increasing time
+    if (nrow(time_series) < 3 || any(diff(time_series[[1]]) <= 0)) {
+      return(NA_real_)
+    }
+
+    # Try safely
+    lomb <- tryCatch({
+      # calculate frequencies between 20 and 30 hour periods
+      lsp(time_series, ofac = 10, from = 1/30, to = 1/20, plot = FALSE)
+    }, error = function(e) {
+      message("lsp() failed: ", conditionMessage(e))
+      return(NULL)
+    })
+
+    if (is.null(lomb)) return(NA_real_)
+
+    df_lomb <- data.frame(
+      frequency = lomb$scanned,
+      power = lomb$power,
+      period = 1 / lomb$scanned
+    )
+    # per Saeb's calculations, we want to look at the 23.5h-24.5h band
+    target_idx <- which(df_lomb$period >= 23.5 & df_lomb$period <= 24.5)
+
+    if (length(target_idx) == 0) return(NA_real_)
+
+    sum(df_lomb$power[target_idx]) / length(target_idx)
+  }
+
+
+  # calculate energy
+  e_lat <- compute_e(df |> select(time_hr, lat_centroid))
+  e_lon <- compute_e(df |> select(time_hr, lon_centroid))
+
+  # calculate CM
+  cm <- log(e_lat + e_lon)
+  
+  return(cm)
+}
 ```
+
+Now we need a function to slide this computation by one week periods, incrementing by 24 hours each time.
+```{r}
+cm_slide <- function(df, subid_arg, time_col = "time_hr", date_col = "time", window = 168, step = 24) {
+  
+  df_tmp <- df |> filter(subid == subid_arg)
+  
+  df_tmp <- df_tmp |> arrange(.data[[time_col]])
+  
+  time_vals <- df_tmp |> pull(!!sym(time_col))
+
+  # sets window boundaries to be whole numbers
+  min_time <- floor(min(time_vals, na.rm = TRUE))
+  max_time <- floor(max(time_vals, na.rm = TRUE))
+  
+  # define window start times
+  if ((max_time - window) >= min_time) {
+    window_starts <- seq(min_time, max_time - window, by = step)
+    } else {
+      return(tibble(
+        subid = subid_arg,
+        date_start = as.POSIXct(NA),
+        date_end = as.POSIXct(NA),
+        window_start = NA_real_,
+        window_end = NA_real_,
+        cm = NA_real_
+      ))
+    }
+  
+  # calculate CM for each sliding window
+  results <- window_starts |> 
+    map_dfr(\(start_time) {
+      df_window <- df_tmp |> 
+        filter(
+          .data[[time_col]] >= start_time,
+          .data[[time_col]] < start_time + window
+        )
+      
+      cm_val <- if (nrow(df_window) > 0) calc_cm(df_window) else NA_real_
+      
+      tibble(
+        subid = subid_arg,
+        date_start = if (nrow(df_window) > 0) min(df_window[[date_col]])
+        else as.POSIXct(NA),
+        date_end = if (nrow(df_window) > 0) max(df_window[[date_col]])
+        else as.POSIXct(NA),
+        window_start = start_time,
+        window_end = start_time + window,
+        cm = cm_val
+      )
+    })
+  
+  return(results)
+  
+}
+```
+
+Let's run this over all of our subjects.
+```{r}
+cm_results <- gps_centroid$subid |>
+  unique() |> 
+  furrr::future_map(\(subid) cm_slide(df = gps_centroid,
+                                 subid_arg = subid,
+                                 time_col = "time_hr",
+                                 date_col = "time")) |>
+  bind_rows()
+
+# sometimes missing values are NA_real_, sometimes NaN? Note to look into why that is.
+cm_results <- cm_results |> 
+  mutate(cm = ifelse(cm == "NaN", NA_real_, cm))
+```
+
+Let's check percentage of missing data.
+```{r}
+sum(is.na(cm_results$cm))
+```
+
+What percentage of our total is that?
+```{r}
+missing <- sum(is.na(cm_results$cm))
+total <- nrow(cm_results)
+
+missing/total
+```
+
+We're missing about 3% of data. I guess that's not too bad.
+
+Let's try to break this down by percentage of missing data BY subject.
+```{r}
+cm_results |>
+  group_by(subid) |>
+  summarise(
+    missing_cm = sum(is.na(cm)),
+    total_cm = n(),
+    percent_missing = missing_cm / total_cm * 100
+  ) |> 
+  arrange(desc(percent_missing)) |> 
+  print(n = 146)
+```
+
+I wonder if increasing the window will improve this at all. Let's try.
+```{r}
+cm_results_longer <- gps_centroid$subid |>
+  unique() |> 
+  furrr::future_map(\(subid) cm_slide(df = gps_centroid,
+                                 subid_arg = subid,
+                                 time_col = "time_hr",
+                                 date_col = "time",
+                                 window = 336)) |>
+  bind_rows()
+
+cm_results_longer <- cm_results_longer |> 
+  mutate(cm = ifelse(cm == "NaN", NA_real_, cm))
+```
+
+Time to recheck.
+```{r}
+sum(is.na(cm_results_longer$cm))
+
+missing <- sum(is.na(cm_results_longer$cm))
+total <- nrow(cm_results_longer)
+
+missing/total
+```
+
+And by subject.
+```{r}
+cm_results_longer |>
+  group_by(subid) |>
+  summarise(
+    missing_cm = sum(is.na(cm)),
+    total_cm = n(),
+    percent_missing = missing_cm / total_cm * 100
+  ) |> 
+  arrange(desc(percent_missing)) |> 
+  print(n = 146)
+```
+
+It does produce less missing data. But, it also means we get fewer predictions and are probably less likely to see smaller changes... I think it's more important to use the 1-week window.
+
+## Interpolation
