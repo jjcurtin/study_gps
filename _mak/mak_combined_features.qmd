@@ -1,0 +1,127 @@
+---
+title: "Make combined features for GPS study"
+author: "Claire Punturieri"
+date: "`r lubridate::today()`"
+format: 
+  html:
+    toc: true
+    toc_depth: 4
+    embed-resources: true
+editor_options: 
+  chunk_output_type: console
+params:
+  version: 1
+---
+
+# Housekeeping
+
+## Code Status
+
+Complete as of 6/2025.
+
+## Notes
+
+Add in circadian movement data once file is complete.
+
+# Set up
+
+## Set up environment
+
+```{r}
+#| message: false
+#| warning: false
+
+options(conflicts.policy = "depends.ok")
+devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true")
+library(tidyverse)
+```
+
+## Paths
+
+```{r}
+path_shared <- format_path("risk/data_processed/shared")
+path_gps <- format_path("risk/data_processed/gps")
+```
+
+## Packages and source
+
+```{r}
+#| message: false
+#| warning: false
+#| echo: false
+
+# for data wrangling
+library(tidyverse)
+library(lubridate)
+
+# helpful lab functions
+devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/fun_eda.R?raw=true")
+
+# adjust plot visuals
+theme_set(theme_classic())
+options(tibble.width = Inf, dplyr.print_max = Inf)
+```
+
+## Load in data
+
+Load in GPS features.
+```{r}
+gps <- read_csv(here::here(path_shared, "features_gps_day_1h.csv"), 
+                 show_col_types = FALSE)
+```
+
+Load in weather features.
+```{r}
+weather <- read_csv(here::here(path_shared, "features_weather.csv"), 
+                 show_col_types = FALSE)
+```
+
+Load in circadian movement features.
+```{r}
+# placeholder
+```
+
+Load in stratification data, merge relevant column.
+```{r}
+strat <- read_csv(here::here(path_shared, "strat_lh.csv"), 
+                 show_col_types = FALSE)
+```
+
+## Join data
+
+```{r}
+features <- gps |> 
+  left_join(weather, by = c("subid", "dttm_label", "lapse")) |> 
+  left_join(strat, by = "subid")
+```
+
+## EDA
+
+Verify percentage of lapses looks reasonable.
+```{r}
+features |> 
+  janitor::tabyl(lapse)
+```
+
+Check names of all features.
+```{r}
+features |> colnames()
+```
+
+Overview across all categories.
+```{r}
+features |>  
+  skimr::skim_without_charts() |> 
+  select(skim_variable, n_missing, complete_rate, numeric.p0, numeric.p50, 
+         numeric.p100) |>
+  filter(!skim_variable == "subid" & !skim_variable == "label_num") |> 
+  arrange(desc(numeric.p100), skim_variable) 
+```
+
+## Save out
+```{r}
+features |>
+  write_csv(here::here(path_gps, str_c("features_combined.csv")))
+```
+
+
