@@ -15,12 +15,12 @@
 # xgboost movement + context features, raw and diff (v4)
 # xgboost recalculate movement and context features, raw and diff (v5)
 # xgboost same v5 features but with hour roll (v6)
+# xgboost same v5 features but with hour roll (v7) -- thought I made filtering changes here but accidentally did not
+# v8 testing different stratifications with kfold, same v6 features
+# xgboost movement, context, weather raw and diff, hour roll, with filtering updates and corrected some type features (v9)
 
-# Batches to do:
-# xgboost with yn strat (kendra)
-# xgboost with lh strat (john)
-# xgboost with nlh strat (claire)
-# xgboost with no strat (claire)
+# Currently running:
+# xgboost with lh strat, movement and context and weather features, hour roll
 
 # source format_path
 source("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true")
@@ -29,12 +29,12 @@ source("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true
 study <- "gps"
 window <- "day"
 lead <- 0
-version <- "v8" 
+version <- "v9" 
 algorithm <- "xgboost"
-model <- "no_strat" # strat_yn strat_lh strat_nlh
+model <- # make more informative
 
-feature_set <- c("context_movement") # GPS feature set name
-data_trn <- str_c("features_gps_day_1h.csv")
+feature_set <- c("context_movement_weather") # GPS feature set name
+data_trn <- str_c("features_gps_weather.csv")
 
 seed_splits <- 102030
 
@@ -68,13 +68,11 @@ y_level_neg <- "no lapse"
 
 # CV SETTINGS---------------------------------
 cv_resample_type <- "kfold" # can be boot, kfold, or nested
-cv_resample = "3_x_10" # can be repeats_x_folds (e.g., 1_x_10, 10_x_10) or number of bootstraps (e.g., 100)
+cv_resample = "5_x_5" # can be repeats_x_folds (e.g., 1_x_10, 10_x_10) or number of bootstraps (e.g., 100)
 cv_inner_resample <- NULL # can also be a single number for bootstrapping (i.e., 100)
 cv_outer_resample <- NULL # outer resample will always be kfold
 cv_group <- "subid" # set to NULL if not grouping
-cv_strat <- NULL # using variable names saved as model (can also pass in string or set to NULL)
-cv_strat_file_name <- "lapse_strat.csv" # This file is in the shared path_data and contains all EMA subids
-# we left join strat variables so all studies with smaller samples can still use it
+cv_strat <- TRUE # whether or not you have a stratifying variable
 
 
 cv_name <- if_else(cv_resample_type == "nested",
@@ -118,40 +116,27 @@ hp3_xgboost <- c(10, 15, 20, 30, 40, 50)  # mtry, no. feats. to split on at each
 # FORMAT DATA-----------------------------------------
 # load in data set which constraint strat conditions
   
-format_data <- function (df, lapse_strat = NULL){
+format_data <- function(df, lapse_strat = NULL){
   
-  if(!is.null(lapse_strat)) {
-    df <- df |> 
+  df |> 
       rename(y = !!y_col_name) |> 
       # set pos class first
       mutate(y = factor(y, levels = c(!!y_level_pos, !!y_level_neg)), 
              across(where(is.character), factor)) |>
-      select(-c(dttm_label)) |> 
-      left_join(lapse_strat |> 
-                  select(subid, all_of(cv_strat)), by = "subid")
-  }
+      select(-c(dttm_label))
   
-  if(is.null(lapse_strat)) {
-    df <- df |> 
-      rename(y = !!y_col_name) |> 
-      # set pos class first
-      mutate(y = factor(y, levels = c(!!y_level_pos, !!y_level_neg)), 
-             across(where(is.character), factor)) |>
-      select(-c(dttm_label)) 
-  }
-  
-  return(df)
 }
 
 
-# BUILD RECIPE---------------------------------------
+# BUILD RECIPE------
 # Script should have a single build_recipe function to be compatible with fit script. 
 build_recipe <- function(d, config) {
   # d: (training) dataset from which to build recipe
-  # job: single-row job-specific tibble
+  # config: single-row config-specific tibble
   
   # get relevant info from job (algorithm, feature_set, resample, under_ratio)
   algorithm <- config$algorithm
+  feature_set <- config$feature_set
   
   if (config$resample == "none") {
     resample <- config$resample
@@ -161,44 +146,60 @@ build_recipe <- function(d, config) {
   }
   
   # Set recipe steps generalizable to all model configurations
-  if(!is.null(lapse_strat)) {
-    rec <- recipe(y ~ ., data = d) |>
-      step_rm(subid, label_num, matches(cv_strat)) # needed to retain until now for grouped CV in splits
-    
+  rec <- recipe(y ~ ., data = d) |> 
+    step_rm(subid, label_num, matches(cv_strat)) # be sure to remove strat variable if stratifying
+  
+  if(cv_strat) {
+    rec <- rec |> 
+      step_rm(strat) # remove strat variable
   }
   
-  if(is.null(lapse_strat)) {
-    rec <- recipe(y ~ ., data = d) |>
-      step_rm(subid, label_num)
-  }
-  
-  rec <- rec |> 
+  rec <- rec |>
+    step_zv(all_predictors()) |> 
     step_impute_median(all_numeric_predictors()) |> 
-    step_impute_mode(all_nominal_predictors()) |> 
-    step_dummy(all_factor_predictors()) |> 
-    step_select(where(~ !any(is.na(.)))) |>
-    step_nzv(all_predictors())
+    step_impute_mode(all_nominal_predictors()) 
   
   
   # resampling options for unbalanced outcome variable
   if (resample == "down") {
+    # under_ratio = ratio.  No conversion needed
     rec <- rec |> 
-      # ratio is equivalent to tidymodels under_ratio
       themis::step_downsample(y, under_ratio = ratio, seed = 10) 
   }
   
-  
   if (resample == "smote") {
-    ratio <- 1 / ratio # correct ratio to over_ratio
+    # correct ratio to over_ratio
     rec <- rec |> 
-      themis::step_smote(y, over_ratio = ratio, seed = 10) 
+      themis::step_smote(y, over_ratio = 1 / ratio, seed = 10) 
   }
   
   if (resample == "up") {
-    ratio <- 1 / ratio # correct ratio to over_ratio
+    # correct ratio to over_ratio
     rec <- rec |> 
-      themis::step_upsample(y, over_ratio = ratio, seed = 10)
+      themis::step_upsample(y, over_ratio = 1 / ratio, seed = 10)
   }
+  
+  # algorithm specific steps
+  if (algorithm == "glmnet") {
+    rec <- rec  |>
+      step_dummy(all_nominal_predictors()) |>
+      step_normalize(all_predictors())
+  } 
+  
+  if (algorithm == "random_forest") {
+    # no algorithm specific steps
+  } 
+  
+  if (algorithm == "xgboost") {
+    rec <- rec  |> 
+      step_dummy(all_nominal_predictors())
+  } 
+  
+  # final steps for all algorithms
+  rec <- rec |>
+    # drop columns with NA values after imputation (100% NA)
+    step_rm(where(~any(is.na(.)))) |>
+    step_nzv()
   
   return(rec)
 }
