@@ -11,10 +11,10 @@ format:
     embed-resources: true
 params:
   study: "gps"
-  version: "v7"
-  cv: "nested_1_x_10_3_x_10"
-  algorithms: "xgboost"   # "all" or name of specific algorithm
-  model: "main"
+  version: "v10"
+  cv: "kfold_5_x_5"
+  algorithms: "glmnet"   # "all" or name of specific algorithm
+  model: "context_movement_weather"
 editor_options: 
   chunk_output_type: console
 ---
@@ -74,9 +74,9 @@ devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/fun_eda.
 ```{r}
 #| message: false
 
-path_input <- format_path(str_c("studydata/risk/chtc/", study))
-path_models <- format_path(str_c("studydata/risk/models/", study))
-path_output <- format_path(str_c("studydata/risk/chtc/", study))
+path_input <- format_path(str_c("risk/chtc/", study))
+path_models <- format_path(str_c("risk/models/", study))
+path_output <- format_path(str_c("risk/chtc/", study))
 
 ```
 
@@ -187,7 +187,7 @@ for (k in algorithms) {
         separate(resample, c("resample", "under_ratio"), "_") |> 
         mutate(under_ratio = factor(under_ratio)) |> 
         ggplot(mapping = aes(x = log(hp2), 
-                         y = roc_auc, 
+                         y = median_roc_auc, 
                          group = hp1, 
                          color = hp1)) +
           geom_line() +

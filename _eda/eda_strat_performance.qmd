@@ -26,7 +26,7 @@ This script tests how 4 different stratification options vary across median auRO
 ## Read in data
 ```{r}
 library(tidyverse)
-library(tidymodels)
+library(tidymodels, exclude = "scales")
 theme_set(theme_classic()) 
 
 devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true")

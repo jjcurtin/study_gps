@@ -20,7 +20,7 @@
 # xgboost movement, context, weather raw and diff, hour roll, with filtering updates and corrected some type features (v9)
 
 # Currently running:
-# xgboost with lh strat, movement and context and weather features, hour roll
+# glmnet with lh strat, movement and context and weather features, hour roll (v10)
 
 # source format_path
 source("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true")
@@ -29,8 +29,8 @@ source("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true
 study <- "gps"
 window <- "day"
 lead <- 0
-version <- "v9" 
-algorithm <- "xgboost"
+version <- "v11" 
+algorithm <- "glmnet"
 model <- # make more informative
 
 feature_set <- c("context_movement_weather") # GPS feature set name
@@ -39,7 +39,7 @@ data_trn <- str_c("features_combined.csv")
 seed_splits <- 102030
 
 ml_mode <- "classification"   # regression or classification
-configs_per_job <- 25 # number of model configurations that will be fit/evaluated within each CHTC
+configs_per_job <- 10 # number of model configurations that will be fit/evaluated within each CHTC
 
 # RESAMPLING FOR OUTCOME-----------------------------------
 # note that ratio is under_ratio, which is used by downsampling as is
@@ -89,10 +89,10 @@ path_batch <- format_path(str_c("risk/chtc/", study, "/", name_batch))
 path_data <- format_path(str_c("risk/data_processed/gps")) 
 
 # ALGORITHM-SPECIFIC HYPERPARAMETERS-----------
-#hp1_glmnet <- c(0.05, seq(.1, 1, length.out = 10)) # alpha (mixture)
-#hp2_glmnet_min <- -8 # min for penalty grid - will be passed into exp(seq(min, max, length.out = out))
-#hp2_glmnet_max <- 2 # max for penalty grid
-#hp2_glmnet_out <- 200 # length of penalty grid
+hp1_glmnet <- c(0.05, seq(.1, 1, length.out = 10)) # alpha (mixture)
+hp2_glmnet_min <- -8 # min for penalty grid - will be passed into exp(seq(min, max, length.out = out))
+hp2_glmnet_max <- 2 # max for penalty grid
+hp2_glmnet_out <- 200 # length of penalty grid
 
 #hp1_knn <- seq(5, 255, length.out = 26) # neighbors (must be integer)
 
