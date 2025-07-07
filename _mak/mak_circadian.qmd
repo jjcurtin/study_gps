@@ -47,6 +47,7 @@ devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/format_p
 
 ```{r}
 path_shared <- format_path("risk/data_processed/shared")
+path_gps <- format_path("risk/data_processed/gps")
 ```
 
 ## Packages and source
@@ -64,6 +65,10 @@ library(lubridate)
 library(future)
 # for periodogram
 library(lomb)
+# for k-means
+library(tidyclust)
+library(tidymodels, exclude = c("discard",
+                                "col_factor"))
 
 source(here::here("../lab_support/fun_gps.R"))
 ```
@@ -88,12 +93,21 @@ gps <- read_csv(here::here(path_shared, "gps_enriched.csv.xz"),
                             duration),
          known_loc = if_else(dist_context <= 0.031 & speed <= 4,
                              TRUE, FALSE),
-         known_loc = if_else(is.na(known_loc), FALSE, known_loc)) |>
+         known_loc = if_else(is.na(known_loc), FALSE, known_loc),
+         transit = if_else(speed <= 4, "no", "yes")) |>
   # create new variable which represents time since start of study
-  # we will use this for our spectral analyses!
+  # we will use this for our spectral analyses
+  # set to start at MIDNIGHT on DAY 2 of study
   group_by(subid) |> 
-  mutate(time_hr =  as.numeric(difftime(time, min(time), units = "hours"))) |> 
-  ungroup()
+  mutate(start_date = as.Date(min(time)), # first day of participation
+         start_midnight = as.POSIXct(start_date + 1, tz = "America/Chicago"),
+         time_hr =  as.numeric(difftime(time,
+                                        start_midnight,
+                                        units = "hours"))) |>
+  ungroup() |> 
+  # remove negative time windows
+  filter(time_hr >= 0)
+  # should we be removing NA duration points? go back and look
 ```
 
 Saeb and colleagues calculate the periodogram of the latitude and longitude of location clusters. Since we already have participants' frequently visited locations, we don't need to use a clustering algorithm to determine location clusters. Instead, we will compute a centroid latitude/longitude coordinate for each frequently visited location cluster.
@@ -107,6 +121,87 @@ gps_centroid <- gps |>
   ) |> 
   ungroup() |>
   select(subid, time, time_hr, lat_centroid, lon_centroid, context_id, type)
+```
+
+Here let's test deriving clusters using k-means.
+
+> The first procedure determined whether each GPS location data sample came from a stationary state (eg, working in an office) or a transition state (eg, walking on the street). To do so, we estimated the movement speed at each location data sample by calculating its time derivative and then used a threshold speed that defined the boundary between these two states. In this study, we set this threshold to 1 km/h.
+
+We already have stationary versus in transit.
+
+> The second procedure was clustering. We applied clustering only to the data samples in the stationary state. The goal was to identify the places where participants spent most of their time, such as home, workplaces, parks, etc. We used a distance-based clustering algorithm called K-means [30], in which the data were partitioned into K clusters such that the overall distances of the data points to the centers of their clusters were minimized. Because the number of clusters was unknown, we started with one cluster and increased the number of clusters until the distance of the farthest point in each cluster to its cluster center fell below a threshold. This threshold determined the maximum radius of a cluster, which was set to 500 meters in our study.
+
+```{r}
+gps_stationary <- gps |>
+  filter(transit == "no") |> 
+   mutate(
+    lon_m = distGeo(cbind(0, 0), cbind(lon, 0)),
+    lat_m = distGeo(cbind(0, 0), cbind(0, lat))) |> 
+  select(subid, time, time_hr, lon_m, lat_m)
+  
+```
+
+```{r}
+library(sf)
+# Convert to sf object with WGS84 (lat/lon)
+gps_stationary_sf <- gps %>%
+  filter(transit == "no") |> 
+  st_as_sf(coords = c("lon", "lat"), crs = 4326)
+
+# Transform to a local projected CRS in meters (e.g., UTM zone appropriate for your region)
+gps_stationary_sf <- st_transform(gps_stationary_sf, crs = 32616)
+
+# Extract X/Y in meters
+gps_stationary_coords <- gps_stationary_sf %>%
+  mutate(
+    x = st_coordinates(.)[, 1],
+    y = st_coordinates(.)[, 2]
+  ) %>%
+  st_drop_geometry()
+```
+
+```{r}
+km_spec <- k_means(num_clusters = 3) %>% 
+  set_engine("stats")  # base R kmeans()
+
+# Define a function to run k-means and compute max radius
+evaluate_k <- function(k, data, threshold = 500) {
+  km_spec <- k_means(num_clusters = k) %>% set_engine("stats")
+  km_fit <- fit(km_spec, ~ x + y, data = data)
+
+  centers <- km_fit$fit$centers
+  clusters <- km_fit$fit$cluster
+  
+  distances <- purrr::map_dbl(seq_len(nrow(data)), function(i) {
+    point <- as.numeric(data[i, c("x", "y")])
+    center <- centers[clusters[i], ]
+    sqrt(sum((point - center)^2))
+  })
+
+  max_dist <- max(distances)
+
+  list(k = k, max_dist = max_dist, km_fit = km_fit, passed = max_dist <= threshold)
+}
+
+
+# Try increasing K until all clusters are < 500m in radius
+results <- map(1:20, ~evaluate_k(.x, gps_stationary_coords))  # test K = 1 to 20
+
+# Find the smallest K that passes the threshold
+best_result <- keep(results, ~ .x$passed) %>% first()
+
+# Extract best model
+best_k <- best_result$k
+final_km <- best_result$km_fit
+```
+
+
+```{r}
+
+gps_stationary <- gps_stationary %>%
+  mutate(
+    cluster = final_km$fit$cluster
+  )
 ```
 
 # Proof of concept: calculate circadian movement per Saeb 2015
@@ -140,7 +235,7 @@ Here's some math for how I'm determining my `ofac` value:
  - `ofac` = 1 (no oversampling): .0426-.0408/.00595 ~= .17 bins (less than 1 bin!)
  - `ofac` = 5: 1/168*5 ~= .00119; .0426-.0408/.00119 ~= 1.51 bins
  - `ofac` = 10: 1/168*10 ~= .000595; .0426-.0408/.000595 ~= 3 bins
- - We can see that increasing our oversampling factor makes the spacing smaller/more refined than it otherwise would have been (i.e., better resolution).
+ - We can see that increasing our oversampling factor makes the spacing smaller/more refined than it otherwise would have been (i.e., better resolution). In other words, we are decreasing the sampling interval and are therefore sampling more frequently within our restricted window.
 
 `from` and `to`: represents frequencies between X and Y which we want analyzed. By setting this to 1/30 and 1/20, I am looking at periodic patterns which repeat between 20 and 30 hours. I'm electing to ignore very fast rhythms but also very slow ones. Eventually I'm only looking between 23.5 and 24.5 so this is in that window.
 
@@ -198,6 +293,24 @@ ggplot(df_lon, aes(x = frequency, y = power)) +
   theme_minimal()
 ```
 
+Combined.
+```{r}
+df_combo <- df_lon |> 
+  left_join(df_lat, by = "frequency") |> 
+  mutate(power_total = power.x + power.y)
+
+ggplot(df_combo, aes(x = frequency, y = power_total)) +
+  geom_line() +
+  geom_vline(xintercept = 1/24, color = "red", linetype = "dashed", size = 1, alpha = .5) +  # 24h line
+  geom_vline(xintercept = 1/12, color = "blue", linetype = "dashed", size = 1, alpha = .5) + # 12h line
+  labs(
+    title = "Lomb-Scargle Periodogram",
+    x = "Frequency (cycles per hour)",
+    y = "Power"
+  ) +
+  theme_minimal()
+```
+
 We can visualize someone's frequently visited locations spatially to get a sense if this makes sense. Home and work are longitudinally opposed, so this seems like a plausible activity pattern.
 ```{r}
 ggplot(gps_one, aes(x = lon_centroid, y = lat_centroid)) +
@@ -206,6 +319,78 @@ ggplot(gps_one, aes(x = lon_centroid, y = lat_centroid)) +
   labs(title = "Known Location Centroids",
        x = "Longitude",
        y = "Latitude")
+```
+
+Let's create a function to plot these for each subject.
+```{r}
+plot_cm <- function(z) {
+    
+    # filter to one subject
+    gps_tmp <- gps_centroid |> filter(subid == z)
+    
+    # calculate spectrum
+    lomb_lat <- gps_tmp |>
+      select(time_hr, lat_centroid) |> 
+      lsp(ofac = 10, from = 0.01, to = 0.1, plot = FALSE)
+
+    lomb_lon <- gps_tmp |>
+      select(time_hr, lon_centroid) |> 
+      lsp(ofac = 10, from = 0.01, to = 0.1, plot = FALSE)
+    
+    # pull out spectral information, then combine
+    df_lat <- data.frame(
+      frequency = lomb_lat$scanned,
+      power = lomb_lat$power
+    )
+    
+    df_lon <- data.frame(
+      frequency = lomb_lon$scanned,
+      power = lomb_lon$power
+    )
+    
+    df_combo <- df_lon |> 
+      left_join(df_lat, by = "frequency") |> 
+      mutate(power_total = power.x + power.y)
+    
+    # generate figure
+    graph_title <- paste0("Subject ID", z, sep = " ")
+   
+    ggplot(df_combo, aes(x = frequency, y = power_total)) +
+      geom_line() +
+      geom_vline(xintercept = 1/24, color = "red", linetype = "dashed", size = 1, alpha = .5) +  # 24h line
+      geom_vline(xintercept = 1/12, color = "blue", linetype = "dashed", size = 1, alpha = .5) + # 12h line
+      labs(
+        title = graph_title,
+        x = "Frequency (cycles per hour)",
+        y = "Power"
+      ) +
+      theme_minimal()
+}
+```
+
+And apply that function, saving out plots.
+```{r}
+if(file.exists(here::here(path_gps, "per-subj-cm.pdf"))){
+
+  message("PDF file already exist -- delete to recreate!")
+
+} else{
+  
+  subid_all <- list(gps_centroid$subid) |> unlist() |> unique()
+  
+  # for testing
+  #subid_all <- subid_all[1:10]
+
+  cm_plots <- subid_all |> 
+    map(\(subid) plot_cm(subid))
+  
+  output_file <- paste0(path_gps, "/per-subj-cm.pdf", sep = "")
+
+  multi.page <- ggpubr::ggarrange(plotlist = cm_plots,
+                                    nrow = 1, ncol = 1)
+
+  ggpubr::ggexport(multi.page, filename = output_file)
+}
 ```
 
 ## STEP 2: Frequency bins
@@ -238,12 +423,14 @@ E_lon <- sum(power_lon[target_idx_lon]) / length(target_idx_lon)
 CM <- log(E_lat + E_lon)
 ```
 
+ - 100hr plot for every subject, maybe look if limited to work/home
+
 # Proof of concept: sliding windows over time
 
 | You have...        | You're asking...                                   |
 | ------------------ | -------------------------------------------------- |
 | A full time series | "Are there rhythms that repeat every X hours?"     |
-| A frequency range  | "Please only look for rhythms between 10–100h"     |
+| A frequency range  | "Please only look for rhythms between 23.5–24.5h"     |
 | Output frequencies | Each = "Did the person move in a \~X-hour rhythm?" |
 | Power at that freq | Higher = Stronger rhythmicity at that period       |
 
@@ -307,6 +494,8 @@ ggplot(df_lon_fw, aes(x = frequency, y = power)) +
 
 Our plots are much sparser, probably because there is a lot less data for us to work with.
 
+# Computing Circadian Movement (CM) over a sliding one-week window
+
 Next let's try to compute CM over a week period with a sliding one day window.
 
 First we need a function to compute CM.
@@ -314,46 +503,62 @@ First we need a function to compute CM.
 calc_cm <- function(df) {
   
   compute_e <- function(time_series) {
-    time_series <- na.omit(time_series)
 
-    # Validate: need at least 3 rows and increasing time
-    if (nrow(time_series) < 3 || any(diff(time_series[[1]]) <= 0)) {
-      return(NA_real_)
-    }
+    # lsp() will fail if you have less than 3 data points
+    # setting to 42 allows for one sample every 4 hours
+    # but this assumes that sampling is even, which it isn't
+    # especially since this is filtered to only KNOWN locations
+    # discuss with John
+    # pull distribution of number of points in the average window
+    
+    #if (nrow(time_series) < 42) {
+      #return(NA_real_)
+    #}
 
-    # Try safely
+    # try to calculate periodogram with a catch for insufficient data
     lomb <- tryCatch({
       # calculate frequencies between 20 and 30 hour periods
+      # this minimizes the search space and therefore computation time
       lsp(time_series, ofac = 10, from = 1/30, to = 1/20, plot = FALSE)
     }, error = function(e) {
       message("lsp() failed: ", conditionMessage(e))
       return(NULL)
     })
-
+    
+    # this will return NA if the periodogram couldn't be calculated
     if (is.null(lomb)) return(NA_real_)
 
+    # pull information out of the lomb data object
     df_lomb <- data.frame(
       frequency = lomb$scanned,
       power = lomb$power,
       period = 1 / lomb$scanned
     )
+    
     # per Saeb's calculations, we want to look at the 23.5h-24.5h band
     target_idx <- which(df_lomb$period >= 23.5 & df_lomb$period <= 24.5)
 
+    # if target_idx is empty, that means signal wasn't sufficiently capture in our band
+    # return as NA
     if (length(target_idx) == 0) return(NA_real_)
 
     sum(df_lomb$power[target_idx]) / length(target_idx)
   }
 
 
-  # calculate energy
+  # calculate energy by latitude and longitude
+  # Saeb and colleagues and others who have followed have done each calculation separately
   e_lat <- compute_e(df |> select(time_hr, lat_centroid))
   e_lon <- compute_e(df |> select(time_hr, lon_centroid))
 
-  # calculate CM
-  cm <- log(e_lat + e_lon)
+  # calculate CM by summing our energy values and taking the log
+  # Saeb and colleagues take the log to account for skewness
+  # only take the log if sum_e is more than 0!
+  # this might be 0 if there is low or no rhythmic movement
+  sum_e <- sum(c(e_lat, e_lon))
+  cm <- ifelse(sum_e > 0, log(sum_e), NA_real_)
   
-  return(cm)
+  return(cm) # do I need this last return for tidystyle?
 }
 ```
 
@@ -377,10 +582,12 @@ cm_slide <- function(df, subid_arg, time_col = "time_hr", date_col = "time", win
     } else {
       return(tibble(
         subid = subid_arg,
-        date_start = as.POSIXct(NA),
-        date_end = as.POSIXct(NA),
-        window_start = NA_real_,
-        window_end = NA_real_,
+        date_start = if (nrow(df_window) > 0) min(df_window[[date_col]])
+        else as.POSIXct(NA),
+        date_end = if (nrow(df_window) > 0) max(df_window[[date_col]])
+        else as.POSIXct(NA),
+        window_start = start_time,
+        window_end = start_time + window,
         cm = NA_real_
       ))
     }
@@ -422,10 +629,6 @@ cm_results <- gps_centroid$subid |>
                                  time_col = "time_hr",
                                  date_col = "time")) |>
   bind_rows()
-
-# sometimes missing values are NA_real_, sometimes NaN? Note to look into why that is.
-cm_results <- cm_results |> 
-  mutate(cm = ifelse(cm == "NaN", NA_real_, cm))
 ```
 
 Let's check percentage of missing data.
@@ -441,59 +644,134 @@ total <- nrow(cm_results)
 missing/total
 ```
 
-We're missing about 3% of data. I guess that's not too bad.
-
-Let's try to break this down by percentage of missing data BY subject.
-```{r}
-cm_results |>
-  group_by(subid) |>
-  summarise(
-    missing_cm = sum(is.na(cm)),
-    total_cm = n(),
-    percent_missing = missing_cm / total_cm * 100
-  ) |> 
-  arrange(desc(percent_missing)) |> 
-  print(n = 146)
-```
-
-I wonder if increasing the window will improve this at all. Let's try.
-```{r}
-cm_results_longer <- gps_centroid$subid |>
-  unique() |> 
-  furrr::future_map(\(subid) cm_slide(df = gps_centroid,
-                                 subid_arg = subid,
-                                 time_col = "time_hr",
-                                 date_col = "time",
-                                 window = 336)) |>
-  bind_rows()
-
-cm_results_longer <- cm_results_longer |> 
-  mutate(cm = ifelse(cm == "NaN", NA_real_, cm))
-```
-
-Time to recheck.
-```{r}
-sum(is.na(cm_results_longer$cm))
-
-missing <- sum(is.na(cm_results_longer$cm))
-total <- nrow(cm_results_longer)
-
-missing/total
-```
-
-And by subject.
-```{r}
-cm_results_longer |>
-  group_by(subid) |>
-  summarise(
-    missing_cm = sum(is.na(cm)),
-    total_cm = n(),
-    percent_missing = missing_cm / total_cm * 100
-  ) |> 
-  arrange(desc(percent_missing)) |> 
-  print(n = 146)
-```
-
-It does produce less missing data. But, it also means we get fewer predictions and are probably less likely to see smaller changes... I think it's more important to use the 1-week window.
-
 ## Interpolation
+
+Test out the GPSMobility package.
+
+https://github.com/ianjamesbarnett/GPSimputation
+
+https://academic.oup.com/biostatistics/article/21/2/e98/5145908
+
+For installation.
+```{r}
+install.packages(
+  "https://github.com/ianjamesbarnett/GPSimputation/raw/master/Tutorial/GPSmobility_1.5.tar.gz",
+  repos = NULL,
+  type = "source"
+)
+```
+
+https://github.com/ianjamesbarnett/GPSimputation/blob/master/InterpolationExtension/InterpolateGPS.py
+
+Need to figure this out.
+
+## Merge in labels
+
+Load in labels file.
+```{r}
+labels <- read_csv(here::here(path_shared, "labels_gps_day_1h.csv"), show_col_types = FALSE) |> mutate(dttm_label = with_tz(dttm_label, tz = "America/Chicago"))
+```
+
+Create new end of window label.
+```{r}
+cm_results <- cm_results |> 
+  mutate(end_window = case_when(
+    !is.na(date_end) ~ as.POSIXct(
+      paste0(format(date_end, "%Y-%m-%d"), " 11:59:59"),
+      tz = "America/Chicago"
+    ),
+    TRUE ~ as.POSIXct(NA_character_, tz = "America/Chicago")
+  ))
+```
+
+
+## Test stuff
+
+```{r}
+cm_slide <- function(df, subid_arg, time_col = "time_hr", date_col = "time", window = 168, step = 24) {
+  df_tmp <- df |> filter(subid == subid_arg) |> arrange(.data[[time_col]])
+  time_vals <- df_tmp |> pull(!!sym(time_col))
+  min_time <- floor(min(time_vals, na.rm = TRUE))
+  max_time <- floor(max(time_vals, na.rm = TRUE))
+
+  if ((max_time - window) >= min_time) {
+    window_starts <- seq(min_time, max_time - window, by = step)
+  } else {
+    return(tibble(
+      subid = subid_arg,
+      date_start = as.POSIXct(NA),
+      date_end = as.POSIXct(NA),
+      window_start = min_time,
+      window_end = min_time + window,
+      cm = NA_real_,
+      n_points = NA_integer_
+    ))
+  }
+
+  results <- window_starts |> 
+    map_dfr(\(start_time) {
+      df_window <- df_tmp |> 
+        filter(.data[[time_col]] >= start_time,
+               .data[[time_col]] < start_time + window)
+
+      cm_val <- if (nrow(df_window) > 0) calc_cm(df_window) else NA_real_
+      n_points <- nrow(df_window)
+
+      tibble(
+        subid = subid_arg,
+        date_start = if (n_points > 0) min(df_window[[date_col]]) else as.POSIXct(NA),
+        date_end = if (n_points > 0) max(df_window[[date_col]]) else as.POSIXct(NA),
+        window_start = start_time,
+        window_end = start_time + window,
+        cm = cm_val,
+        n_points = n_points
+      )
+    })
+  
+  return(results)
+}
+
+```
+
+```{r}
+
+# Bin by n_points and smooth
+binned_cm <- cm_results %>%
+  filter(n_points >2) |> 
+  filter(!is.na(cm), !is.na(n_points)) %>%
+  mutate(n_bin = cut(n_points, breaks = seq(0, max(n_points), by = 10))) %>%
+  group_by(n_bin) %>%
+  summarize(
+    mean_n_points = median(n_points),
+    mean_cm = mean(cm, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+cpt_smoothed <- cpt.meanvar(binned_cm$mean_cm, method = "PELT")
+break_idx <- cpts(cpt_smoothed)[1]
+break_n_points <- binned_cm$mean_n_points[break_idx]
+print(break_n_points)
+```
+
+```{r}
+cm_results |> 
+  filter(n_points > 2) |> 
+  ggplot(aes(x = n_points, y = cm)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "loess", se = TRUE, span = 0.8, color = "blue") +
+  
+  # Add empirical threshold line
+  geom_vline(xintercept = 45, color = "red", linetype = "dashed", linewidth = 1) +
+  annotate("text", x = 45, y = max(cm_all$cm, na.rm = TRUE), 
+           label = "Empirical drop-off: 45 pts", 
+           angle = 90, hjust = -0.2, vjust = 1.1, color = "red") +
+  
+  labs(
+    title = "Circadian Movement (CM) vs. GPS Data Density",
+    subtitle = "Red line shows empirical threshold for reliable CM estimates",
+    x = "Number of GPS Points in 7-Day Window",
+    y = "CM (log energy)"
+  ) +
+  theme_minimal()
+
+```
