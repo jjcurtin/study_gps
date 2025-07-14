@@ -1,6 +1,6 @@
 ---
 title: "Fits and evaluates best model config for `r params$version`"
-author: "John Curtin & Madison"
+author: "John Curtin & Madison, updated by Claire for study_gps"
 date: "`r lubridate::today()`"
 output: 
   html_document:
@@ -10,7 +10,11 @@ format:
   html:
     embed-resources: true
 params:
-  version: "v11"
+  study: "gps"
+  version: "v9"
+  cv: "kfold_5_x_5"
+  algorithms: "xgboost"   # "all" or name of specific algorithm
+  model: "context_movement_weather"
 editor_options: 
   chunk_output_type: console
 ---
@@ -44,9 +48,13 @@ source("https://github.com/jjcurtin/lab_support/blob/main/fun_ml.R?raw=true")
 source("https://github.com/jjcurtin/lab_support/blob/main/fun_eda.R?raw=true")
 source("https://github.com/jjcurtin/lab_support/blob/main/chtc/static_files/fun_chtc.R?raw=true")
 
-path_input <- format_path("optimize/chtc/")
-path_models <- format_path("optimize/data_processed/models")
-path_features <-  format_path("optimize/data_processed/features")
+#path_input <- format_path("optimize/chtc/")
+#path_models <- format_path("optimize/data_processed/models")
+#path_features <-  format_path("optimize/data_processed/features")
+
+#path_processed <- format_path(str_c("risk/data_processed/", study))
+path_input <- format_path(str_c("risk/chtc/gps"))
+path_models <- format_path(str_c("risk/models/gps"))
 ```
 
 ### Script Functions
@@ -65,12 +73,15 @@ fit_predict <- function(split_num, splits, config_best){
   
   d_in <- splits$splits[[split_num]] |>
     training() |> 
-    select(-id_obs)  # not used for training; only needed in d_out to tag for later joins 
+    select(-id_obs) #|> # not used for training; only needed in d_out to tag for later joins
+    #mutate(label_num = 1:n(), # add fake label_num because build_recipe expects it, removed immed.
+           #cv_strat = strat) # should update build_recipe to look for strat, not cv_strat
   
   d_out <- splits$splits[[split_num]] |>
     testing()
     
   rec <- build_recipe(d = d_in, config = config_best)
+  
   rec_prep <- rec |> 
     prep(training = d_in)
   
@@ -130,14 +141,14 @@ fit_predict <- function(split_num, splits, config_best){
     cal_apply(logi)
 
   # beta calibration
-  beta <- predict(model_cal, feat_cal_out,
-                  type = "prob") |>
-    mutate(truth = feat_cal_out$y) |>
-    cal_estimate_beta(truth = truth,
-                      estimate = dplyr::starts_with(".pred_"),
-                      smooth = TRUE)
-  preds_prob_beta <- preds_prob |>
-    cal_apply(beta)
+  #beta <- predict(model_cal, feat_cal_out,
+                  #type = "prob") |>
+    #mutate(truth = feat_cal_out$y) |>
+    #cal_estimate_beta(truth = truth,
+                      #estimate = dplyr::starts_with(".pred_"),
+                      #smooth = TRUE)
+ # preds_prob_beta <- preds_prob |>
+    #cal_apply(beta)
 
   # combine raw and calibrated probs (with id_obs and label)
   tibble(id_obs = d_out$id_obs,
@@ -145,7 +156,7 @@ fit_predict <- function(split_num, splits, config_best){
          prob_raw = preds_prob[[str_c(".pred_", y_level_pos)]],
          prob_iso = preds_prob_iso[[str_c(".pred_", y_level_pos)]],
          prob_logi = preds_prob_logi[[str_c(".pred_", y_level_pos)]],
-         prob_beta = preds_prob_beta[[str_c(".pred_", y_level_pos)]],
+         #prob_beta = preds_prob_beta[[str_c(".pred_", y_level_pos)]],
          label = d_out$y) 
 }
 ```
@@ -155,10 +166,15 @@ fit_predict <- function(split_num, splits, config_best){
 ```{r}
 config_best <- 
   read_csv(here::here(path_models, 
-                      str_c("auroc_", params$version, ".csv"))) |> 
+                      str_c("best_config_",
+                            params$version, "_",
+                            params$cv, "_",
+                            params$model, ".csv"))) |>
+  mutate(n = n(),
+         algorithm = "xgboost") |> 
   slice(1) |> 
-  select(feature_set, hp1, hp2, hp3, resample, n) |> 
-  mutate(algorithm = "xgboost") |>
+  select(feature_set, hp1, hp2, hp3, resample, n, algorithm) |>
+  #mutate(algorithm = "xgboost") |>
   glimpse()
 ```
 
