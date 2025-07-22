@@ -73,9 +73,7 @@ fit_predict <- function(split_num, splits, config_best){
   
   d_in <- splits$splits[[split_num]] |>
     training() |> 
-    select(-id_obs) #|> # not used for training; only needed in d_out to tag for later joins
-    #mutate(label_num = 1:n(), # add fake label_num because build_recipe expects it, removed immed.
-           #cv_strat = strat) # should update build_recipe to look for strat, not cv_strat
+    select(-id_obs) # not used for training; only needed in d_out to tag for later joins
   
   d_out <- splits$splits[[split_num]] |>
     testing()
@@ -127,6 +125,7 @@ fit_predict <- function(split_num, splits, config_best){
     mutate(truth = feat_cal_out$y) |> 
     cal_estimate_isotonic(truth = truth,
                           estimate = dplyr::starts_with(".pred_"))
+  
   preds_prob_iso <- preds_prob |> 
     cal_apply(iso)
 
@@ -137,18 +136,19 @@ fit_predict <- function(split_num, splits, config_best){
     cal_estimate_logistic(truth = truth,
                            estimate = dplyr::starts_with(".pred_"),
                            smooth = TRUE)
+  
   preds_prob_logi <- preds_prob |>
     cal_apply(logi)
 
   # beta calibration
-  #beta <- predict(model_cal, feat_cal_out,
-                  #type = "prob") |>
-    #mutate(truth = feat_cal_out$y) |>
-    #cal_estimate_beta(truth = truth,
-                      #estimate = dplyr::starts_with(".pred_"),
-                      #smooth = TRUE)
- # preds_prob_beta <- preds_prob |>
-    #cal_apply(beta)
+  beta <- predict(model_cal, feat_cal_out,
+                  type = "prob") |>
+    mutate(truth = feat_cal_out$y) |>
+    cal_estimate_beta(truth = truth,
+                      estimate = dplyr::starts_with(".pred_"))
+  
+  preds_prob_beta <- preds_prob |>
+    cal_apply(beta)
 
   # combine raw and calibrated probs (with id_obs and label)
   tibble(id_obs = d_out$id_obs,
@@ -157,6 +157,12 @@ fit_predict <- function(split_num, splits, config_best){
          prob_iso = preds_prob_iso[[str_c(".pred_", y_level_pos)]],
          prob_logi = preds_prob_logi[[str_c(".pred_", y_level_pos)]],
          #prob_beta = preds_prob_beta[[str_c(".pred_", y_level_pos)]],
+         ## make able to handle NAs generated above
+         prob_beta = if (is.data.frame(preds_prob_beta)) {
+           preds_prob_beta[[str_c(".pred_", y_level_pos)]]
+           } else {
+             rep(NA_real_, nrow(preds_prob))
+             },
          label = d_out$y) 
 }
 ```
@@ -170,10 +176,10 @@ config_best <-
                             params$version, "_",
                             params$cv, "_",
                             params$model, ".csv"))) |>
-  mutate(n = n(),
+  mutate(n_folds = n(), # think we need this check with john
          algorithm = "xgboost") |> 
   slice(1) |> 
-  select(feature_set, hp1, hp2, hp3, resample, n, algorithm) |>
+  select(feature_set, hp1, hp2, hp3, resample, n_folds, split_num, algorithm) |>
   #mutate(algorithm = "xgboost") |>
   glimpse()
 ```
@@ -217,7 +223,7 @@ splits <- d |>
               cv_inner_resample, cv_group, cv_strat = cv_strat,
               the_seed = seed_splits)
 
-all <- 1:config_best$n |> 
+all <- 1:config_best$n_folds |> # is n_folds the right number to put here?
   map(\(split_num) fit_predict(split_num = split_num, 
                                      splits = splits, 
                                      config_best = config_best)) |> 
