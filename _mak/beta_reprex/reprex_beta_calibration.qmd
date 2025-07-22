@@ -1,0 +1,218 @@
+---
+title: "Reprex: Investigating `uniroot()` failure in `betacal:beta_calibration()`"
+author: "Claire Punturieri"
+date: "`r lubridate::today()`"
+output: 
+  html_document:
+    toc: true 
+    toc_depth: 4
+format:
+  html:
+    embed-resources: true
+params:
+  study: "gps"
+  version: "v9"
+  cv: "kfold_5_x_5"
+  algorithms: "xgboost"   # "all" or name of specific algorithm
+  model: "context_movement_weather"
+editor_options: 
+  chunk_output_type: console
+---
+
+### Note 
+
+This shows how uniroot() can fail during beta calibration when the calibration function doesn't change sign over the interval (requirement of uniroot()).
+
+This was created to explore why cal_estimate_beta() is failing in mak_local_preds.qmd.
+
+Error running into:
+> Error in uniroot(function(mh) b * log(1 - mh) - a * log(mh) - inter, c(1e-16,  : 
+  f() values at end points not of opposite sign
+  
+Error occurs in cal_estimate_beta() which uses betacal::beta_calibration().
+
+### Set Up Environment
+
+Function conflicts
+```{r}
+#| message: false
+#| warning: false
+
+library(tidyverse)
+library(tidymodels)
+
+options(conflicts.policy = "depends.ok")
+library(probably)
+
+source("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true")
+source("https://github.com/jjcurtin/lab_support/blob/main/fun_ml.R?raw=true")
+source("https://github.com/jjcurtin/lab_support/blob/main/fun_eda.R?raw=true")
+source("https://github.com/jjcurtin/lab_support/blob/main/chtc/static_files/fun_chtc.R?raw=true")
+
+path_input <- format_path(str_c("risk/chtc/gps"))
+path_models <- format_path(str_c("risk/models/gps"))
+```
+
+### Reprex set-up
+
+Load in dataset.
+```{r}
+config_best <- 
+  read_csv(here::here(path_models, 
+                      str_c("best_config_",
+                            params$version, "_",
+                            params$cv, "_",
+                            params$model, ".csv"))) |>
+  mutate(n_folds = n(),
+         algorithm = "xgboost") |> 
+  slice(1) |> 
+  select(feature_set, hp1, hp2, hp3, resample, n_folds, split_num, algorithm) |>
+  glimpse()
+```
+
+Set up splits.
+```{r} 
+batch_names <- list.dirs(path_input, full.names = FALSE, recursive = FALSE)
+batch_name <- batch_names[str_detect(batch_names, params$version)]
+path_batch <- here::here(path_input, batch_name)
+source(here::here(path_batch, "input", "training_controls.R"))
+          
+chunks <- str_split_fixed(data_trn, "\\.", n = Inf) # parse name from extensions
+if (length(chunks) == 2) {
+  fn <- str_c("data_trn.", chunks[[2]])
+} else {
+  fn <- str_c("data_trn.", chunks[[2]], ".", chunks[[3]])
+}
+  
+# open based on file type
+if (str_detect(fn, "csv")) {
+  d <- read_csv(here::here(path_batch, "input", fn), show_col_types = FALSE) 
+} else {
+  d <- read_rds(here::here(path_batch, "input", fn))
+}
+
+d <- d |> 
+  arrange(subid, dttm_label) |> 
+  format_data()
+
+splits <- d |> 
+  make_splits(cv_resample_type, cv_resample, cv_outer_resample, 
+              cv_inner_resample, cv_group, cv_strat = cv_strat,
+              the_seed = seed_splits)
+```
+
+Define split_num for testing. Known failure at split_num = 3.
+```{r}
+split_num <- 3
+```
+
+Simplified recipe set-up.
+```{r}
+d_in <- splits$splits[[split_num]] |> training()
+d_out <- splits$splits[[split_num]] |> testing()
+
+rec <- build_recipe(d = d_in, config = config_best)
+
+set.seed(2468)
+
+cal_split <- d_in |> 
+  group_initial_split(group = all_of(cv_group), strata = strat, prop = 3/4)
+
+d_cal_in <- training(cal_split)
+d_cal_out <- testing(cal_split)
+
+rec_cal_prep <- rec |> prep(training = d_cal_in)
+
+feat_cal_in <- rec_cal_prep |> bake(new_data = NULL)
+feat_cal_out <- rec_cal_prep |> bake(new_data = d_cal_out)
+
+# Train model on calibration training fold
+model_cal <- fit_best_model(config_best, feat = feat_cal_in, "classification")
+```
+
+### Run beta_calibration()
+
+First run predict().
+```{r}
+beta <- predict(model_cal, feat_cal_out,
+                type = "prob")
+```
+
+Manually set p and y (inputs to betacal::beta_calibration()).
+```{r}
+p <- beta$.pred_lapse
+y <- feat_cal_out$y
+```
+
+Change y from factor to numeric (from cal_estimate_beta(), line 188).
+```{r}
+lvls <- levels(y)
+y <- ifelse(y == lvls[1], 1, 0)
+```
+
+Run betacal::beta_calibration() with "abm" parameter (default parameter and what we are currently using).
+```{r}
+p <- pmax(1e-16, pmin(p, 1-1e-16))
+
+d <- data.frame(y)
+d$lp <- log(p)
+d$l1p <- -log(1-p)
+
+fit <- glm(y~lp+l1p,family=binomial(link='logit'),data=d)
+
+a <- as.numeric(fit$coefficients['lp'])
+b <- as.numeric(fit$coefficients['l1p'])
+if (a < 0){
+  fit <- glm(y~l1p,family=binomial(link='logit'),data=d)
+  a <- 0
+  b <- as.numeric(fit$coefficients['l1p'])
+  } else if (b < 0){
+    fit <- glm(y~lp,family=binomial(link='logit'),data=d)
+    a <- as.numeric(fit$coefficients['lp'])
+    b <- 0
+  }
+
+inter <- as.numeric(fit$coefficients['(Intercept)'])
+    
+#m <- uniroot(function(mh) b*log(1-mh)-a*log(mh)-inter,c(1e-16,1-1e-16))$root
+
+#calibration <- list("map" = c(a,b,m), "model" = fit, "parameters" = parameters)
+
+## format as trycatch for rendering
+tryCatch({
+  m <- uniroot(function(mh) b*log(1 - mh) - a*log(mh) - inter,
+               c(1e-16, 1 - 1e-16))$root
+  
+  calibration <- list("map" = c(a, b, m), "model" = fit, "parameters" = parameters)
+  print("uniroot() succeeded. Calibration map calculated.")
+}, error = function(e) {
+  message("uniroot() failed: ", e$message)
+  calibration <- NULL
+})
+```
+
+Here is a demonstration of why uniroot() fails in some cases. uniroot() will fail when the function does not change sign over the interval, which it expects. This is because it wants to find the root of a continuous function over an interval (AKA where f(x) = 0). If it doesn't pass 0, it dies on us!
+```{r}
+# write out the function separately
+f <- function(mh) b*log(1-mh)-a*log(mh)-inter
+
+# pull out the endpoints resulting from the above abm values
+left <- f(1e-16)
+right <- f(1-1e-16)
+
+cat("f(1e-16):", left, "\n")
+cat("f(1-1e-16):", right, "\n")
+
+# check if signs are opposite
+if (sign(left) == sign(right)) {
+  message("Function does not change sign over interval. uniroot() would fail.")
+} else {
+  message("Function does change sign over interval. uniroot() would work -- yay!")
+}
+```
+
+## Potential solutions
+
+1) Try specifying a different parameter set instead of abm. uniroot() is only used in abm (which is "full"/"true" beta calibration and is the most flexible), so we could consider using an alternative like am or ab. However, these options might not do as good of a job as abm at correcting miscalibration.
+
+2) Modify the beta_calibration function to skip using uniroot() in cases where the function does not change sign over interval. **Probably not a good idea.**
