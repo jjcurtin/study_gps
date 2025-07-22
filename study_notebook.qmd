@@ -8,13 +8,13 @@ editor: visual
 
 ## Notes
 
-Last updated 6/19/2025.
+Last updated 7/14/2025.
 
 Note that there will be some overlap between model and feature versions.
 
 ## To do/next steps
 
--   Run model which includes gps and weather features!
+-   Create beta calibration reprex
 
 -   Finish circadian movement feature engineering
 
@@ -75,6 +75,32 @@ Past 1hr roll feature versions:
 -   For 24hr roll feature documentation, see GitHub.
 
 # Modeling
+
+7/22/2025
+
+-   Had the thought that maybe cal_estimate_beta() is modifying the inputs to beta_calibration() in some way prior to passing it into the function and perhaps that is why I am having difficulty replicating. Did some sleuthing and looks like this is the case. cal_estimate_beta() changes the outcome variable from a factor to numeric prior to passing it in to beta_calibration(). Adding that in to my code enables me to reproduce the error.
+
+-   Finalized and published beta calibration reprex.
+
+7/21/2025
+
+-   While working on beta calibration reprex, noticed that I can't replicate the same error I get in mak_local_preds. Not sure why this is. Started comparing all of the objects in my environment, they all look the same so unsure what the issue could be.
+
+Week of 7/14/2025
+
+-   Note to self that changed stationary training_controls file for V9 to match updated recipe. I don't think this should impact anything because the main changes were removing label_num and changing strat_cv to just strat.
+
+<!-- -->
+
+-   Started working in mak_local_preds and ana_probs to calibrate model. Model seems very uncalibrated! Note that beta calibration fails.
+
+-   Chatted with John, established that a reprex needs to be made to understand what is causing beta calibration to fail. Started outlining reprex.
+
+7/3/2025
+
+-   GLMnet model may be fine, need to evaluate features.
+
+-   Next steps will be to pull from scripts Madison and John wrote to evaluate xgboost model performance.
 
 7/2/2025
 
