@@ -11,9 +11,9 @@ format:
     embed-resources: true
 params:
   study: "gps"
-  version: "v9"
+  version: "v10"
   cv: "kfold_5_x_5"
-  algorithms: "xgboost"   # "all" or name of specific algorithm
+  algorithms: "glmnet"   # "all" or name of specific algorithm
   model: "context_movement_weather"
 editor_options: 
   chunk_output_type: console
@@ -147,7 +147,7 @@ results_all |>
          feature_set == best_config$feature_set,
          hp1 == best_config$hp1,
          hp2 == best_config$hp2,
-         hp3 == best_config$hp3,
+         #hp3 == best_config$hp3, # comment out for glmnet
          resample == best_config$resample) |>
   write_csv(here::here(path_models, str_c("best_config_",
                                              version, "_",
