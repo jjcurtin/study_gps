@@ -49,7 +49,17 @@ probs |>
 probs |> 
   ggplot(aes(x = prob_logi)) +
     geom_histogram() +
-    labs(title = "Histogram of Logi Probabilities") 
+    labs(title = "Histogram of Logi Probabilities")
+
+probs |> 
+  ggplot(aes(x = prob_beta_ab)) +
+    geom_histogram() +
+    labs(title = "Histogram of Beta (ab) Probabilities") 
+
+probs |> 
+  ggplot(aes(x = prob_beta_am)) +
+    geom_histogram() +
+    labs(title = "Histogram of Beta (am) Probabilities") 
 
 #probs |> 
   #ggplot(aes(x = prob_beta)) +
@@ -73,7 +83,17 @@ cal_logi <- probs |>
 cal_iso <- probs |> 
   mutate(bins = cut(prob_iso, breaks = seq(0, 1, bin_width)), 
          lapse = if_else(label == "lapse", 1, 0)) |> 
-  mutate(probs = "iso") 
+  mutate(probs = "iso")
+
+cal_beta_ab <- probs |> 
+  mutate(bins = cut(prob_beta_ab, breaks = seq(0, 1, bin_width)), 
+         lapse = if_else(label == "lapse", 1, 0)) |> 
+  mutate(probs = "beta_ab")
+
+cal_beta_am <- probs |> 
+  mutate(bins = cut(prob_beta_am, breaks = seq(0, 1, bin_width)), 
+         lapse = if_else(label == "lapse", 1, 0)) |> 
+  mutate(probs = "beta_am")
 
 #cal_beta <- probs |> 
   #mutate(bins = cut(prob_beta, breaks = seq(0, 1, bin_width)), 
@@ -81,8 +101,8 @@ cal_iso <- probs |>
   #mutate(probs = "beta") 
 
 cal_raw |> 
-  bind_rows(cal_logi, cal_iso) |> 
-  mutate(model = fct(probs, levels = c("raw", "logi", "iso"))) |> 
+  bind_rows(cal_logi, cal_iso, cal_beta_ab, cal_beta_am) |> 
+  mutate(model = fct(probs, levels = c("raw", "logi", "iso", "beta_ab", "beta_am"))) |> 
   group_by(bins, probs)  |>
   summarize(mean_lapse = mean(lapse),
             .groups = "drop") |>
