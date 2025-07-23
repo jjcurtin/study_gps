@@ -103,7 +103,7 @@ splits <- d |>
 
 Define split_num for testing. Known failure at split_num = 3.
 ```{r}
-split_num <- 3
+split_num <-1 
 ```
 
 Simplified recipe set-up.
@@ -147,14 +147,15 @@ y <- feat_cal_out$y
 Change y from factor to numeric (from cal_estimate_beta(), line 188).
 ```{r}
 lvls <- levels(y)
-y <- ifelse(y == lvls[1], 1, 0)
+y <- if_else(y == lvls[1], 1, 0)
 ```
 
 Run betacal::beta_calibration() with "abm" parameter (default parameter and what we are currently using).
 ```{r}
-p <- pmax(1e-16, pmin(p, 1-1e-16))
+p <- pmax(1e-16, pmin(p, 1-1e-16)) # ensure p is never 0 or 1
 
 d <- data.frame(y)
+d$p <- p  # not part of function but just so we can see this too
 d$lp <- log(p)
 d$l1p <- -log(1-p)
 
@@ -166,11 +167,11 @@ if (a < 0){
   fit <- glm(y~l1p,family=binomial(link='logit'),data=d)
   a <- 0
   b <- as.numeric(fit$coefficients['l1p'])
-  } else if (b < 0){
-    fit <- glm(y~lp,family=binomial(link='logit'),data=d)
-    a <- as.numeric(fit$coefficients['lp'])
-    b <- 0
-  }
+} else if (b < 0){
+  fit <- glm(y~lp,family=binomial(link='logit'),data=d)
+  a <- as.numeric(fit$coefficients['lp'])
+  b <- 0
+}
 
 inter <- as.numeric(fit$coefficients['(Intercept)'])
     

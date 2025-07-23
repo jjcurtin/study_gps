@@ -146,6 +146,7 @@ fit_predict <- function(split_num, splits, config_best){
     mutate(truth = feat_cal_out$y) |>
     cal_estimate_beta(truth = truth,
                       estimate = dplyr::starts_with(".pred_"))
+  # add in ab and am calculations here
   
   preds_prob_beta <- preds_prob |>
     cal_apply(beta)
@@ -156,13 +157,8 @@ fit_predict <- function(split_num, splits, config_best){
          prob_raw = preds_prob[[str_c(".pred_", y_level_pos)]],
          prob_iso = preds_prob_iso[[str_c(".pred_", y_level_pos)]],
          prob_logi = preds_prob_logi[[str_c(".pred_", y_level_pos)]],
-         #prob_beta = preds_prob_beta[[str_c(".pred_", y_level_pos)]],
-         ## make able to handle NAs generated above
-         prob_beta = if (is.data.frame(preds_prob_beta)) {
-           preds_prob_beta[[str_c(".pred_", y_level_pos)]]
-           } else {
-             rep(NA_real_, nrow(preds_prob))
-             },
+         prob_beta_am = preds_prob_beta_am[[str_c(".pred_", y_level_pos)]],
+         prob_beta_ab = preds_prob_beta_ab[[str_c(".pred_", y_level_pos)]],
          label = d_out$y) 
 }
 ```
