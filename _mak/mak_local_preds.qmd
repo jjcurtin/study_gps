@@ -147,7 +147,8 @@ fit_predict <- function(split_num, splits, config_best){
     
     }, error = function(e) {
       
-      message("abm failure...moving on to am and ab calculations...")
+      message("abm failure...moving on to am and ab calculations...
+              failed on ", split_num)
       NULL
       
       })
@@ -242,8 +243,27 @@ splits <- d |>
   make_splits(cv_resample_type, cv_resample, cv_outer_resample, 
               cv_inner_resample, cv_group, cv_strat = cv_strat,
               the_seed = seed_splits)
+```
 
-all <- 1:config_best$n_folds |> # is n_folds the right number to put here?
+Run over only folds which don't fail.
+Folds which fail: 3, 8, 11, 12, 17, 18, 19, 23.
+```{r}
+all_folds <- 1:config_best$n_folds
+fail_folds <- c(3, 8, 11, 12, 17, 18, 19, 23)
+success_folds <- all_folds[!all_folds %in% fail_folds]
+
+all <- success_folds |>
+  map(\(split_num) fit_predict(split_num = split_num, 
+                                     splits = splits, 
+                                     config_best = config_best)) |> 
+  list_rbind() |> 
+  write_csv(here::here(path_models, str_c("local_preds_", 
+                                         params$version, ".csv")))
+```
+
+Run over all folds.
+```{r}
+all <- 1:config_best$n_folds |>
   map(\(split_num) fit_predict(split_num = split_num, 
                                      splits = splits, 
                                      config_best = config_best)) |> 
