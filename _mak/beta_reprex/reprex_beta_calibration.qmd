@@ -40,6 +40,7 @@ Function conflicts
 
 library(tidyverse)
 library(tidymodels)
+library(cowplot, exclude = "stamp")
 
 options(conflicts.policy = "depends.ok")
 library(probably)
@@ -103,7 +104,7 @@ splits <- d |>
 
 Define split_num for testing. Known failure at split_num = 3.
 ```{r}
-split_num <-1 
+split_num <- 3
 ```
 
 Simplified recipe set-up.
@@ -209,6 +210,196 @@ if (sign(left) == sign(right)) {
   message("Function does not change sign over interval. uniroot() would fail.")
 } else {
   message("Function does change sign over interval. uniroot() would work -- yay!")
+}
+```
+
+## Track a, b, and inter values
+
+Define function to print out all a, b, and inter values.
+```{r}
+abinter_tracker <- function(split_num) {
+  d_in <- splits$splits[[split_num]] |> training()
+  d_out <- splits$splits[[split_num]] |> testing()
+
+  rec <- build_recipe(d = d_in, config = config_best)
+
+  set.seed(2468)
+
+  cal_split <- d_in |> 
+    group_initial_split(group = all_of(cv_group), strata = strat, prop = 3/4)
+ 
+  d_cal_in <- training(cal_split)
+  d_cal_out <- testing(cal_split)
+
+  rec_cal_prep <- rec |> prep(training = d_cal_in)
+
+  feat_cal_in <- rec_cal_prep |> bake(new_data = NULL)
+  feat_cal_out <- rec_cal_prep |> bake(new_data = d_cal_out)
+
+  # Train model on calibration training fold
+  model_cal <- fit_best_model(config_best, feat = feat_cal_in, "classification")
+
+  beta <- predict(model_cal, feat_cal_out,
+                  type = "prob")
+
+  p <- beta$.pred_lapse
+  y <- feat_cal_out$y
+
+  lvls <- levels(y)
+  y <- if_else(y == lvls[1], 1, 0)
+
+  p <- pmax(1e-16, pmin(p, 1-1e-16)) # ensure p is never 0 or 1
+
+  d <- data.frame(y)
+  d$p <- p  # not part of function but just so we can see this too
+  d$lp <- log(p)
+  d$l1p <- -log(1-p)
+
+  fit <- glm(y~lp+l1p,family=binomial(link='logit'),data=d)
+
+  a <- as.numeric(fit$coefficients['lp'])
+  b <- as.numeric(fit$coefficients['l1p'])
+  a_new <- NA_integer_
+  b_new <- NA_integer_
+  
+  if (a < 0){
+    fit <- glm(y~l1p,family=binomial(link='logit'),data=d)
+    a_new <- 0
+    b <- as.numeric(fit$coefficients['l1p'])
+  } else if (b < 0){
+    fit <- glm(y~lp,family=binomial(link='logit'),data=d)
+    a <- as.numeric(fit$coefficients['lp'])
+    b_new <- 0
+  }
+
+  inter <- as.numeric(fit$coefficients['(Intercept)'])
+  
+  tibble(split_num = split_num,
+         a = a,
+         a_new = a_new,
+         b = b,
+         b_new = b_new,
+         inter = inter)
+}
+```
+
+Generate coefficients.
+```{r}
+split_list <- 1:25
+
+coeffs <- split_list |> 
+  map(\(split_num) abinter_tracker(split_num)) |> 
+  list_rbind()
+```
+
+Plot coefficients by whether or not the split fails.
+```{r}
+fail_folds <- c(3, 8, 11, 12, 17, 18, 19, 23)
+
+coeffs <- coeffs |> 
+  mutate(status = if_else((split_num %in% fail_folds), "fail", "run"))
+
+a_plot <- ggplot() +
+  geom_histogram(data = coeffs |> filter(status == "fail"),
+                 aes(x = a), fill = "red", alpha = .2) +
+  geom_histogram(data = coeffs |> filter(status == "run"),
+                 aes(x = a), fill = "green", alpha = .2) +
+  theme_minimal()
+
+b_plot <- ggplot() +
+  geom_histogram(data = coeffs |> filter(status == "fail"),
+                 aes(x = b), fill = "red", alpha = .2) +
+  geom_histogram(data = coeffs |> filter(status == "run"),
+                 aes(x = b), fill = "green", alpha = .2) +
+  theme_minimal()
+  
+inter_plot <- ggplot() +
+  geom_histogram(data = coeffs |> filter(status == "fail"),
+                 aes(x = inter), fill = "red", alpha = .2) +
+  geom_histogram(data = coeffs |> filter(status == "run"),
+                 aes(x = inter), fill = "green", alpha = .2) +
+  theme_minimal()
+
+plot_grid(a_plot, b_plot, inter_plot, ncol = 1)
+```
+
+Display table highlighting which configurations fail.
+```{r}
+coeffs |> 
+  kableExtra::kbl() |> 
+  kableExtra::kable_styling() |> 
+  kableExtra::row_spec(fail_folds, bold = T, background = "tomato")
+```
+
+**All combinations of a negative b (which becomes b = 0) and a negative integer fail.**
+
+## Understanding distribution of y in failing folds
+
+```{r}
+distribution_checker <- function(split_num) {
+  d_in <- splits$splits[[split_num]] |> training()
+  d_out <- splits$splits[[split_num]] |> testing()
+
+  rec <- build_recipe(d = d_in, config = config_best)
+
+  set.seed(2468)
+
+  cal_split <- d_in |> 
+    group_initial_split(group = all_of(cv_group), strata = strat, prop = 3/4)
+ 
+  d_cal_in <- training(cal_split)
+  d_cal_out <- testing(cal_split)
+  
+  rec_cal_prep <- rec |> prep(training = d_cal_in)
+
+  feat_cal_in <- rec_cal_prep |> bake(new_data = NULL)
+  feat_cal_out <- rec_cal_prep |> bake(new_data = d_cal_out)
+  
+  feat_cal_out |> 
+    count(y, name = "count") |> 
+    rename(class = y) |> 
+    mutate(prop = count / sum(count),
+           split_num = split_num)
+}  
+```
+
+```{r}
+outcome_distr <- split_list |> 
+  map(\(split_num) distribution_checker(split_num)) |> 
+  list_rbind() |> 
+  mutate(status = if_else((split_num %in% fail_folds), "fail", "run"))
+```
+
+```{r}
+ggplot() +
+  geom_histogram(data = outcome_distr |> filter(status == "fail" & class == "lapse"),
+                 aes(x = prop), fill = "red", alpha = .2) +
+  geom_histogram(data = outcome_distr |> filter(status == "run" & class == "lapse"),
+                 aes(x = prop), fill = "green", alpha = .2) +
+  theme_minimal()
+```
+
+## Understanding the distribution of p in failing folds
+
+> CP: Worth doing this for every failing fold? Unsure.
+
+```{r}
+plot_p_distribution <- function(p, y, split_num) {
+  y <- factor(y)
+  p_df <- data.frame(p = p, y = y)
+  
+  p_hist <- ggplot(p_df, aes(x = p)) +
+    geom_histogram(bins = 30, fill = "grey70", color = "black") +
+    ggtitle(paste("Split", split_num, "- Predicted p Distribution")) +
+    theme_minimal()
+  
+  p_by_class <- ggplot(p_df, aes(x = p, fill = y)) +
+    geom_histogram(bins = 30, position = "identity", alpha = 0.5) +
+    ggtitle(paste("Split", split_num, "- p by Class")) +
+    theme_minimal()
+  
+  print(p_hist)
+  print(p_by_class)
 }
 ```
 
