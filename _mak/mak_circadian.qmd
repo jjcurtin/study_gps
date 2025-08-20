@@ -103,8 +103,9 @@ gps <- read_csv(here::here(path_shared, "gps_enriched.csv.xz"),
                                         units = "hours"))) |>
   ungroup() |> 
   # remove negative time windows
-  filter(time_hr >= 0)
-  # should we be removing NA duration points? go back and look
+  filter(time_hr >= 0) |> 
+  # remove NA duration points since we do not trust them
+  filter(!is.na(duration))
 ```
 
 Saeb and colleagues calculate the periodogram of the latitude and longitude of location clusters. Since we already have participants' frequently visited locations, we don't need to use a clustering algorithm to determine location clusters. Instead, we will compute a centroid latitude/longitude coordinate for each frequently visited location cluster.
@@ -646,6 +647,60 @@ small_n <- cm_results |>
   nrow()
 
 small_n/total
+```
+
+Examine for potential declining sampling density.
+```{r}
+cm_results |> 
+  ggplot(aes(x = n_points, y = cm)) +
+  geom_point()
+
+cor(x = cm_results$n_points, y = cm_results$cm, use = "complete.obs")
+
+cm_results |> 
+  filter(subid < 20) |> 
+  filter(!is.na(cm)) |> 
+  ggplot(aes(x = n_points, y = cm)) +
+  geom_point(alpha = 0.4, size = 1.5) +
+  geom_smooth(method = "loess", se = FALSE, color = "blue") +
+  facet_wrap(~ subid, scales = "free_x") +
+  theme_minimal() +
+  labs(
+    title = "CM vs Number of GPS Points",
+    x = "Number of points in window",
+    y = "Circadian Modularity (CM)"
+  )
+
+subj_corrs <- cm_results |> 
+  filter(!is.na(cm)) |> 
+  group_by(subid) |> 
+  summarise(corr = cor(n_points, cm, use = "complete.obs")) |> 
+  ungroup()
+```
+
+How about the relationship between time spent on study and CM value?
+```{r}
+cm_results |>
+  group_by(subid) |> 
+  mutate(cm_obs_no = 1:n()) |> 
+  ungroup() |>
+  filter(subid < 30) |> 
+  ggplot(aes(x = cm_obs_no, y = cm)) +
+  facet_wrap(~subid, scales = "free_y") +
+  geom_point()
+```
+
+While there is a slight negative relationship between time spent on study and more negative CM values, there does not appear to be substantive evidence that this is a pervasive problem rendering these analyses inappropriate.
+
+I'm also curious how many of our points are negative (PSD values less than 1 suggest irregularity/weak signal) compared to positive.
+```{r}
+cm_results |> 
+  filter(!is.na(cm)) |> 
+  summarise(
+    n_negative = sum(cm < 0),
+    n_positive = sum(cm > 0),
+    n_zero = sum(cm == 0)
+  )
 ```
 
 ## Merge in labels
