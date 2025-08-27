@@ -97,7 +97,8 @@ gps <- read_csv(here::here(path_shared, "gps_enriched.csv.xz"),
   # set to start at MIDNIGHT on DAY 2 of study
   group_by(subid) |> 
   mutate(start_date = as.Date(min(time)), # first day of participation
-         start_midnight = as.POSIXct(start_date + 1, tz = "America/Chicago"),
+         start_midnight = as.POSIXct(paste0(start_date + 1, " 00:00:00"), 
+                             tz = "America/Chicago"), 
          time_hr =  as.numeric(difftime(time,
                                         start_midnight,
                                         units = "hours"))) |>
@@ -106,6 +107,16 @@ gps <- read_csv(here::here(path_shared, "gps_enriched.csv.xz"),
   filter(time_hr >= 0) |> 
   # remove NA duration points since we do not trust them
   filter(!is.na(duration))
+
+gps_aligned <- gps |> 
+  group_by(subid) |> 
+  summarise(start_midnight = first(start_midnight), .groups = "drop") |> 
+  mutate(time_hr = 0,
+         time = start_midnight) |> 
+  mutate(across(-c(subid, start_midnight, time_hr, time), ~NA)) |> 
+  bind_rows(gps) |> 
+  arrange(subid, time_hr)
+  
 ```
 
 Saeb and colleagues calculate the periodogram of the latitude and longitude of location clusters. Since we already have participants' frequently visited locations, we don't need to use a clustering algorithm to determine location clusters. Instead, we will compute a centroid latitude/longitude coordinate for each frequently visited location cluster.
@@ -132,7 +143,7 @@ clusters <- read_csv(here::here(path_gps2, "gps2_clusters.csv"),
 
 Output
 ```{r}
-gps_simple <- gps |> 
+gps_simple <- gps_aligned |> 
   select(subid, lat, lon, dist, duration, speed, time, start_midnight, time_hr)
 ```
 
@@ -171,8 +182,14 @@ if (file.exists(here::here(path_gps, "gps_clustered.csv"))) {
   gps_clustered <- subid_all |> 
     map(\(subid) enrich_subid(subid, gps = gps_simple, locs = clusters)) |> 
     bind_rows() |>
-    mutate(at_cluster = if_else(dist_context <= 50 & speed <= 4, TRUE, FALSE),
-           at_cluster = if_else(is.na(at_cluster), FALSE, at_cluster)) |>
+    # in addition to filtering at_cluster, want to keep our artificial
+    # anchoring row to make sure all windows start at the same time
+    mutate(at_cluster = if_else(dist_context <= 50 & speed <= 4 | time_hr == 0,
+                                TRUE, FALSE),
+           at_cluster = if_else(is.na(at_cluster), FALSE, at_cluster),
+           context_id   = if_else(time_hr == 0, NA_integer_, context_id),
+           lat_context  = if_else(time_hr == 0, NA_real_, lat_context),
+           lon_context  = if_else(time_hr == 0, NA_real_, lon_context)) |>
     write_csv((here::here(path_gps, "gps_clustered.csv")))
     
   gps_clustered <- gps_clustered |> filter(at_cluster == TRUE) 
@@ -604,6 +621,18 @@ cm_slide <- function(df, subid_arg, time_col = "time_hr", date_col = "time", win
       )
     })
   
+  results <- results |>
+    group_by(subid) |>
+    # generate a difference score
+    mutate(cm_diff = cm - lag(cm)) |>
+    ungroup() |>
+    # add an end time at 11:59:59 the date of the last day in the window
+    # for alignment with labels
+    mutate(end_window = if_else(
+      !is.na(date_end),
+      update(date_end, hour = 23, minute = 59, second = 59, tz = "America/Chicago"),
+      as.POSIXct(NA_character_, tz = "America/Chicago")))
+  
   return(results)
   
 }
@@ -705,8 +734,6 @@ cm_results |>
 
 ## Merge in labels
 
-> CP come back to this. Not sure if we need it.
-
 Load in labels file.
 ```{r}
 labels <- read_csv(here::here(path_shared, "labels_gps_day_1h.csv"), show_col_types = FALSE) |> mutate(dttm_label = with_tz(dttm_label, tz = "America/Chicago"))
@@ -722,6 +749,42 @@ cm_results <- cm_results |>
       as.POSIXct(NA_character_, tz = "America/Chicago")
     )
   )
+```
+
+We probably also want to add in a difference between the current value and the previous value.
+```{r}
+cm_results <- cm_results |>
+  group_by(subid) |> 
+  arrange(window_start) |> 
+  mutate(
+    cm_diff = cm - lag(cm)
+  ) |> 
+  ungroup()
+```
+
+Merge in labels.
+```{r}
+cm_results <- cm_results |> 
+  mutate(predict_date = as.Date(end_window, tz = "America/Chicago") + 1)
+
+labels <- labels |> 
+  mutate(label_date = as.Date(dttm_label, tz = "America/Chicago"))
+
+cm_results <- cm_results |> 
+  left_join(labels, by = c("subid" = "subid", "predict_date" = "label_date"),
+            relationship = "many-to-many")
+```
+
+How do daily rate changes vary over time?
+```{r}
+cm_results |>
+  group_by(subid) |> 
+  mutate(cm_obs_no = 1:n()) |> 
+  ungroup() |>
+  filter(subid > 240 & !is.na(cm_diff)) |> 
+  ggplot(aes(x = cm_obs_no, y = cm_diff)) +
+  facet_wrap(~subid, scales = "free_y") +
+  geom_point()
 ```
 
 ## Write out
