@@ -108,14 +108,14 @@ gps <- read_csv(here::here(path_shared, "gps_enriched.csv.xz"),
   # remove NA duration points since we do not trust them
   filter(!is.na(duration))
 
-gps_aligned <- gps |> 
-  group_by(subid) |> 
-  summarise(start_midnight = first(start_midnight), .groups = "drop") |> 
-  mutate(time_hr = 0,
-         time = start_midnight) |> 
-  mutate(across(-c(subid, start_midnight, time_hr, time), ~NA)) |> 
-  bind_rows(gps) |> 
-  arrange(subid, time_hr)
+#gps_aligned <- gps |> 
+  #group_by(subid) |> 
+  #summarise(start_midnight = first(start_midnight), .groups = "drop") |> 
+  #mutate(time_hr = 0,
+         #time = start_midnight) |> 
+  #mutate(across(-c(subid, start_midnight, time_hr, time), ~NA)) |> 
+  #bind_rows(gps) |> 
+  #arrange(subid, time_hr)
   
 ```
 
@@ -143,7 +143,7 @@ clusters <- read_csv(here::here(path_gps2, "gps2_clusters.csv"),
 
 Output
 ```{r}
-gps_simple <- gps_aligned |> 
+gps_simple <- gps |> 
   select(subid, lat, lon, dist, duration, speed, time, start_midnight, time_hr)
 ```
 
@@ -561,37 +561,57 @@ calc_cm <- function(df) {
 
 Now we need a function to slide this computation by one week periods, incrementing by 24 hours each time.
 ```{r}
-cm_slide <- function(df, subid_arg, time_col = "time_hr", date_col = "time", window = 168, step = 24) {
+cm_slide <- function(gps_df, window_df, subid_arg, time_col = "time_hr", date_col = "time", window = 168, step = 24) {
   
-  df_tmp <- df |> filter(subid == subid_arg)
+  gps_df_tmp <- gps_df |>
+    filter(subid == subid_arg) |>
+    arrange(.data[[time_col]])
   
-  df_tmp <- df_tmp |> arrange(.data[[time_col]])
-  
-  time_vals <- df_tmp |> pull(!!sym(time_col))
-
-  # sets window boundaries to be whole numbers
-  min_time <- floor(min(time_vals, na.rm = TRUE))
-  max_time <- floor(max(time_vals, na.rm = TRUE))
-  
-  min_date <- min(df_tmp[[date_col]], na.rm = TRUE)
-  
-  # define window start times
-    if ((max_time - window) < min_time) {
-    # window is longer than available data, define a single full window
-    return(tibble(
-      subid = subid_arg,
-      date_start = min_date + dhours(start_time - min_time),
-      date_end   = date_start + dhours(window),
-      window_start = min_time,
-      window_end   = min_time + window,
-      cm = NA_real_,
-      n_points = 0
-    ))
-  }
-  
-  window_starts <- seq(min_time, max_time - window, by = step)
+  window_df_tmp <- window_df |> filter(subid == subid_arg)
   
   # calculate CM for each sliding window
+  results <- purrr::pmap_dfr(window_df_tmp, \(subid, time_start, time_end, 
+                                             window_start, window_end, ...) {
+    
+    df_window <- gps_df_tmp |> 
+      filter(
+        .data[[time_col]] >= window_start,
+        .data[[time_col]] <  window_end
+      )
+      
+      cm_val <- if (nrow(df_window) > 0) calc_cm(df_window) else NA_real_
+    
+      
+  tibble(
+    subid = subid_arg,
+    time_start = time_start,
+    time_end   = time_end,
+    window_start = window_start,
+    window_end   = window_end,
+    cm = cm_val,
+    n_points = nrow(df_window) # how many points are being used in calc
+      )
+    })
+  
+  return(results)
+  
+}
+```
+
+Now let's first create the windows for all of our subjects.
+```{r}
+cm_window <- function(df, subid_arg, time_col = "time_hr", date_col = "time", window = 168, step = 24) {
+  
+  df_tmp <- df |>
+    filter(subid == subid_arg) |>
+    arrange(.data[[time_col]])
+  
+  min_date <- min(df_tmp[[date_col]], na.rm = TRUE)
+  max_time <- max(df_tmp[[time_col]], na.rm = TRUE)
+  
+  
+  window_starts <- seq(0, max_time - window, by = step)
+  
   results <- window_starts |> 
     map_dfr(\(start_time) {
       df_window <- df_tmp |> 
@@ -599,50 +619,46 @@ cm_slide <- function(df, subid_arg, time_col = "time_hr", date_col = "time", win
           .data[[time_col]] >= start_time,
           .data[[time_col]] < start_time + window
         )
-      
-      cm_val <- if (nrow(df_window) > 0) calc_cm(df_window) else NA_real_
-    
-      
+  
   # compute start/end dates
   date_start_val <- if (nrow(df_window) > 0) min(df_window[[date_col]])
-  else min_date + dhours(start_time - min_time)
+  else min_date + dhours(start_time)
   
   date_end_val   <- if (nrow(df_window) > 0) max(df_window[[date_col]])
   else date_start_val + dhours(window)
   
   tibble(
     subid = subid_arg,
-    date_start = with_tz(date_start_val, tzone = "America/Chicago"),
-    date_end   = with_tz(date_end_val, tzone = "America/Chicago"),
+    time_start = floor_date(date_start_val, "day"),
+    time_end   = ceiling_date(date_end_val, "day") - seconds(1),
     window_start = start_time,
     window_end   = start_time + window,
-    cm = cm_val,
-    n_points = nrow(df_window) # how many points are being used in calc
       )
-    })
-  
-  results <- results |>
-    group_by(subid) |>
-    # generate a difference score
-    mutate(cm_diff = cm - lag(cm)) |>
-    ungroup() |>
-    # add an end time at 11:59:59 the date of the last day in the window
-    # for alignment with labels
-    mutate(end_window = if_else(
-      !is.na(date_end),
-      update(date_end, hour = 23, minute = 59, second = 59, tz = "America/Chicago"),
-      as.POSIXct(NA_character_, tz = "America/Chicago")))
+  }
+  )
   
   return(results)
   
 }
 ```
 
+Create windows for each subject, starting from midnight on their second day of study participation.
+```{r}
+cm_windows <- gps_clustered$subid |> 
+  unique() |> 
+  furrr::future_map(\(subid) cm_window(df = gps_clustered,
+                                 subid_arg = subid,
+                                 time_col = "time_hr",
+                                 date_col = "time")) |>
+  bind_rows()
+```
+
 Let's run this over all of our subjects.
 ```{r}
 cm_results <- gps_clustered$subid |>
   unique() |> 
-  furrr::future_map(\(subid) cm_slide(df = gps_clustered,
+  furrr::future_map(\(subid) cm_slide(gps_df = gps_clustered,
+                                      window_df = cm_windows,
                                  subid_arg = subid,
                                  time_col = "time_hr",
                                  date_col = "time")) |>
@@ -732,48 +748,8 @@ cm_results |>
   )
 ```
 
-## Merge in labels
 
-Load in labels file.
-```{r}
-labels <- read_csv(here::here(path_shared, "labels_gps_day_1h.csv"), show_col_types = FALSE) |> mutate(dttm_label = with_tz(dttm_label, tz = "America/Chicago"))
-```
 
-Create new end of window label.
-```{r}
-cm_results <- cm_results |> 
-  mutate(
-    end_window = if_else(
-      !is.na(date_end),
-      update(date_end, hour = 23, minute = 59, second = 59, tz = "America/Chicago"),
-      as.POSIXct(NA_character_, tz = "America/Chicago")
-    )
-  )
-```
-
-We probably also want to add in a difference between the current value and the previous value.
-```{r}
-cm_results <- cm_results |>
-  group_by(subid) |> 
-  arrange(window_start) |> 
-  mutate(
-    cm_diff = cm - lag(cm)
-  ) |> 
-  ungroup()
-```
-
-Merge in labels.
-```{r}
-cm_results <- cm_results |> 
-  mutate(predict_date = as.Date(end_window, tz = "America/Chicago") + 1)
-
-labels <- labels |> 
-  mutate(label_date = as.Date(dttm_label, tz = "America/Chicago"))
-
-cm_results <- cm_results |> 
-  left_join(labels, by = c("subid" = "subid", "predict_date" = "label_date"),
-            relationship = "many-to-many")
-```
 
 How do daily rate changes vary over time?
 ```{r}
