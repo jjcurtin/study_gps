@@ -66,8 +66,6 @@ library(lubridate)
 library(future)
 # for periodogram
 library(lomb)
-
-source(here::here("../lab_support/fun_gps.R"))
 ```
 
 ## Parallel processing
