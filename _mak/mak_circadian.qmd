@@ -70,6 +70,13 @@ library(lomb)
 source(here::here("../lab_support/fun_gps.R"))
 ```
 
+## Parallel processing
+
+```{r}
+cl <- parallel::makePSOCKcluster(parallel::detectCores(logical = FALSE))
+doParallel::registerDoParallel(cl)
+```
+
 ## Load in data
 
 ```{r}
@@ -102,21 +109,26 @@ gps <- read_csv(here::here(path_shared, "gps_enriched.csv.xz"),
          time_hr =  as.numeric(difftime(time,
                                         start_midnight,
                                         units = "hours"))) |>
-  ungroup() |> 
+  ungroup() |>
+  # no longer need this column following time_hr calculation
+  select(-start_midnight) |> 
   # remove negative time windows
   filter(time_hr >= 0) |> 
   # remove NA duration points since we do not trust them
   filter(!is.na(duration))
+```
 
-#gps_aligned <- gps |> 
-  #group_by(subid) |> 
-  #summarise(start_midnight = first(start_midnight), .groups = "drop") |> 
-  #mutate(time_hr = 0,
-         #time = start_midnight) |> 
-  #mutate(across(-c(subid, start_midnight, time_hr, time), ~NA)) |> 
-  #bind_rows(gps) |> 
-  #arrange(subid, time_hr)
+Optional load in of things calculated below for easy review!
+```{r}
+cm_windows <- read_csv(here::here(path_gps, "gps_cm_windows.csv"), 
+                 show_col_types = FALSE) |> 
+  mutate(time_start = with_tz(time_start, "America/Chicago"),
+         time_end = with_tz(time_end, "America/Chicago"))
   
+cm_results <- read_csv(here::here(path_gps, "gps_cm.csv"), 
+                 show_col_types = FALSE) |> 
+    mutate(time_start = with_tz(time_start, "America/Chicago"),
+         time_end = with_tz(time_end, "America/Chicago"))
 ```
 
 Saeb and colleagues calculate the periodogram of the latitude and longitude of location clusters. Since we already have participants' frequently visited locations, we don't need to use a clustering algorithm to determine location clusters. Instead, we will compute a centroid latitude/longitude coordinate for each frequently visited location cluster.
@@ -132,19 +144,19 @@ gps_centroid <- gps |>
   select(subid, time, time_hr, lat_centroid, lon_centroid, context_id, type)
 ```
 
-We could also create clusters (below I am using Chris Janssen's clustering code).
+We could also create clusters (below I am using Chris Janssen's clustering code). Note that context_id numbers repeat. Every subject's cluster counting restarts from 1 in Chris' code so there are multiple 1s (for example), but each is a DIFFERENT location relative to that person's own data.
 ```{r}
 path_gps2 <- format_path("risk/data_processed/gps2/data")
 
 clusters <- read_csv(here::here(path_gps2, "gps2_clusters.csv"), 
-                 show_col_types = FALSE) |> 
+                 show_col_types = FALSE) |>
   mutate(context_id = cluster)
 ```
 
 Output
 ```{r}
 gps_simple <- gps |> 
-  select(subid, lat, lon, dist, duration, speed, time, start_midnight, time_hr)
+  select(subid, lat, lon, dist, duration, speed, time, time_hr)
 ```
 
 Finds the nearest context (i.e., cluster) to a given latitude and longitude coordinate.
@@ -182,14 +194,9 @@ if (file.exists(here::here(path_gps, "gps_clustered.csv"))) {
   gps_clustered <- subid_all |> 
     map(\(subid) enrich_subid(subid, gps = gps_simple, locs = clusters)) |> 
     bind_rows() |>
-    # in addition to filtering at_cluster, want to keep our artificial
-    # anchoring row to make sure all windows start at the same time
-    mutate(at_cluster = if_else(dist_context <= 50 & speed <= 4 | time_hr == 0,
+    mutate(at_cluster = if_else(dist_context <= 50 & speed <= 4,
                                 TRUE, FALSE),
-           at_cluster = if_else(is.na(at_cluster), FALSE, at_cluster),
-           context_id   = if_else(time_hr == 0, NA_integer_, context_id),
-           lat_context  = if_else(time_hr == 0, NA_real_, lat_context),
-           lon_context  = if_else(time_hr == 0, NA_real_, lon_context)) |>
+           at_cluster = if_else(is.na(at_cluster), FALSE, at_cluster)) |>
     write_csv((here::here(path_gps, "gps_clustered.csv")))
     
   gps_clustered <- gps_clustered |> filter(at_cluster == TRUE) 
@@ -407,6 +414,7 @@ We applied the logarithm to account for the skewness in the distribution.
 
 Test with Saeb method.
 ```{r}
+# lat first
 freqs_lat <- lomb_lat$scanned
 power_lat <- lomb_lat$power
 periods_lat <- 1 / freqs_lat
@@ -414,16 +422,15 @@ target_idx_lat <- which(periods_lat >= 23.5 & periods_lat <= 24.5)
 
 E_lat <- sum(power_lat[target_idx_lat]) / length(target_idx_lat)
 
+# then lon
 freqs_lon <- lomb_lon$scanned
 power_lon <- lomb_lon$power
 periods_lon <- 1 / freqs_lon
 target_idx_lon <- which(periods_lon >= 23.5 & periods_lon <= 24.5)
 
-
-# Compute total energy in that band
 E_lon <- sum(power_lon[target_idx_lon]) / length(target_idx_lon)
 
-
+# then add and take the log
 CM <- log(E_lat + E_lon)
 ```
 
@@ -561,7 +568,7 @@ calc_cm <- function(df) {
 
 Now we need a function to slide this computation by one week periods, incrementing by 24 hours each time.
 ```{r}
-cm_slide <- function(gps_df, window_df, subid_arg, time_col = "time_hr", date_col = "time", window = 168, step = 24) {
+cm_slide <- function(gps_df, window_df, subid_arg, time_col = "time_hr", date_col = "time") {
   
   gps_df_tmp <- gps_df |>
     filter(subid == subid_arg) |>
@@ -669,15 +676,10 @@ cm_results <- gps_clustered$subid |>
 
 Let's check percentage of missing data.
 ```{r}
-sum(is.na(cm_results$cm))
-```
-
-What percentage of our total is that?
-```{r}
 missing <- sum(is.na(cm_results$cm))
 total <- nrow(cm_results)
 
-missing/total
+missing/total*100
 ```
 
 8% of windows have 42 points and below. Setting to 42 would be about one sample every 4 hours if our data were perfectly evenly sampled (which they are not). There isn't specific guidance in the literature on this thresholding so this is an imperfect measure but should help to reduce untrustworthy measurements (sparse points = less reliable CM estimates).
@@ -731,7 +733,7 @@ cm_results |>
   ungroup() |>
   filter(subid < 30) |> 
   ggplot(aes(x = cm_obs_no, y = cm)) +
-  facet_wrap(~subid, scales = "free_y") +
+  facet_wrap(~subid) +
   geom_point()
 ```
 
@@ -742,25 +744,249 @@ I'm also curious how many of our points are negative (PSD values less than 1 sug
 cm_results |> 
   filter(!is.na(cm)) |> 
   summarise(
-    n_negative = sum(cm < 0),
+    n_negative = sum(cm < 0), # come back and check this, should this be -1?
     n_positive = sum(cm > 0),
     n_zero = sum(cm == 0)
   )
 ```
 
+## Subject comparisons
 
+### Irregular rhythm
 
+128 looks like someone who has a good amount of data but lots of irregular patterns (i.e., low CM values).
 
-How do daily rate changes vary over time?
+```{r}
+cm_results |> 
+  filter(subid == 128) |> 
+  filter(as.Date(time_start) >= as.Date("2018-10-02") &
+           as.Date(time_start) <= as.Date("2018-10-10"))
+```
+
+Check proportion of time spent at known clusters relative to not in this period.
+```{r}
+gps_clustered |> 
+  filter(subid == 128) |> 
+  filter(as.Date(time) >= as.Date("2018-10-02") &
+           as.Date(time) <= as.Date("2018-10-16")) |>
+  summarize(dur_known = sum(duration[at_cluster], na.rm = TRUE),
+            dur_unknown = sum(duration[!at_cluster], na.rm = TRUE))
+  
+```
+
+Check number of times went to different clusters in this period.
+```{r}
+gps_clustered |> 
+  filter(subid == 128) |> 
+  filter(as.Date(time) >= as.Date("2018-10-02") &
+           as.Date(time) <= as.Date("2018-10-16")) |>
+  filter(at_cluster == TRUE) |> 
+  count(context_id, name = "n_visits")
+```
+
+Create a plot displaying an actogram (raw points by day, with a dot for median time), daily median visit times to clusters, and sliding CM values.
+```{r}
+# filter down to sub and convert time for plotting
+gps_sub <- gps_clustered |> 
+  filter(subid == 128, at_cluster == TRUE,
+         as.Date(time) >= as.Date("2018-10-02") &
+         as.Date(time) <= as.Date("2018-10-16")) |> 
+  mutate(
+    date = as.Date(time),
+    hour = hour(time) + minute(time)/60
+  )
+
+# get median visit time
+daily_medians <- gps_sub |>
+  group_by(date) |>
+  summarise(
+    median_hour = median(hour, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# filter cm data and format dates for plots
+cm_sub <- cm_results |> 
+  filter(subid == 128 &
+         as.Date(time_start) >= as.Date("2018-10-02") &
+           as.Date(time_start) <= as.Date("2018-10-10")) |> 
+  mutate(time_start = as.Date(time_start),
+         time_end   = as.Date(time_end))
+
+# plot all raw points as an "actogram"
+p_actogram <- ggplot(gps_sub, aes(x = hour, y = date, color = factor(context_id))) +
+  geom_point(size = 2, alpha = 0.7) +
+    geom_point(
+    data = daily_medians,
+    aes(x = median_hour, y = date), # big black dot for median time!!
+    color = "black",
+    size = 4
+  ) +
+  scale_x_continuous(breaks = seq(0, 24, by = 2)) +
+  labs(
+    x = "Hour of Day",
+    y = "Date",
+    color = "Cluster",
+    title = paste("Actogram - Subject 128")
+  ) +
+   scale_y_date(
+    date_breaks = "1 day",
+    date_labels = "%b %d"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+# plot median visit times
+p_medians <- ggplot(daily_medians, aes(x = date, y = median_hour)) +
+  geom_point(color = "black", size = 2) +
+  geom_line(color = "black", linewidth = 0.8) +
+  scale_y_continuous(breaks = seq(0, 24, by = 4)) +
+  labs(
+    x = NULL,
+    y = "Median Hour",
+    title = "Daily Median Visit Times"
+  ) +
+  scale_x_date(
+    date_breaks = "1 day",
+    date_labels = "%b %d"
+  ) +
+  theme_minimal()
+
+# plot cm values over time w end date of window as the reference date
+# remember that each value is calculated based on 7 preceding days!!
+p_cm <- ggplot(cm_sub, aes(x = time_end, y = cm)) +
+  geom_line(color = "black", size = 1) +
+  geom_point(color = "black", size = 2) +
+  labs(
+    x = "End Date of Window",
+    y = "CM",
+    title = "Sliding-Window Circadian Movement (CM)"
+  ) +
+   scale_x_date(
+    date_breaks = "1 day",
+    date_labels = "%b %d"
+  ) +
+  theme_minimal()
+
+# line panels up
+p_actogram / p_medians/ p_cm + plot_layout(heights = c(3, 1, 1))
+```
+
+### Regular rhythm
+
+11 looks like someone who has very regular patterns in the middle of study participation (i.e., high CM values).
+
 ```{r}
 cm_results |>
-  group_by(subid) |> 
-  mutate(cm_obs_no = 1:n()) |> 
-  ungroup() |>
-  filter(subid > 240 & !is.na(cm_diff)) |> 
-  ggplot(aes(x = cm_obs_no, y = cm_diff)) +
-  facet_wrap(~subid, scales = "free_y") +
-  geom_point()
+  filter(subid == 11) |> 
+  filter(as.Date(time_start) >= as.Date("2017-08-07") &
+           as.Date(time_start) <= as.Date("2017-08-15"))
+```
+
+Check proportion of time spent at known clusters relative to not in this period.
+```{r}
+gps_clustered |> 
+  filter(subid == 11) |> 
+  filter(as.Date(time) >= as.Date("2017-08-07") &
+           as.Date(time) <= as.Date("2017-08-21")) |>
+  summarize(dur_known = sum(duration[at_cluster], na.rm = TRUE),
+            dur_unknown = sum(duration[!at_cluster], na.rm = TRUE))
+  
+```
+
+Check number of times went to different clusters in this period.
+```{r}
+gps_clustered |> 
+  filter(subid == 11) |> 
+  filter(as.Date(time) >= as.Date("2017-08-07") &
+           as.Date(time) <= as.Date("2017-08-21")) |>
+  filter(at_cluster == TRUE) |> 
+  count(context_id, name = "n_visits")
+```
+
+```{r}
+# filter down clustered data for plotting and convert time for plotting
+gps_sub <- gps_clustered |> 
+  filter(subid == 11, at_cluster == TRUE,
+         as.Date(time) >= as.Date("2017-08-07") &
+         as.Date(time) <= as.Date("2017-08-21")) |> 
+  mutate(
+    date = as.Date(time),
+    hour = hour(time) + minute(time)/60
+  )
+
+# check what the median visit time was for each day
+daily_medians <- gps_sub |>
+  group_by(date) |>
+  summarise(
+    median_hour = median(hour, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# filter down our CM data and convert dates for plotting
+cm_sub <- cm_results |> 
+  filter(subid == 11 &
+         as.Date(time_start) >= as.Date("2017-08-07") &
+           as.Date(time_start) <= as.Date("2017-08-15")) |> 
+  mutate(time_start = as.Date(time_start),
+         time_end   = as.Date(time_end))
+
+# create "actogram" plot with markers for median visit times
+p_actogram <- ggplot(gps_sub, aes(x = hour, y = date, color = factor(context_id))) +
+  geom_point(size = 2, alpha = 0.7) +
+  geom_point(
+    data = daily_medians,
+    aes(x = median_hour, y = date), # dots for visit times
+    color = "black",
+    size = 4
+  ) +
+  scale_x_continuous(breaks = seq(0, 24, by = 2)) +
+  labs(
+    x = "Hour of Day",
+    y = "Date",
+    color = "Cluster",
+    title = paste("Actogram - Subject 11")
+  ) +
+   scale_y_date(
+    date_breaks = "1 day",
+    date_labels = "%b %d"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+# plot median visit times
+p_medians <- ggplot(daily_medians, aes(x = date, y = median_hour)) +
+  geom_point(color = "black", size = 2) +
+  geom_line(color = "black", linewidth = 0.8) +
+  scale_y_continuous(breaks = seq(0, 24, by = 4)) +
+  labs(
+    x = NULL,
+    y = "Median Hour",
+    title = "Daily Median Visit Times"
+  ) +
+  scale_x_date(
+    date_breaks = "1 day",  
+    date_labels = "%b %d" 
+  ) +
+  theme_minimal()
+
+# plot cm by end of window
+# these data are created using the previous seven days from the end window
+p_cm <- ggplot(cm_sub, aes(x = time_end, y = cm)) +
+  geom_line(color = "black", size = 1) +
+  geom_point(color = "black", size = 2) +
+  labs(
+    x = "End Date of Window",
+    y = "CM",
+    title = "Sliding-Window Circadian Movement (CM)"
+  ) +
+   scale_x_date(
+    date_breaks = "1 day",
+    date_labels = "%b %d"   
+  ) +
+  theme_minimal()
+
+# combine plots
+p_actogram / p_medians / p_cm + plot_layout(heights = c(3, 1, 1))
 ```
 
 ## Write out
@@ -768,4 +994,9 @@ cm_results |>
 ```{r}
 cm_results |> 
   write_csv((here::here(path_gps, "gps_cm.csv")))
+```
+
+```{r}
+cm_windows |> 
+  write_csv((here::here(path_gps, "gps_cm_windows.csv")))
 ```
