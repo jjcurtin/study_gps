@@ -33,7 +33,7 @@ version <- "v11"
 algorithm <- "glmnet"
 model <- # make more informative
 
-feature_set <- c("context_movement_weather") # GPS feature set name
+feature_set <- c("baseline", "all") # GPS feature set name
 data_trn <- str_c("features_combined.csv")
 
 seed_splits <- 102030
@@ -153,13 +153,20 @@ build_recipe <- function(d, config) {
     rec <- rec |> 
       step_rm(strat) # remove strat variable
   }
+
+  # no need for selection for "all" feature set 
+  if(feature_set == "baseline") {
+    rec <- rec |> 
+      step_rm(contains("context_")) # UPDATE 
+  }
   
   rec <- rec |>
     step_zv(all_predictors()) |> 
     step_impute_median(all_numeric_predictors()) |> 
     step_impute_mode(all_nominal_predictors()) 
   
-  
+ 
+   
   # resampling options for unbalanced outcome variable
   if (resample == "down") {
     # under_ratio = ratio.  No conversion needed
