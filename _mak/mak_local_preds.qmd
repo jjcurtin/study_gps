@@ -257,7 +257,23 @@ all <- success_folds |>
                                      splits = splits, 
                                      config_best = config_best)) |> 
   list_rbind() |> 
-  write_csv(here::here(path_models, str_c("local_preds_", 
+  write_csv(here::here(path_models, str_c("local_preds_success_", 
+                                         params$version, ".csv")))
+```
+
+Run over only folds which DO fail.
+Folds which fail: 3, 8, 11, 12, 17, 18, 19, 23.
+```{r}
+all_folds <- 1:config_best$n_folds
+fail_folds <- c(3, 8, 11, 12, 17, 18, 19, 23)
+success_folds <- all_folds[!all_folds %in% fail_folds]
+
+all <- fail_folds |>
+  map(\(split_num) fit_predict(split_num = split_num, 
+                                     splits = splits, 
+                                     config_best = config_best)) |> 
+  list_rbind() |> 
+  write_csv(here::here(path_models, str_c("local_preds_failed_", 
                                          params$version, ".csv")))
 ```
 
