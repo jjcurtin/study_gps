@@ -8,21 +8,57 @@ editor: visual
 
 ## Notes
 
-Last updated 7/14/2025.
+Last updated 9/10/2025.
 
 Note that there will be some overlap between model and feature versions.
 
 ## To do/next steps
 
--   Create beta calibration reprex
+-   Calculate CM features
 
--   Finish circadian movement feature engineering
+-   Run comparative models (AKA: does CM add anything?)
 
 # File storage
 
 This section details where different data are stored relating to the GPS study.
 
+## Pre-processing
+
+1.  \_eda/eda_gps.qmd –\> understand GPS data quality, rule out subjects with poor compliance
+
+2.  \_eda/eda_context.qmd –\> decide filtering thresholds for GPS data
+
+3.  \_mak/mak_circadian.qmd –\> quantify circadian stability from clustered GPS data
+
+## Feature engineering 
+
+1.  \_mak/mak_combined_features.qmd –\> pulls together separate feature files and collates them to be used for making predictions
+
+2.  **All FEATURES after being run on CHTC can be found in risk/chtc/shared**
+
+## Modeling
+
+1.  \_chtc/mak_jobs.R
+
+2.  \_chtc/training_controls_gps.R
+
+3.  **All MODELS after being run on CHTC can be found in risk/chtc/gps**
+
+## Model evaluation
+
+1.  \_mak/mak_best_config.qmd –\> aggregates results from all batches, runs some checks, and saves out best model configuration
+
+2.  \_mak/mak_local_preds.qmd –\>generate predicted probabilities from best model configuration
+
+3.  \_ana/ana_probs.qmd –\> takes predicted probabilities and makes some nice figures for visualizing how well a model is calibrated
+
 # Feature engineering
+
+July/August 2025
+
+-   Finalized generation of circadian movement data! Data are saved out and ready for action.
+
+-   Made weather feature scripts generalizable and published to GitHub.
 
 7/1/2025
 
@@ -89,11 +125,7 @@ Past 1hr roll feature versions:
 Week of 7/14/2025
 
 -   Note to self that changed stationary training_controls file for V9 to match updated recipe. I don't think this should impact anything because the main changes were removing label_num and changing strat_cv to just strat.
-
-<!-- -->
-
 -   Started working in mak_local_preds and ana_probs to calibrate model. Model seems very uncalibrated! Note that beta calibration fails.
-
 -   Chatted with John, established that a reprex needs to be made to understand what is causing beta calibration to fail. Started outlining reprex.
 
 7/3/2025
@@ -108,7 +140,7 @@ Week of 7/14/2025
 
 7/1/2025
 
--   Started running GLMnet
+-   Started running GLMnet (V10)
 
 Week of 6/23/2025
 
