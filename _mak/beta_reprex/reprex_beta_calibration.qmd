@@ -94,7 +94,8 @@ if (str_detect(fn, "csv")) {
 
 d <- d |> 
   arrange(subid, dttm_label) |> 
-  format_data()
+  format_data() |> 
+  mutate(id_obs = 1:nrow(d))
 
 splits <- d |> 
   make_splits(cv_resample_type, cv_resample, cv_outer_resample, 
@@ -176,9 +177,9 @@ if (a < 0){
 
 inter <- as.numeric(fit$coefficients['(Intercept)'])
     
-#m <- uniroot(function(mh) b*log(1-mh)-a*log(mh)-inter,c(1e-16,1-1e-16))$root
+m <- uniroot(function(mh) b*log(1-mh)-a*log(mh)-inter,c(1e-16,1-1e-16))$root
 
-#calibration <- list("map" = c(a,b,m), "model" = fit, "parameters" = parameters)
+calibration <- list("map" = c(a,b,m), "model" = fit, "parameters" = parameters)
 
 ## format as trycatch for rendering
 tryCatch({
@@ -401,6 +402,150 @@ plot_p_distribution <- function(p, y, split_num) {
   print(p_hist)
   print(p_by_class)
 }
+```
+
+## Look at beta function
+
+```{r}
+# Define the beta calibration function
+beta_function <- function(mh, a, b, inter) {
+  b * log(1 - mh) - a * log(mh) - inter
+}
+
+# Evaluate over a fine grid in (0, 1)
+mh_values <- seq(1e-6, 1 - 1e-6, length.out = 1000)
+f_values <- beta_function(mh_values, a, b, inter)
+
+# Plot the function
+plot(mh_values, f_values, type = "l", col = "blue", lwd = 2,
+     main = "Beta Calibration Function",
+     xlab = "mh", ylab = "f(mh)")
+abline(h = 0, col = "red", lty = 2)  # Add horizontal line at 0
+
+# Check specific points
+points_to_check <- c(0.01, 0.5, 0.99)
+values_at_points <- beta_function(points_to_check, a, b, inter)
+
+cat("Function values at specific mh points:\n")
+for (i in seq_along(points_to_check)) {
+  cat(sprintf("f(%.2f) = %.4f\n", points_to_check[i], values_at_points[i]))
+}
+
+# Check if the function crosses zero
+signs <- sign(f_values)
+sign_change <- any(diff(signs) != 0)
+
+if (sign_change) {
+  message("✅ Function crosses zero: uniroot() would succeed.")
+} else {
+  message("❌ Function does not cross zero: uniroot() would fail.")
+}
+```
+
+## Plot raw probabilities of failed folds
+
+Modified fit_predict().
+```{r}
+fit_predict <- function(split_num, splits, config_best){
+  
+  d_in <- splits$splits[[split_num]] |>
+    training() |> 
+    select(-id_obs) # not used for training; only needed in d_out to tag for later joins
+  
+  d_out <- splits$splits[[split_num]] |>
+    testing()
+    
+  rec <- build_recipe(d = d_in, config = config_best)
+  
+  rec_prep <- rec |> 
+    prep(training = d_in)
+  
+  feat_in <- rec_prep |> 
+    bake(new_data = NULL) 
+  
+  model_best <- fit_best_model(config_best, feat = feat_in, "classification")
+
+  feat_out <- rec_prep |> 
+    bake(new_data = d_out) # no id_obs because not included in d_in
+
+
+  # metrics from raw (uncalibrated) predictions for held out fold
+  preds_prob <- predict(model_best, feat_out,
+                        type = "prob")
+
+  # Assumes we are doing stratified splits
+  # train calibration model train/test split on held in data
+  # Skip for baseline models
+  set.seed(2468)
+  cal_split <- d_in |> 
+    group_initial_split(group = all_of(cv_group), 
+                        strata = strat,
+                        prop = 3/4)
+  
+  d_cal_in <- training(cal_split) 
+  d_cal_out <- testing(cal_split)
+
+  rec_cal_prep <- rec |>
+    prep(training = d_cal_in)
+    
+  feat_cal_in <- rec_cal_prep |> 
+    bake(new_data = NULL) 
+
+  feat_cal_out <- rec_cal_prep |>  
+    bake(new_data = d_cal_out) 
+
+  model_cal <- fit_best_model(config_best, feat = feat_cal_in, "classification")
+
+  # combine raw and calibrated probs (with id_obs and label)
+  tibble(id_obs = d_out$id_obs,
+         split_num = rep(split_num, nrow(preds_prob)),
+         prob_raw = preds_prob[[str_c(".pred_", y_level_pos)]],
+         label = d_out$y) 
+}
+```
+
+
+Folds which fail: 3, 8, 11, 12, 17, 18, 19, 23.
+```{r}
+all_folds <- 1:config_best$n_folds
+fail_folds <- c(3, 8, 11, 12, 17, 18, 19, 23)
+success_folds <- all_folds[!all_folds %in% fail_folds]
+
+all <- all_folds |>
+  map(\(split_num) fit_predict(split_num = split_num, 
+                                     splits = splits, 
+                                     config_best = config_best)) |> 
+  list_rbind()
+```
+
+
+```{r}
+bin_width = 0.10
+
+cal_raw <- all |> 
+  filter(split_num == 10) |> 
+  mutate(bins = cut(prob_raw, breaks = seq(0, 1, bin_width)), 
+         lapse = if_else(label == "lapse", 1, 0)) |> 
+  mutate(probs = "raw")
+
+cal_raw |> 
+  #mutate(model = fct(probs))) |> 
+  group_by(bins, probs)  |>
+  summarize(mean_lapse = mean(lapse),
+            .groups = "drop") |>
+  mutate(bins = as.numeric(bins),
+         midpoints = bin_width/2 + bin_width * (bins - 1))  |> 
+  ggplot(data = _, aes(x = midpoints, y = mean_lapse, color = probs)) +
+    geom_abline(slope = 1, intercept = 0, linetype = "dotted") +
+    geom_line() +
+    geom_point() +
+    labs(title = "Split 10",
+         x = "Predicted Lapse Probability (bin mid-point)",
+         y = "Observed Lapse Probability") +
+    scale_x_continuous(breaks = seq(0, 1, bin_width),
+                       limits = c(0, 1)) +
+    scale_y_continuous(breaks = seq(0, 1, bin_width),
+                       limits = c(0, 1))
 ```
 
 ## Potential solutions
