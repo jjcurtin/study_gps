@@ -18,9 +18,11 @@
 # xgboost same v5 features but with hour roll (v7) -- thought I made filtering changes here but accidentally did not
 # v8 testing different stratifications with kfold, same v6 features
 # xgboost movement, context, weather raw and diff, hour roll, with filtering updates and corrected some type features (v9)
+# glmnet with lh strat, movement and context and weather features, hour roll (v10)
+
 
 # Currently running:
-# glmnet with lh strat, movement and context and weather features, hour roll (v10)
+# xgboost with lh strat, movement and context and weather and circadian features, hour roll (v11)
 
 # source format_path
 source("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true")
@@ -30,8 +32,8 @@ study <- "gps"
 window <- "day"
 lead <- 0
 version <- "v11" 
-algorithm <- "glmnet"
-model <- # make more informative
+algorithm <- "circadian"
+model <- "mod_comparison"
 
 feature_set <- c("baseline", "all") # GPS feature set name
 data_trn <- str_c("features_combined.csv")
@@ -157,7 +159,7 @@ build_recipe <- function(d, config) {
   # no need for selection for "all" feature set 
   if(feature_set == "baseline") {
     rec <- rec |> 
-      step_rm(contains("context_")) # UPDATE 
+      step_rm(contains("recent_cm")) 
   }
   
   rec <- rec |>
