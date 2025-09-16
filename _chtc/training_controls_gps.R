@@ -32,7 +32,7 @@ study <- "gps"
 window <- "day"
 lead <- 0
 version <- "v11" 
-algorithm <- "circadian"
+algorithm <- "xgboost"
 model <- "mod_comparison"
 
 feature_set <- c("baseline", "all") # GPS feature set name
