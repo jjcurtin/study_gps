@@ -78,7 +78,8 @@ weather <- read_csv(here::here(path_shared, "features_weather.csv"),
 
 Load in circadian movement features.
 ```{r}
-# placeholder
+cm <- read_csv(here::here(path_shared, "features_circadian.csv"),
+               show_col_types = FALSE)
 ```
 
 Load in stratification data, merge relevant column.
@@ -91,7 +92,8 @@ strat <- read_csv(here::here(path_shared, "strat_lh.csv"),
 
 ```{r}
 features <- gps |> 
-  left_join(weather, by = c("subid", "dttm_label", "lapse")) |> 
+  left_join(weather, by = c("subid", "dttm_label", "lapse")) |>
+  left_join(cm, by = c("subid", "dttm_label", "lapse")) |> 
   left_join(strat, by = "subid")
 ```
 
