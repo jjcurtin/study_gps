@@ -53,7 +53,7 @@ resample <- c("none", "up_1", "up_2", "up_3", "up_4", "up_5",
 
 # CHTC SPECIFIC CONTROLS------ ---------------------
 username <- "punturieri" # for setting staging directory (until we have group staging folder)
-stage_data <- TRUE # If FALSE .sif will still be staged, just not data_trn
+stage_data <- FALSE # If FALSE .sif will still be staged, just not data_trn
 max_idle <- 1000
 request_cpus <- 1 
 request_memory <- "20000MB"
