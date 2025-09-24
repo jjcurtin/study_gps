@@ -11,10 +11,10 @@ format:
     embed-resources: true
 params:
   study: "gps"
-  version: "v9"
+  version: "v11"
   cv: "kfold_5_x_5"
   algorithms: "xgboost"   # "all" or name of specific algorithm
-  model: "context_movement_weather"
+  model: "mod_comparison"
 editor_options: 
   chunk_output_type: console
 ---
@@ -127,6 +127,19 @@ metrics_avg <- results_all |>
   relocate(n_folds) |> 
   arrange(desc(median_roc_auc)) |> 
   ungroup()
+```
+
+Make histograms.
+```{r}
+metrics_avg |>
+  filter(feature_set == "baseline") |> 
+  pull(median_roc_auc) |> 
+  hist()
+
+metrics_avg |>
+  filter(feature_set == "all") |> 
+  pull(median_roc_auc) |> 
+  hist()
 ```
 
 Check to make sure summarized tibble looks accurate.
