@@ -1,0 +1,208 @@
+---
+title: "EDA of GPS data for optimize"
+author: "Claire Punturieri"
+date: "`r lubridate::today()`"
+format: 
+  html:
+    toc: true
+    toc_depth: 4
+    embed-resources: true
+editor_options: 
+  chunk_output_type: console
+---
+
+## Housekeeping
+
+Features calculated looked odd for:
+
+ - Emotional valence
+ - Community space/recreation
+ - Public drinking space
+ - Fitness
+ - Church
+ - AA
+ 
+## Set Up
+
+```{r}
+#| message: false
+#| warning: false
+
+options(conflicts.policy = "depends.ok")
+devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true")
+```
+
+## Paths
+
+```{r}
+path_shared <- format_path("risk/data_processed/shared")
+path_hannah <- format_path("risk/data_processed/gps/hannah")
+```
+
+## Packages and source
+
+```{r}
+#| message: false
+#| warning: false
+#| echo: false
+
+# for data wrangling
+library(tidyverse)
+library(lubridate)
+library(foreach, exclude = c("accumulate",
+                             "when"))
+
+# adjust plot visuals
+theme_set(theme_classic())
+options(tibble.width = Inf, dplyr.print_max = Inf)
+```
+
+## Community space/recreation and public drinking space
+
+```{r}
+study_dates <- read_csv(here::here(path_shared, "study_dates_gps.csv"),
+                     show_col_types = FALSE) |>  
+  mutate(study_start = as_date(study_start),
+         study_end = as_date(study_end))  |>  
+  mutate(study_ndays = as.numeric(difftime(study_end, 
+                                           study_start, units = "days")))  |>  
+  glimpse()
+```
+
+Extract subids from study_dates file.
+```{r}
+subids_dates <- study_dates |>  
+  pull(subid) |>  
+  unique()
+```
+
+Load in contextual information file.
+```{r}
+locs <- read_csv(here::here(path_shared, "locations.csv"), 
+                 col_types = "cddcccccccccccdd",
+                 show_col_types = FALSE) |>  
+  mutate(subid = as.numeric(subid)) |>
+  filter(subid %in% subids_dates)  |>    # limit to sample in study_dates
+  glimpse()
+```
+
+Load in Hannah's file.
+```{r}
+other <- read_csv(here::here(path_hannah, "other_locations.csv"), 
+                 show_col_types = FALSE) |>  
+  mutate(subid = as.numeric(subid)) |>
+  select(subid, context_id, final) |> 
+  glimpse()
+```
+
+Clean Hannah's file.
+
+- Public drinking space and public drinking spaces homogenized to public drinking space
+- Recovery and health reclassified as healthcare
+```{r}
+other <- other |>
+  mutate(final = if_else(final == "public drinking spaces", "public drinking space", final),
+         final = if_else(final == "recovery and health", "healthcare", final))
+```
+
+```{r}
+other <- other |>
+  mutate(final = if_else(final == "public drinking space", "publicdrinkingspace", final),
+         final = if_else(final == "travel stop", "travelstop", final),
+         final = if_else(final == "temporary residence", "temporaryresidence", final),
+         final = if_else(final == "community space / recreation", "communityspacerecreation", final))
+```
+
+Join Hannah's file with loc file. If there's a value in Hannah's file in the "final" column,
+that will replace the loc type value. Otherwise, leave as loc type value.
+```{r}
+locs <- locs |> 
+  left_join(other, by = c("subid", "context_id")) |> 
+  mutate(type = if_else(!(is.na(final)), final, type)) |> 
+  select(-final)
+```
+
+Let's first look at public drinking space.
+```{r}
+pds <- locs |>
+  filter(type == "publicdrinkingspace")
+
+table(pds$type, pds$drank)
+table(pds$type, pds$alcohol)
+table(pds$type, pds$emotion)
+table(pds$type, pds$risk)
+table(pds$type, pds$avoid)
+```
+
+Now let's look at community space/recreation.
+```{r}
+csr <- locs |> 
+  filter(type == "communityspacerecreation")
+
+table(csr$type, csr$drank)
+table(csr$type, csr$alcohol)
+table(csr$type, csr$emotion)
+table(csr$type, csr$risk)
+table(csr$type, csr$avoid)
+```
+
+## Classification repeats
+
+It looks like Memorial Union has been classified as both a public drinking space and as community space/recreation. Let's see how often that happens.
+
+```{r}
+classifications <- locs |> 
+  group_by(street_address) |> 
+  summarise(
+    n_types = n_distinct(type),
+    types   = paste(sort(unique(type)), collapse = ", "),
+    .groups = "drop"
+  ) |> 
+  filter(n_types > 1)
+
+classifications |> view()
+```
+
+Now, what are the most common combinations?
+```{r}
+classifications |> 
+  count(types, n_types, sort = TRUE) |> 
+  view()
+```
+
+## Fitness
+```{r}
+fitness <- locs |> 
+  filter(type == "fitness")
+
+table(fitness$type, fitness$drank)
+table(fitness$type, fitness$alcohol)
+table(fitness$type, fitness$emotion)
+table(fitness$type, fitness$risk)
+table(fitness$type, fitness$avoid)
+```
+
+## Church
+```{r}
+church <- locs |> 
+  filter(type == "church")
+
+table(church$type, church$drank)
+table(church$type, church$alcohol)
+table(church$type, church$emotion)
+table(church$type, church$risk)
+table(church$type, church$avoid)
+```
+
+## Emotional valence
+```{r}
+table(locs$emotion)
+
+positive <- locs |> filter(emotion == "pleasant")
+
+table(positive$emotion, positive$alcohol)
+table(positive$emotion, positive$type)
+table(positive$emotion, positive$drank)
+table(positive$emotion, positive$risk)
+table(positive$emotion, positive$avoid)
+```
