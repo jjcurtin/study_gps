@@ -1,0 +1,133 @@
+---
+title: "Combining GPS & Demo Features"
+author: "JJC"
+date: "`r lubridate::today()`"
+format: 
+  html: 
+    embed-resources: true
+    toc: true 
+    toc_depth: 4
+editor_options: 
+  chunk_output_type: console
+params:
+  version: "v1"
+---
+
+## Status and Notes
+
+Consider rename of features for active
+consider rename of features for clearer names
+consider source of feat_names from optimze
+
+## Set up
+
+```{r}
+#| include: false
+
+options(conflicts.policy = "depends.ok")
+library(tidyverse) 
+
+source("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true")
+source("https://github.com/jjcurtin/lab_support/blob/main/fun_eda.R?raw=true")
+source("~/github/proj_risk/shared/fun_rename.R")
+path_shared <- format_path("risk/data_processed/shared")
+path_gps <- format_path("risk/data_processed/gps")
+```
+
+Read in feature files
+```{r}
+gps <- read_csv(here::here(path_shared, "features_gps_day_1h.csv"), 
+                 show_col_types = FALSE) 
+demos <- read_csv(here::here(path_shared, "features_demographics.csv"), 
+                  show_col_types = FALSE) 
+# monthly <- read_csv(here::here(path_shared, "features_monthly_day_1h.csv"), 
+#                     show_col_types = FALSE) 
+strat <- read_csv(here::here(path_shared, "strat_lh.csv"), 
+                    show_col_types = FALSE) 
+```
+
+Check rows
+
+- OK
+```{r}
+nrow(gps)
+# nrow(monthly)
+nrow(demos)
+nrow(strat)
+```
+
+Verify expected # of subids
+
+- GPS sample  for GPS
+- Full sample for demos
+
+```{r}
+gps |> distinct(subid) |> nrow() 
+# monthly |> distinct(subid) |> nrow() 
+demos |> distinct(subid) |> nrow() 
+strat |> distinct(subid) |> nrow() 
+```
+
+Only keeping truly active and passive features
+also getting rid of other features (e.g. no) that arent useful
+```{r}
+gps <- gps |> 
+  select(-contains("var_location"))  |> 
+  select(-contains(".no")) |> 
+  select(-contains("neutral")) |> 
+  select(-contains("transit")) |> 
+  select(-contains("evening_out"))
+```
+
+Clean feature names
+```{r}
+gps <- gps |> 
+  rename_gps_features_stage1() |> 
+  reorder_feature_names(type = "gps")
+```
+
+Remove diff features from monthly
+```{r}
+# monthly <- monthly |> 
+#   select(-contains("drecent"))
+```
+
+Look at features for each signal
+
+```{r}
+names(gps)
+names(demos)
+names(strat)
+```
+
+Remove duplicated rows because of Daylight savings
+Only needed for 24 hour rolls
+```{r}
+# ema <- ema |> distinct(subid, dttm_label, .keep_all = TRUE)
+# gps <- gps |> distinct(subid, dttm_label, .keep_all = TRUE)
+# monthly <- monthly |> distinct(subid, dttm_label, .keep_all = TRUE)
+```
+
+
+Join all files using left joins starting with GPS for that sample
+Also join in strat lh
+```{r}
+all <- left_join(gps, demos, by = c("subid"))
+nrow(all)
+
+all <- left_join(all, strat, by = c("subid"))
+nrow(all)
+```
+
+
+Check outcome.  Looks good!
+```{r}
+all |> tab(lapse) 
+```
+
+Write out file
+```{r}
+all |> write_csv(here::here(path_gps, 
+                            str_c("features_", 
+                                  params$version, ".csv")))
+```
