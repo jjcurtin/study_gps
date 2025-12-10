@@ -1,129 +1,194 @@
 ---
-title: "Make combined features for GPS study"
-author: "Claire Punturieri"
+title: "Combining GPS & Demo Features"
+author: "JJC, updated by Claire Punturieri"
 date: "`r lubridate::today()`"
 format: 
-  html:
-    toc: true
-    toc_depth: 4
+  html: 
     embed-resources: true
+    toc: true 
+    toc_depth: 4
 editor_options: 
   chunk_output_type: console
-params:
-  version: 1
 ---
-
-# Housekeeping
-
-## Code Status
-
-Complete as of 6/2025.
 
 ## Notes
 
-Add in circadian movement data once file is complete.
 
-# Set up
-
-## Set up environment
+## Set up
 
 ```{r}
-#| message: false
-#| warning: false
+#| include: false
 
 options(conflicts.policy = "depends.ok")
-devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true")
-library(tidyverse)
-```
+library(tidyverse) 
 
-## Paths
-
-```{r}
+source("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true")
+source("https://github.com/jjcurtin/lab_support/blob/main/fun_eda.R?raw=true")
+source("~/github/proj_risk/shared/fun_rename.R")
 path_shared <- format_path("risk/data_processed/shared")
 path_gps <- format_path("risk/data_processed/gps")
 ```
 
-## Packages and source
-
-```{r}
-#| message: false
-#| warning: false
-#| echo: false
-
-# for data wrangling
-library(tidyverse)
-library(lubridate)
-
-# helpful lab functions
-devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/fun_eda.R?raw=true")
-
-# adjust plot visuals
-theme_set(theme_classic())
-options(tibble.width = Inf, dplyr.print_max = Inf)
-```
-
-## Load in data
-
-Load in GPS features.
+Read in feature files
 ```{r}
 gps <- read_csv(here::here(path_shared, "features_gps_day_1h.csv"), 
-                 show_col_types = FALSE)
-```
-
-Load in weather features.
-```{r}
+                 show_col_types = FALSE) 
+demos <- read_csv(here::here(path_shared, "features_demographics.csv"), 
+                  show_col_types = FALSE) 
 weather <- read_csv(here::here(path_shared, "features_weather.csv"), 
                  show_col_types = FALSE)
-```
-
-Load in circadian movement features.
-```{r}
 cm <- read_csv(here::here(path_shared, "features_circadian.csv"),
                show_col_types = FALSE)
-```
-
-Load in stratification data, merge relevant column.
-```{r}
 strat <- read_csv(here::here(path_shared, "strat_lh.csv"), 
-                 show_col_types = FALSE)
+                    show_col_types = FALSE) 
 ```
 
-## Join data
+Check rows
+```{r}
+nrow(gps)
+nrow(demos)
+nrow(weather)
+nrow(cm)
+nrow(strat)
+```
+
+Verify expected # of subids
+
+- GPS sample  for GPS, weather, and CM
+- Full sample for demos
+```{r}
+gps |> distinct(subid) |> nrow() 
+demos |> distinct(subid) |> nrow()
+weather |> distinct(subid) |> nrow() 
+cm |> distinct(subid) |> nrow() 
+strat |> distinct(subid) |> nrow() 
+```
+
+Get rid of other features (e.g. no) that aren't useful, and remove Chris' features.
+```{r}
+gps <- gps |>
+  # not useful
+  select(-contains(".no")) |> 
+  select(-contains("neutral")) |>
+  select(-contains("other")) |> 
+  # chris features
+  select(-contains("poi_category")) |> 
+  select(-contains("adi_cats"))
+```
+
+Clean feature names with John's function.
+```{r}
+gps <- gps |> 
+  rename_gps_features_stage1() |> 
+  reorder_feature_names(type = "gps")
+```
+
+Temporary cleaning of feature names, maybe integrate with John's code or just change how features are generated.
+```{r}
+# change passive gps features
+gps <- gps |>
+  rename_with(~ sub("^evening_out", "pass_evening_out", .x),
+              starts_with("evening_out")) |>
+  rename_with(~ sub("^location_var\\.raw", "pass_location_var.durraw", .x),
+              starts_with("location_var.raw")) |>
+    rename_with(~ sub("^location_var\\.dif", "pass_location_var.durdif", .x),
+              starts_with("location_var.dif")) |>
+  rename_with(~ sub("^transit", "pass_transit", .x),
+              starts_with("transit"))
+
+# change weather names
+weather <- weather |> 
+  rename_with(function(x) {
+         
+    x <- sub("(\\.snow|\\.pcpn)$", "", x)
+
+    x <- gsub(
+      "^p(\\d+)\\.l0\\.(r|d)([a-z]+)_([a-z0-9\\.]+)$",
+      "pass_\\4.\\3\\2.p\\1",
+      x
+    )
+    x <- sub("(\\.[a-z]+)r(\\.p\\d+)$", "\\1raw\\2", x)
+    x <- sub("(\\.[a-z]+)d(\\.p\\d+)$", "\\1diff\\2", x)
+
+    x <- sub("^p(\\d+)\\.l0\\.rratecount\\.([a-z0-9]+)$", 
+             "pass_\\2.ratecountraw.p\\1", x)
+    x <- sub("^p(\\d+)\\.l0\\.dratecount\\.([a-z0-9]+)$", 
+             "pass_\\2.ratecountdiff.p\\1", x)
+
+    x
+  }) |> 
+  rename_with(function(x) {
+
+    x <- sub("^p(\\d+)\\.l0\\.rratecount\\.([a-z0-9_]+)$", 
+             "pass_\\2.ratecountraw.p\\1", x)
+
+    x <- sub("^p(\\d+)\\.l0\\.dratecount\\.([a-z0-9_]+)$", 
+             "pass_\\2.ratecountdiff.p\\1", x)
+
+    x
+  }, starts_with("p"))
+
+
+# change cm names
+cm <- cm |>
+  rename(
+    pass_cm_recent.raw.p0 = p0.l0.rrecent_cm,
+    pass_cm_recent.diff.p0 = p0.l0.drecent_cm
+  )
+  
+```
+Remove diff features from monthly
+```{r}
+# monthly <- monthly |> 
+#   select(-contains("drecent"))
+```
+
+Look at features for each signal
 
 ```{r}
-features <- gps |> 
-  left_join(weather, by = c("subid", "dttm_label", "lapse")) |>
-  left_join(cm, by = c("subid", "dttm_label", "lapse")) |> 
-  left_join(strat, by = "subid")
+names(gps)
+names(demos)
+names(weather)
+names(cm)
+names(strat)
 ```
 
-## EDA
-
-Verify percentage of lapses looks reasonable.
+Remove duplicated rows because of Daylight savings
+Only needed for 24 hour rolls
 ```{r}
-features |> 
-  janitor::tabyl(lapse)
+# ema <- ema |> distinct(subid, dttm_label, .keep_all = TRUE)
+# gps <- gps |> distinct(subid, dttm_label, .keep_all = TRUE)
+# monthly <- monthly |> distinct(subid, dttm_label, .keep_all = TRUE)
 ```
 
-Check names of all features.
+
+Join all files using left joins starting with GPS for that sample
+Also join in strat lh
 ```{r}
-features |> colnames()
+all <- left_join(gps, demos, by = c("subid"))
+nrow(all)
+
+all <- left_join(all, strat, by = c("subid"))
+nrow(all)
+
+all <- left_join(all, weather, by = c("subid", "dttm_label", "lapse"))
+nrow(all)
+
+all <- left_join(all, cm, by = c("subid", "dttm_label", "lapse"))
+nrow(all)
 ```
 
-Overview across all categories.
+Check outcome.  Looks good!
 ```{r}
-features |>  
-  skimr::skim_without_charts() |> 
-  select(skim_variable, n_missing, complete_rate, numeric.p0, numeric.p50, 
-         numeric.p100) |>
-  filter(!skim_variable == "subid" & !skim_variable == "label_num") |> 
-  arrange(desc(numeric.p100), skim_variable) 
+all |> tab(lapse) 
 ```
 
-## Save out
+Write out file
 ```{r}
-features |>
-  write_csv(here::here(path_gps, str_c("features_combined.csv")))
+all |>
+  select(subid, dttm_label, lapse, demo_age, demo_sex, demo_educ,
+         demo_income, demo_marital, demo_race, everything(), strat) |>
+  select(-strat, strat) |> # want this to be at the end!!!
+  write_csv(here::here(path_gps, 
+                            str_c("features_combined.csv")))
 ```
-
-
