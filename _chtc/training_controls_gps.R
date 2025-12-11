@@ -19,10 +19,10 @@
 # v8 testing different stratifications with kfold, same v6 features
 # xgboost movement, context, weather raw and diff, hour roll, with filtering updates and corrected some type features (v9)
 # glmnet with lh strat, movement and context and weather features, hour roll (v10)
-
-
-# Currently running:
 # xgboost with lh strat, movement and context and weather and circadian features, hour roll (v11)
+
+# currently running:
+# glmnet, xgboost with lh strat, divided across id/id+passive+active/id+active
 
 # source format_path
 source("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true")
@@ -31,11 +31,11 @@ source("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true
 study <- "gps"
 window <- "day"
 lead <- 0
-version <- "v11" 
+version <- "v12" 
 algorithm <- "xgboost"
-model <- "mod_comparison"
+model <- "act_v_pass"
 
-feature_set <- c("baseline", "all") # GPS feature set name
+feature_set <- c("id", "id_act", "id_act_pass") # GPS feature set name
 data_trn <- str_c("features_combined.csv")
 
 seed_splits <- 102030
@@ -70,7 +70,7 @@ y_level_neg <- "no lapse"
 
 # CV SETTINGS---------------------------------
 cv_resample_type <- "kfold" # can be boot, kfold, or nested
-cv_resample = "5_x_5" # can be repeats_x_folds (e.g., 1_x_10, 10_x_10) or number of bootstraps (e.g., 100)
+cv_resample = "6_x_5" # can be repeats_x_folds (e.g., 1_x_10, 10_x_10) or number of bootstraps (e.g., 100)
 cv_inner_resample <- NULL # can also be a single number for bootstrapping (i.e., 100)
 cv_outer_resample <- NULL # outer resample will always be kfold
 cv_group <- "subid" # set to NULL if not grouping
@@ -156,10 +156,16 @@ build_recipe <- function(d, config) {
       step_rm(strat) # remove strat variable
   }
 
-  # no need for selection for "all" feature set 
-  if(feature_set == "baseline") {
+  # specify features for different configs 
+  if(feature_set == "id") {
     rec <- rec |> 
-      step_rm(contains("recent_cm")) 
+      step_rm(contains("act_")) |> 
+      step_rm(contains("pass_"))
+  }
+  
+  if(feature_set == "id_act") {
+    rec <- rec |> 
+      step_rm(contains("pass_"))
   }
   
   rec <- rec |>
