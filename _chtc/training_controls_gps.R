@@ -20,9 +20,10 @@
 # xgboost movement, context, weather raw and diff, hour roll, with filtering updates and corrected some type features (v9)
 # glmnet with lh strat, movement and context and weather features, hour roll (v10)
 # xgboost with lh strat, movement and context and weather and circadian features, hour roll (v11)
+# xgboost with lh strat, divided across demo/demo+passive+active/demo+active (v12) -- accidentally ran with demographics but not aud id
 
 # currently running:
-# glmnet, xgboost with lh strat, divided across id/id+passive+active/id+active
+# xgboost with lh strat, divided across id/id+passive+active/id+active (v12)
 
 # source format_path
 source("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true")
@@ -31,11 +32,11 @@ source("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true
 study <- "gps"
 window <- "day"
 lead <- 0
-version <- "v12" 
+version <- "v13" 
 algorithm <- "xgboost"
 model <- "act_v_pass"
 
-feature_set <- c("id", "id_act", "id_act_pass") # GPS feature set name
+feature_set <- c("id", "id_act", "id_pass", "id_act_pass") # GPS feature set name
 data_trn <- str_c("features_combined.csv")
 
 seed_splits <- 102030
@@ -161,6 +162,11 @@ build_recipe <- function(d, config) {
     rec <- rec |> 
       step_rm(contains("act_")) |> 
       step_rm(contains("pass_"))
+  }
+  
+  if(feature_set == "id_pass") {
+    rec <- rec |> 
+      step_rm(contains("act_"))
   }
   
   if(feature_set == "id_act") {

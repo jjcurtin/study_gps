@@ -32,9 +32,11 @@ This section details where different data are stored relating to the GPS study.
 
 ## Feature engineering 
 
-1.  \_mak/mak_combined_features.qmd –\> pulls together separate feature files and collates them to be used for making predictions
+1.  proj_risk/shared/scripts_chtc is where gps and weather feature scripts can be found
 
-2.  **All FEATURES after being run on CHTC can be found in risk/chtc/shared**
+2.  \_mak/mak_combined_features.qmd –\> pulls together separate feature files and collates them to be used for making predictions
+
+3.  **All FEATURES after being run on CHTC can be found in risk/chtc/shared**
 
 ## Modeling
 

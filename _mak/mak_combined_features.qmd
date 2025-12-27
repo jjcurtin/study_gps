@@ -34,7 +34,9 @@ Read in feature files
 gps <- read_csv(here::here(path_shared, "features_gps_day_1h.csv"), 
                  show_col_types = FALSE) 
 demos <- read_csv(here::here(path_shared, "features_demographics.csv"), 
-                  show_col_types = FALSE) 
+                  show_col_types = FALSE)
+aud_id <- read_csv(here::here(path_shared, "features_aud_id.csv"), 
+                  show_col_types = FALSE)
 weather <- read_csv(here::here(path_shared, "features_weather.csv"), 
                  show_col_types = FALSE)
 cm <- read_csv(here::here(path_shared, "features_circadian.csv"),
@@ -47,6 +49,7 @@ Check rows
 ```{r}
 nrow(gps)
 nrow(demos)
+nrow(aud_id)
 nrow(weather)
 nrow(cm)
 nrow(strat)
@@ -59,6 +62,7 @@ Verify expected # of subids
 ```{r}
 gps |> distinct(subid) |> nrow() 
 demos |> distinct(subid) |> nrow()
+aud_id |> distinct(subid) |> nrow()
 weather |> distinct(subid) |> nrow() 
 cm |> distinct(subid) |> nrow() 
 strat |> distinct(subid) |> nrow() 
@@ -135,6 +139,13 @@ cm <- cm |>
     pass_cm_recent.raw.p0 = p0.l0.rrecent_cm,
     pass_cm_recent.diff.p0 = p0.l0.drecent_cm
   )
+
+# change id names
+demos <- demos |> 
+  rename_with(~ paste0("id_", .x), -1)
+
+aud_id <- aud_id |> 
+  rename_with(~ paste0("id_", .x), -1)
   
 ```
 Remove diff features from monthly
@@ -148,6 +159,7 @@ Look at features for each signal
 ```{r}
 names(gps)
 names(demos)
+names(aud_id)
 names(weather)
 names(cm)
 names(strat)
@@ -171,6 +183,9 @@ nrow(all)
 all <- left_join(all, strat, by = c("subid"))
 nrow(all)
 
+all <- left_join(all, aud_id, by = c("subid"))
+nrow(all)
+
 all <- left_join(all, weather, by = c("subid", "dttm_label", "lapse"))
 nrow(all)
 
@@ -186,8 +201,8 @@ all |> tab(lapse)
 Write out file
 ```{r}
 all |>
-  select(subid, dttm_label, lapse, demo_age, demo_sex, demo_educ,
-         demo_income, demo_marital, demo_race, everything(), strat) |>
+  select(subid, dttm_label, lapse,
+         starts_with("id_"), everything()) |>
   select(-strat, strat) |> # want this to be at the end!!!
   write_csv(here::here(path_gps, 
                             str_c("features_combined.csv")))

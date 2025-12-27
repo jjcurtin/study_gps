@@ -142,6 +142,11 @@ metrics_avg |>
   hist()
 
 metrics_avg |>
+  filter(feature_set == "id_pass") |> 
+  pull(median_roc_auc) |> 
+  hist()
+
+metrics_avg |>
   filter(feature_set == "id_act_pass") |> 
   pull(median_roc_auc) |> 
   hist()
@@ -156,7 +161,7 @@ metrics_avg |>
 
 Pull out best configuration from metrics_avg and save out results for best configuration into models folder on server.
 ```{r}
-best_config <- metrics_avg |> 
+best_config <- metrics_avg |>
   slice(1) |> 
   print()
 
