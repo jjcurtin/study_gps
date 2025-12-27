@@ -207,6 +207,32 @@ pp_tidy |>
   scale_y_continuous(expand = c(0,0)) +
   ylab("Posterior Probability Density") +
   xlab("Area Under ROC Curve")
+
+# new one!
+tiff("posterior.tiff", units="in",width=5, height=2.5, res=300)
+pp_tidy |> 
+  ggplot(aes(x = posterior)) + 
+  geom_histogram(color = "white", fill = "#af1f21", alpha = .85, lwd = .8, bins = 100) +
+  geom_segment(aes(x = ci_day$median, xend = ci_day$median, y = 9750, yend = 10250), 
+               color = "black", lwd = .3) +
+  geom_errorbar(aes(y = 10000, xmin = ci_day$lower, xmax = ci_day$upper), color = "black", lwd = .3) +
+  geom_vline(xintercept = .5, lwd = .5, linetype="dotted", color = "black") +
+  scale_x_continuous(limits=c(0.49,1)) +
+  scale_y_continuous(expand = c(0,0), limits = c(0,12000)) +
+  ylab("Posterior Probability Density") +
+  xlab("Area Under ROC Curve") +
+   theme(
+    # LABELS APPEARANCE
+     axis.title.x = element_text(size=12, colour = "black"),
+    axis.title.y = element_text(size=12, colour = "black"), 
+    axis.text.x = element_text(size=10, colour = "black"), 
+    axis.text.y = element_text(size=10, colour = "black"),
+    strip.text.x = element_text(size = 10, face="bold", colour = "black" ),
+    strip.text.y = element_text(size = 10, face="bold", colour = "black"),
+    axis.line.x = element_line(color="black", size = 0.3),
+    axis.line.y = element_line(color="black", size = 0.3)
+  )
+dev.off()
 ```
 
 ```{r}

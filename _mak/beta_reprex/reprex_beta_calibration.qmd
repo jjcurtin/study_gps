@@ -1,0 +1,555 @@
+---
+title: "Reprex: Investigating `uniroot()` failure in `betacal:beta_calibration()`"
+author: "Claire Punturieri"
+date: "`r lubridate::today()`"
+output: 
+  html_document:
+    toc: true 
+    toc_depth: 4
+format:
+  html:
+    embed-resources: true
+params:
+  study: "gps"
+  version: "v9"
+  cv: "kfold_5_x_5"
+  algorithms: "xgboost"   # "all" or name of specific algorithm
+  model: "context_movement_weather"
+editor_options: 
+  chunk_output_type: console
+---
+
+### Note 
+
+This shows how uniroot() can fail during beta calibration when the calibration function doesn't change sign over the interval (requirement of uniroot()).
+
+This was created to explore why cal_estimate_beta() is failing in mak_local_preds.qmd.
+
+Error running into:
+> Error in uniroot(function(mh) b * log(1 - mh) - a * log(mh) - inter, c(1e-16,  : 
+  f() values at end points not of opposite sign
+  
+Error occurs in cal_estimate_beta() which uses betacal::beta_calibration().
+
+### Set Up Environment
+
+Function conflicts
+```{r}
+#| message: false
+#| warning: false
+
+library(tidyverse)
+library(tidymodels)
+library(cowplot, exclude = "stamp")
+
+options(conflicts.policy = "depends.ok")
+library(probably)
+
+source("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true")
+source("https://github.com/jjcurtin/lab_support/blob/main/fun_ml.R?raw=true")
+source("https://github.com/jjcurtin/lab_support/blob/main/fun_eda.R?raw=true")
+source("https://github.com/jjcurtin/lab_support/blob/main/chtc/static_files/fun_chtc.R?raw=true")
+
+path_input <- format_path(str_c("risk/chtc/gps"))
+path_models <- format_path(str_c("risk/models/gps"))
+```
+
+### Reprex set-up
+
+Load in dataset.
+```{r}
+config_best <- 
+  read_csv(here::here(path_models, 
+                      str_c("best_config_",
+                            params$version, "_",
+                            params$cv, "_",
+                            params$model, ".csv"))) |>
+  mutate(n_folds = n(),
+         algorithm = "xgboost") |> 
+  slice(1) |> 
+  select(feature_set, hp1, hp2, hp3, resample, n_folds, split_num, algorithm) |>
+  glimpse()
+```
+
+Set up splits.
+```{r} 
+batch_names <- list.dirs(path_input, full.names = FALSE, recursive = FALSE)
+batch_name <- batch_names[str_detect(batch_names, params$version)]
+path_batch <- here::here(path_input, batch_name)
+source(here::here(path_batch, "input", "training_controls.R"))
+          
+chunks <- str_split_fixed(data_trn, "\\.", n = Inf) # parse name from extensions
+if (length(chunks) == 2) {
+  fn <- str_c("data_trn.", chunks[[2]])
+} else {
+  fn <- str_c("data_trn.", chunks[[2]], ".", chunks[[3]])
+}
+  
+# open based on file type
+if (str_detect(fn, "csv")) {
+  d <- read_csv(here::here(path_batch, "input", fn), show_col_types = FALSE) 
+} else {
+  d <- read_rds(here::here(path_batch, "input", fn))
+}
+
+d <- d |> 
+  arrange(subid, dttm_label) |> 
+  format_data() |> 
+  mutate(id_obs = 1:nrow(d))
+
+splits <- d |> 
+  make_splits(cv_resample_type, cv_resample, cv_outer_resample, 
+              cv_inner_resample, cv_group, cv_strat = cv_strat,
+              the_seed = seed_splits)
+```
+
+Define split_num for testing. Known failure at split_num = 3.
+```{r}
+split_num <- 3
+```
+
+Simplified recipe set-up.
+```{r}
+d_in <- splits$splits[[split_num]] |> training()
+d_out <- splits$splits[[split_num]] |> testing()
+
+rec <- build_recipe(d = d_in, config = config_best)
+
+set.seed(2468)
+
+cal_split <- d_in |> 
+  group_initial_split(group = all_of(cv_group), strata = strat, prop = 3/4)
+
+d_cal_in <- training(cal_split)
+d_cal_out <- testing(cal_split)
+
+rec_cal_prep <- rec |> prep(training = d_cal_in)
+
+feat_cal_in <- rec_cal_prep |> bake(new_data = NULL)
+feat_cal_out <- rec_cal_prep |> bake(new_data = d_cal_out)
+
+# Train model on calibration training fold
+model_cal <- fit_best_model(config_best, feat = feat_cal_in, "classification")
+```
+
+### Run beta_calibration()
+
+First run predict().
+```{r}
+beta <- predict(model_cal, feat_cal_out,
+                type = "prob")
+```
+
+Manually set p and y (inputs to betacal::beta_calibration()).
+```{r}
+p <- beta$.pred_lapse
+y <- feat_cal_out$y
+```
+
+Change y from factor to numeric (from cal_estimate_beta(), line 188).
+```{r}
+lvls <- levels(y)
+y <- if_else(y == lvls[1], 1, 0)
+```
+
+Run betacal::beta_calibration() with "abm" parameter (default parameter and what we are currently using).
+```{r}
+p <- pmax(1e-16, pmin(p, 1-1e-16)) # ensure p is never 0 or 1
+
+d <- data.frame(y)
+d$p <- p  # not part of function but just so we can see this too
+d$lp <- log(p)
+d$l1p <- -log(1-p)
+
+fit <- glm(y~lp+l1p,family=binomial(link='logit'),data=d)
+
+a <- as.numeric(fit$coefficients['lp'])
+b <- as.numeric(fit$coefficients['l1p'])
+if (a < 0){
+  fit <- glm(y~l1p,family=binomial(link='logit'),data=d)
+  a <- 0
+  b <- as.numeric(fit$coefficients['l1p'])
+} else if (b < 0){
+  fit <- glm(y~lp,family=binomial(link='logit'),data=d)
+  a <- as.numeric(fit$coefficients['lp'])
+  b <- 0
+}
+
+inter <- as.numeric(fit$coefficients['(Intercept)'])
+    
+m <- uniroot(function(mh) b*log(1-mh)-a*log(mh)-inter,c(1e-16,1-1e-16))$root
+
+calibration <- list("map" = c(a,b,m), "model" = fit, "parameters" = parameters)
+
+## format as trycatch for rendering
+tryCatch({
+  m <- uniroot(function(mh) b*log(1 - mh) - a*log(mh) - inter,
+               c(1e-16, 1 - 1e-16))$root
+  
+  calibration <- list("map" = c(a, b, m), "model" = fit, "parameters" = parameters)
+  print("uniroot() succeeded. Calibration map calculated.")
+}, error = function(e) {
+  message("uniroot() failed: ", e$message)
+  calibration <- NULL
+})
+```
+
+Here is a demonstration of why uniroot() fails in some cases. uniroot() will fail when the function does not change sign over the interval, which it expects. This is because it wants to find the root of a continuous function over an interval (AKA where f(x) = 0). If it doesn't pass 0, it dies on us!
+```{r}
+# write out the function separately
+f <- function(mh) b*log(1-mh)-a*log(mh)-inter
+
+# pull out the endpoints resulting from the above abm values
+left <- f(1e-16)
+right <- f(1-1e-16)
+
+cat("f(1e-16):", left, "\n")
+cat("f(1-1e-16):", right, "\n")
+
+# check if signs are opposite
+if (sign(left) == sign(right)) {
+  message("Function does not change sign over interval. uniroot() would fail.")
+} else {
+  message("Function does change sign over interval. uniroot() would work -- yay!")
+}
+```
+
+## Track a, b, and inter values
+
+Define function to print out all a, b, and inter values.
+```{r}
+abinter_tracker <- function(split_num) {
+  d_in <- splits$splits[[split_num]] |> training()
+  d_out <- splits$splits[[split_num]] |> testing()
+
+  rec <- build_recipe(d = d_in, config = config_best)
+
+  set.seed(2468)
+
+  cal_split <- d_in |> 
+    group_initial_split(group = all_of(cv_group), strata = strat, prop = 3/4)
+ 
+  d_cal_in <- training(cal_split)
+  d_cal_out <- testing(cal_split)
+
+  rec_cal_prep <- rec |> prep(training = d_cal_in)
+
+  feat_cal_in <- rec_cal_prep |> bake(new_data = NULL)
+  feat_cal_out <- rec_cal_prep |> bake(new_data = d_cal_out)
+
+  # Train model on calibration training fold
+  model_cal <- fit_best_model(config_best, feat = feat_cal_in, "classification")
+
+  beta <- predict(model_cal, feat_cal_out,
+                  type = "prob")
+
+  p <- beta$.pred_lapse
+  y <- feat_cal_out$y
+
+  lvls <- levels(y)
+  y <- if_else(y == lvls[1], 1, 0)
+
+  p <- pmax(1e-16, pmin(p, 1-1e-16)) # ensure p is never 0 or 1
+
+  d <- data.frame(y)
+  d$p <- p  # not part of function but just so we can see this too
+  d$lp <- log(p)
+  d$l1p <- -log(1-p)
+
+  fit <- glm(y~lp+l1p,family=binomial(link='logit'),data=d)
+
+  a <- as.numeric(fit$coefficients['lp'])
+  b <- as.numeric(fit$coefficients['l1p'])
+  a_new <- NA_integer_
+  b_new <- NA_integer_
+  
+  if (a < 0){
+    fit <- glm(y~l1p,family=binomial(link='logit'),data=d)
+    a_new <- 0
+    b <- as.numeric(fit$coefficients['l1p'])
+  } else if (b < 0){
+    fit <- glm(y~lp,family=binomial(link='logit'),data=d)
+    a <- as.numeric(fit$coefficients['lp'])
+    b_new <- 0
+  }
+
+  inter <- as.numeric(fit$coefficients['(Intercept)'])
+  
+  tibble(split_num = split_num,
+         a = a,
+         a_new = a_new,
+         b = b,
+         b_new = b_new,
+         inter = inter)
+}
+```
+
+Generate coefficients.
+```{r}
+split_list <- 1:25
+
+coeffs <- split_list |> 
+  map(\(split_num) abinter_tracker(split_num)) |> 
+  list_rbind()
+```
+
+Plot coefficients by whether or not the split fails.
+```{r}
+fail_folds <- c(3, 8, 11, 12, 17, 18, 19, 23)
+
+coeffs <- coeffs |> 
+  mutate(status = if_else((split_num %in% fail_folds), "fail", "run"))
+
+a_plot <- ggplot() +
+  geom_histogram(data = coeffs |> filter(status == "fail"),
+                 aes(x = a), fill = "red", alpha = .2) +
+  geom_histogram(data = coeffs |> filter(status == "run"),
+                 aes(x = a), fill = "green", alpha = .2) +
+  theme_minimal()
+
+b_plot <- ggplot() +
+  geom_histogram(data = coeffs |> filter(status == "fail"),
+                 aes(x = b), fill = "red", alpha = .2) +
+  geom_histogram(data = coeffs |> filter(status == "run"),
+                 aes(x = b), fill = "green", alpha = .2) +
+  theme_minimal()
+  
+inter_plot <- ggplot() +
+  geom_histogram(data = coeffs |> filter(status == "fail"),
+                 aes(x = inter), fill = "red", alpha = .2) +
+  geom_histogram(data = coeffs |> filter(status == "run"),
+                 aes(x = inter), fill = "green", alpha = .2) +
+  theme_minimal()
+
+plot_grid(a_plot, b_plot, inter_plot, ncol = 1)
+```
+
+Display table highlighting which configurations fail.
+```{r}
+coeffs |> 
+  kableExtra::kbl() |> 
+  kableExtra::kable_styling() |> 
+  kableExtra::row_spec(fail_folds, bold = T, background = "tomato")
+```
+
+**All combinations of a negative b (which becomes b = 0) and a negative integer fail.**
+
+## Understanding distribution of y in failing folds
+
+```{r}
+distribution_checker <- function(split_num) {
+  d_in <- splits$splits[[split_num]] |> training()
+  d_out <- splits$splits[[split_num]] |> testing()
+
+  rec <- build_recipe(d = d_in, config = config_best)
+
+  set.seed(2468)
+
+  cal_split <- d_in |> 
+    group_initial_split(group = all_of(cv_group), strata = strat, prop = 3/4)
+ 
+  d_cal_in <- training(cal_split)
+  d_cal_out <- testing(cal_split)
+  
+  rec_cal_prep <- rec |> prep(training = d_cal_in)
+
+  feat_cal_in <- rec_cal_prep |> bake(new_data = NULL)
+  feat_cal_out <- rec_cal_prep |> bake(new_data = d_cal_out)
+  
+  feat_cal_out |> 
+    count(y, name = "count") |> 
+    rename(class = y) |> 
+    mutate(prop = count / sum(count),
+           split_num = split_num)
+}  
+```
+
+```{r}
+outcome_distr <- split_list |> 
+  map(\(split_num) distribution_checker(split_num)) |> 
+  list_rbind() |> 
+  mutate(status = if_else((split_num %in% fail_folds), "fail", "run"))
+```
+
+```{r}
+ggplot() +
+  geom_histogram(data = outcome_distr |> filter(status == "fail" & class == "lapse"),
+                 aes(x = prop), fill = "red", alpha = .2) +
+  geom_histogram(data = outcome_distr |> filter(status == "run" & class == "lapse"),
+                 aes(x = prop), fill = "green", alpha = .2) +
+  theme_minimal()
+```
+
+## Understanding the distribution of p in failing folds
+
+> CP: Worth doing this for every failing fold? Unsure.
+
+```{r}
+plot_p_distribution <- function(p, y, split_num) {
+  y <- factor(y)
+  p_df <- data.frame(p = p, y = y)
+  
+  p_hist <- ggplot(p_df, aes(x = p)) +
+    geom_histogram(bins = 30, fill = "grey70", color = "black") +
+    ggtitle(paste("Split", split_num, "- Predicted p Distribution")) +
+    theme_minimal()
+  
+  p_by_class <- ggplot(p_df, aes(x = p, fill = y)) +
+    geom_histogram(bins = 30, position = "identity", alpha = 0.5) +
+    ggtitle(paste("Split", split_num, "- p by Class")) +
+    theme_minimal()
+  
+  print(p_hist)
+  print(p_by_class)
+}
+```
+
+## Look at beta function
+
+```{r}
+# Define the beta calibration function
+beta_function <- function(mh, a, b, inter) {
+  b * log(1 - mh) - a * log(mh) - inter
+}
+
+# Evaluate over a fine grid in (0, 1)
+mh_values <- seq(1e-6, 1 - 1e-6, length.out = 1000)
+f_values <- beta_function(mh_values, a, b, inter)
+
+# Plot the function
+plot(mh_values, f_values, type = "l", col = "blue", lwd = 2,
+     main = "Beta Calibration Function",
+     xlab = "mh", ylab = "f(mh)")
+abline(h = 0, col = "red", lty = 2)  # Add horizontal line at 0
+
+# Check specific points
+points_to_check <- c(0.01, 0.5, 0.99)
+values_at_points <- beta_function(points_to_check, a, b, inter)
+
+cat("Function values at specific mh points:\n")
+for (i in seq_along(points_to_check)) {
+  cat(sprintf("f(%.2f) = %.4f\n", points_to_check[i], values_at_points[i]))
+}
+
+# Check if the function crosses zero
+signs <- sign(f_values)
+sign_change <- any(diff(signs) != 0)
+
+if (sign_change) {
+  message("✅ Function crosses zero: uniroot() would succeed.")
+} else {
+  message("❌ Function does not cross zero: uniroot() would fail.")
+}
+```
+
+## Plot raw probabilities of failed folds
+
+Modified fit_predict().
+```{r}
+fit_predict <- function(split_num, splits, config_best){
+  
+  d_in <- splits$splits[[split_num]] |>
+    training() |> 
+    select(-id_obs) # not used for training; only needed in d_out to tag for later joins
+  
+  d_out <- splits$splits[[split_num]] |>
+    testing()
+    
+  rec <- build_recipe(d = d_in, config = config_best)
+  
+  rec_prep <- rec |> 
+    prep(training = d_in)
+  
+  feat_in <- rec_prep |> 
+    bake(new_data = NULL) 
+  
+  model_best <- fit_best_model(config_best, feat = feat_in, "classification")
+
+  feat_out <- rec_prep |> 
+    bake(new_data = d_out) # no id_obs because not included in d_in
+
+
+  # metrics from raw (uncalibrated) predictions for held out fold
+  preds_prob <- predict(model_best, feat_out,
+                        type = "prob")
+
+  # Assumes we are doing stratified splits
+  # train calibration model train/test split on held in data
+  # Skip for baseline models
+  set.seed(2468)
+  cal_split <- d_in |> 
+    group_initial_split(group = all_of(cv_group), 
+                        strata = strat,
+                        prop = 3/4)
+  
+  d_cal_in <- training(cal_split) 
+  d_cal_out <- testing(cal_split)
+
+  rec_cal_prep <- rec |>
+    prep(training = d_cal_in)
+    
+  feat_cal_in <- rec_cal_prep |> 
+    bake(new_data = NULL) 
+
+  feat_cal_out <- rec_cal_prep |>  
+    bake(new_data = d_cal_out) 
+
+  model_cal <- fit_best_model(config_best, feat = feat_cal_in, "classification")
+
+  # combine raw and calibrated probs (with id_obs and label)
+  tibble(id_obs = d_out$id_obs,
+         split_num = rep(split_num, nrow(preds_prob)),
+         prob_raw = preds_prob[[str_c(".pred_", y_level_pos)]],
+         label = d_out$y) 
+}
+```
+
+
+Folds which fail: 3, 8, 11, 12, 17, 18, 19, 23.
+```{r}
+all_folds <- 1:config_best$n_folds
+fail_folds <- c(3, 8, 11, 12, 17, 18, 19, 23)
+success_folds <- all_folds[!all_folds %in% fail_folds]
+
+all <- all_folds |>
+  map(\(split_num) fit_predict(split_num = split_num, 
+                                     splits = splits, 
+                                     config_best = config_best)) |> 
+  list_rbind()
+```
+
+
+```{r}
+bin_width = 0.10
+
+cal_raw <- all |> 
+  filter(split_num == 10) |> 
+  mutate(bins = cut(prob_raw, breaks = seq(0, 1, bin_width)), 
+         lapse = if_else(label == "lapse", 1, 0)) |> 
+  mutate(probs = "raw")
+
+cal_raw |> 
+  #mutate(model = fct(probs))) |> 
+  group_by(bins, probs)  |>
+  summarize(mean_lapse = mean(lapse),
+            .groups = "drop") |>
+  mutate(bins = as.numeric(bins),
+         midpoints = bin_width/2 + bin_width * (bins - 1))  |> 
+  ggplot(data = _, aes(x = midpoints, y = mean_lapse, color = probs)) +
+    geom_abline(slope = 1, intercept = 0, linetype = "dotted") +
+    geom_line() +
+    geom_point() +
+    labs(title = "Split 10",
+         x = "Predicted Lapse Probability (bin mid-point)",
+         y = "Observed Lapse Probability") +
+    scale_x_continuous(breaks = seq(0, 1, bin_width),
+                       limits = c(0, 1)) +
+    scale_y_continuous(breaks = seq(0, 1, bin_width),
+                       limits = c(0, 1))
+```
+
+## Potential solutions
+
+1) Try specifying a different parameter set instead of abm. uniroot() is only used in abm (which is "full"/"true" beta calibration and is the most flexible), so we could consider using an alternative like am or ab. However, these options might not do as good of a job as abm at correcting miscalibration.
+
+2) Modify the beta_calibration function to skip using uniroot() in cases where the function does not change sign over interval. **Probably not a good idea.**

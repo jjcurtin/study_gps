@@ -1,0 +1,163 @@
+---
+title: "Model probabilities"
+author: "John Curtin, edited by Claire for study_gps"
+date: "`r lubridate::today()`"
+output: 
+  html_document:
+    toc: true 
+    toc_depth: 4
+format:
+  html:
+    embed-resources: true
+params:
+  version: "v9"
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r}
+#| message: false
+#| warning: false
+
+library(tidyverse)
+library(tidymodels)
+
+options(conflicts.policy = "depends.ok")
+library(probably)
+
+source("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true")
+
+path_input <- format_path("risk/models/gps")
+```
+
+```{r}
+#probs <- read_csv(here::here(path_input, str_c("local_preds_", params$version, ".csv")))
+
+probs <- read_csv(here::here(path_input, str_c("local_preds_failed_", params$version, ".csv")))
+
+probs <- read_csv(here::here(path_input, str_c("local_preds_success_", params$version, ".csv")))
+
+
+```
+
+Histogram of raw probabilities
+```{r}
+probs |> 
+  ggplot(aes(x = prob_raw)) +
+    geom_histogram() +
+    labs(title = "Histogram of Raw Probabilities")
+
+probs |> 
+  ggplot(aes(x = prob_iso)) +
+    geom_histogram() +
+    labs(title = "Histogram of Iso Probabilities") 
+
+probs |> 
+  ggplot(aes(x = prob_logi)) +
+    geom_histogram() +
+    labs(title = "Histogram of Logi Probabilities")
+
+probs |> 
+  ggplot(aes(x = prob_beta_abm)) +
+    geom_histogram() +
+    labs(title = "Histogram of Beta (abm) Probabilities") 
+
+probs |> 
+  ggplot(aes(x = prob_beta_ab)) +
+    geom_histogram() +
+    labs(title = "Histogram of Beta (ab) Probabilities") 
+
+probs |> 
+  ggplot(aes(x = prob_beta_am)) +
+    geom_histogram() +
+    labs(title = "Histogram of Beta (am) Probabilities") 
+
+#probs |> 
+  #ggplot(aes(x = prob_beta)) +
+    #geom_histogram() +
+    #labs(title = "Histogram of Beta Calibrated Probabilities") 
+```
+
+Calibration plot
+```{r}
+bin_width = 0.10
+cal_raw <- probs |> 
+  mutate(bins = cut(prob_raw, breaks = seq(0, 1, bin_width)), 
+         lapse = if_else(label == "lapse", 1, 0)) |> 
+  mutate(probs = "raw") 
+
+cal_logi <- probs |> 
+  mutate(bins = cut(prob_logi, breaks = seq(0, 1, bin_width)), 
+         lapse = if_else(label == "lapse", 1, 0)) |> 
+  mutate(probs = "logi") 
+
+cal_iso <- probs |> 
+  mutate(bins = cut(prob_iso, breaks = seq(0, 1, bin_width)), 
+         lapse = if_else(label == "lapse", 1, 0)) |> 
+  mutate(probs = "iso")
+
+cal_beta_abm <- probs |> 
+  mutate(bins = cut(prob_beta_abm, breaks = seq(0, 1, bin_width)), 
+         lapse = if_else(label == "lapse", 1, 0)) |> 
+  mutate(probs = "beta_abm")
+
+cal_beta_ab <- probs |> 
+  mutate(bins = cut(prob_beta_ab, breaks = seq(0, 1, bin_width)), 
+         lapse = if_else(label == "lapse", 1, 0)) |> 
+  mutate(probs = "beta_ab")
+
+cal_beta_am <- probs |> 
+  mutate(bins = cut(prob_beta_am, breaks = seq(0, 1, bin_width)), 
+         lapse = if_else(label == "lapse", 1, 0)) |> 
+  mutate(probs = "beta_am")
+
+#cal_beta <- probs |> 
+  #mutate(bins = cut(prob_beta, breaks = seq(0, 1, bin_width)), 
+         #lapse = if_else(label == "lapse", 1, 0)) |> 
+  #mutate(probs = "beta") 
+
+cal_raw |> 
+  bind_rows(cal_logi, cal_iso, cal_beta_ab, cal_beta_am) |> 
+  mutate(model = fct(probs, levels = c("raw", "logi", "iso",
+                                       "beta_ab", "beta_am"))) |> 
+  group_by(bins, probs)  |>
+  summarize(mean_lapse = mean(lapse),
+            .groups = "drop") |>
+  mutate(bins = as.numeric(bins),
+         midpoints = bin_width/2 + bin_width * (bins - 1))  |> 
+  ggplot(data = _, aes(x = midpoints, y = mean_lapse, color = probs)) +
+    geom_abline(slope = 1, intercept = 0, linetype = "dotted") +
+    geom_line() +
+    geom_point() +
+    labs(x = "Predicted Lapse Probability (bin mid-point)",
+         y = "Observed Lapse Probability",
+         title = "Success folds") +
+    scale_x_continuous(breaks = seq(0, 1, bin_width),
+                       limits = c(0, 1)) +
+    scale_y_continuous(breaks = seq(0, 1, bin_width),
+                       limits = c(0, 1))
+
+```
+
+Look only at betas.
+```{r}
+cal_raw |> 
+  bind_rows(cal_beta_abm, cal_beta_ab, cal_beta_am) |> 
+  mutate(model = fct(probs, levels = c("raw",
+                                       "beta_abm", "beta_ab", "beta_am"))) |> 
+  group_by(bins, probs)  |>
+  summarize(mean_lapse = mean(lapse),
+            .groups = "drop") |>
+  mutate(bins = as.numeric(bins),
+         midpoints = bin_width/2 + bin_width * (bins - 1))  |> 
+  ggplot(data = _, aes(x = midpoints, y = mean_lapse, color = probs)) +
+    geom_abline(slope = 1, intercept = 0, linetype = "dotted") +
+    geom_line() +
+    geom_point() +
+    labs(x = "Predicted Lapse Probability (bin mid-point)",
+         y = "Observed Lapse Probability") +
+    scale_x_continuous(breaks = seq(0, 1, bin_width),
+                       limits = c(0, 1)) +
+    scale_y_continuous(breaks = seq(0, 1, bin_width),
+                       limits = c(0, 1))
+```

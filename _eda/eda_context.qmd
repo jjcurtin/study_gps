@@ -15,7 +15,7 @@ editor_options:
 
 ## Code Status
 
-Completed as of 08/2024.
+Completed as of 08/2024. Updated as of 03/2025.
 
 ## Notes
 
@@ -38,14 +38,13 @@ Summary of filtering decisions:
 
 options(conflicts.policy = "depends.ok")
 devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true", 
-                      sha1 = "a58e57da996d1b70bb9a5b58241325d6fd78890f")
+                      sha1 = "d1f1c542783f2e9a6ff50a400f909ba175ac618e")
 ```
 
 ## Paths
 
 ```{r}
 path_shared <- format_path("studydata/risk/data_processed/shared")
-path_gps <- format_path("studydata/risk/data_processed/gps")
 ```
 
 ## Packages and source
@@ -126,11 +125,11 @@ enrich_subid <- function(a_subid, gps, locs) {
 Generate places data frame.
 
 ```{r}
-if(file.exists(here::here(path_gps, "gps_enriched.csv.xz"))){
+if(file.exists(here::here(path_shared, "gps_enriched.csv.xz"))){
 
   message("Aggregate file already exist -- delete to recreate!")
   
-  places <- read_csv(here::here(path_gps, "gps_enriched.csv.xz"), 
+  places <- read_csv(here::here(path_shared, "gps_enriched.csv.xz"), 
                  show_col_types = FALSE) |>
     mutate(time = with_tz(time, tz = "America/Chicago"),
            dist = dist / 1609.344,
@@ -151,8 +150,8 @@ if(file.exists(here::here(path_gps, "gps_enriched.csv.xz"))){
   
   message("Merging raw GPS and context information...")
   
-  message("...loading study_dates.csv")
-  study_dates <- read_csv(here::here(path_gps, "study_dates.csv"),
+  message("...loading study_dates_gps.csv")
+  study_dates <- read_csv(here::here(path_shared, "study_dates_gps.csv"),
                           show_col_types = FALSE) |>
     mutate(study_start = as_date(study_start),
            study_end = as_date(study_end))  |>
@@ -703,7 +702,7 @@ places |>
 
 Check points that have a suspiciously long duration.
 Note that the forced resampling rate for FollowMee was ~2 hours, but is unknown for Moves.
-(See sop_android_tech_setup_followmee in analysis_risk/methods/sop)
+(See sop_android_tech_setup_followmee in proj_risk/methods/sop)
 
 Generate table to examine points with a `duration` value of longer than 2 hours.
 
@@ -814,6 +813,39 @@ places |>
   kableExtra::scroll_box(width = "500px", height = "500px")
 ```
 
+It is also important to consider **where** folks are at when these long gaps of time are appearing. Count number of long duration periods NOT at a known location, at a known location, and display WHERE these known locations are.
+
+```{r}
+places |>
+  mutate(duration = if_else(dist > 0.01 & duration == 0, NA_real_,
+                          duration),
+        duration = if_else(speed > 100, NA_real_,
+                          duration)) |>
+  filter(duration > 24) |>
+  mutate(known_loc = if_else(dist_context <= 0.031 & speed <= 4, "yes", "no"),
+         known_loc = if_else(is.na(known_loc), "no", known_loc)) |> 
+  select(subid, time, duration, known_loc, type) |> 
+  distinct(time, .keep_all = TRUE) |> 
+  tabyl(known_loc)
+```
+
+```{r}
+places |>
+  mutate(duration = if_else(dist > 0.01 & duration == 0, NA_real_,
+                          duration),
+         duration = if_else(speed > 100, NA_real_,
+                          duration)) |>
+  filter(duration > 24) |>
+  mutate(known_loc = if_else(dist_context <= 0.031 & speed <= 4, "yes", "no"),
+         known_loc = if_else(is.na(known_loc), "no", known_loc)) |> 
+  select(subid, time, duration, known_loc, type) |> 
+  distinct(time, .keep_all = TRUE) |> 
+  filter(known_loc == "yes") |>
+  select(subid, duration, type) |> 
+  tabyl(type) |> 
+  arrange(desc(n))
+```
+
 **FILTERING DECISION**
 
 Set a tolerance level for amount of extended periods of no data we tolerate.
@@ -848,8 +880,8 @@ places |>
          duration = if_else(speed > 100, NA_real_,
                             duration)) |>
   filter(!(duration > 2 & dist > 0.31)) |>
-  filter(duration > 24) |>
-  nrow()
+  filter(duration > 24) |> view()
+ # nrow()
 ```
 
 Create tables to ensure that we are successfully amending duration values for these points.
@@ -1091,14 +1123,16 @@ Apply final filter.
 
 ```{r}
 places <- places |>
-  mutate(duration = if_else(dist > 0.01 & duration == 0, NA_real_,
+  mutate(clean_duration = if_else(dist > 0.01 & duration == 0, NA_real_,
                             duration),
-         duration = if_else(speed > 100, NA_real_,
-                            duration),
-         duration = if_else(duration > 2 & dist > 0.31, NA_real_,
-                            duration),
-         duration = if_else(duration > 24, 24,
-                            duration),
+         clean_duration = if_else(speed > 100, NA_real_,
+                            clean_duration),
+         # change from 2 hours to 30 minutes
+         clean_duration = if_else(clean_duration > .5 & dist > 0.31, NA_real_,
+                            clean_duration),
+         # removed bc many instances where this appears to be valid i.e., at home or home of friend/family
+         #clean_duration = if_else(clean_duration > 24, 24,
+                            #clean_duration),
          known_loc = if_else(dist_context <= 0.031 & speed <= 4,
                              TRUE, FALSE),
          known_loc = if_else(is.na(known_loc), FALSE, known_loc))
@@ -1213,4 +1247,91 @@ Summary of `avoid` responses.
 
 ```{r}
 places |> tab(avoid)
+```
+
+### Calculate overall duration 
+
+Calculate duration start to end (from first to last GPS point of a given subject on study). Compare to duration we are calculating. Then, compare to time at known locations (sum again after filtering to known locations).
+
+Create new column to represent duration from first to last GPS point per subject. Converting this difference to hours to match with how we are currently manually calculating duration.
+```{r}
+places <- places |> 
+  group_by(subid) |> 
+  mutate(study_duration = as.numeric(difftime(last(time), first(time), units = "hours"))) |>
+  ungroup()
+```
+
+Sum up duration. Duration is currently in hours.
+```{r}
+places <- places |> 
+  group_by(subid) |> 
+  mutate(sum_duration = sum(duration, na.rm = TRUE),
+         sum_clean_duration = sum(clean_duration, na.rm = TRUE)) |> 
+  ungroup()
+```
+
+Count number of NAs per subject for duration.
+```{r}
+places |>
+  filter((is.na(duration))) |> 
+  nrow()
+
+places |>
+  group_by(subid) |> 
+  mutate(num_na_dur = sum(is.na(duration))) |> 
+  select(subid, num_na_dur) |> 
+  unique() |>
+  ungroup()
+
+places |>
+  filter((is.na(clean_duration))) |> 
+  nrow()
+
+places |>
+  group_by(subid) |> 
+  mutate(num_na_dur = sum(is.na(clean_duration))) |> 
+  select(subid, num_na_dur) |> 
+  unique() |>
+  ungroup()
+
+```
+
+Calculate difference between `study_duration` and `sum_duration`. A negative value means that `sum_duration` is larger, a positive value means that our `study_duration` is larger.
+```{r}
+places <- places |> 
+  group_by(subid) |> 
+  mutate(duration_diff = study_duration - sum_duration,
+         clean_duration_diff = study_duration - sum_clean_duration) |> 
+  ungroup()
+```
+
+Examine the differences between these two.
+```{r}
+places |> 
+  group_by(subid) |> 
+  select(subid, duration_diff, clean_duration_diff) |> 
+  unique() |> 
+  arrange(desc(clean_duration_diff))
+```
+
+To discuss with JC -- the majority of points lost are actually lost because of our 2hr > .31 mile jump filter. See chunk 54, there are 2389 points that are removed from that filtering which account for the majority of this time. Maybe we want to reconsider this filter?
+
+48 * 12 = 576 hours of anticipated weekend time over the course of 3 months on study. We could consider removing subjects who have a duration discrepancy greater than 576 hours (which would be 10 subjects).
+
+### Calculate duration for known locations
+
+```{r}
+places_known <- places |> 
+  filter(known_loc == TRUE) |> 
+  select(-study_duration, -duration_diff)
+```
+
+```{r}
+places_known |> 
+  group_by(subid) |> 
+  mutate(sum_duration_known = sum(duration, na.rm = TRUE),
+         perc_known = (sum_duration_known/sum_duration)*100) |> 
+  select(subid, sum_duration, sum_duration_known, perc_known) |>
+  unique() |> 
+  arrange(desc(perc_known))
 ```

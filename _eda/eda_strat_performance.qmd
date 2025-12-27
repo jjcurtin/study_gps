@@ -1,0 +1,142 @@
+---
+title: "Strat testing"
+author: "Kendra and Claire"
+date: "`r lubridate::today()`"
+output: 
+  html_document:
+    toc: true 
+    toc_depth: 4
+format:
+  html:
+    embed-resources: true
+editor_options: 
+  chunk_output_type: console
+---
+
+## Notes
+
+This script tests how 4 different stratification options vary across median auROC and auROC range in held out folds. The stratification options were:   
+
+- No stratification
+- yes/no lapse stratification
+- low/high lapse stratification
+- none/low/high lapse stratification 
+
+
+## Read in data
+```{r}
+library(tidyverse)
+library(tidymodels, exclude = "scales")
+theme_set(theme_classic()) 
+
+devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true")
+
+path_chtc <- format_path(str_c("risk/chtc/gps"))
+```
+
+
+```{r}
+strat_none <- read_csv(here::here(path_chtc, 
+                                "train_xgboost_kfold_3_x_10_v8_no_strat/output/batch_results.csv"),
+                     show_col_types = FALSE) 
+
+strat_yn <- read_csv(here::here(path_chtc, 
+                                "train_xgboost_kfold_3_x_10_v8_strat_yn/output/batch_results.csv"),
+                     show_col_types = FALSE) 
+
+strat_lh <- read_csv(here::here(path_chtc, 
+                                "train_xgboost_kfold_3_x_10_v8_strat_lh/output/batch_results.csv"),
+                     show_col_types = FALSE)
+
+strat_nlh <- read_csv(here::here(path_chtc, 
+                                "train_xgboost_kfold_3_x_10_v8_strat_nlh/output/batch_results.csv"),
+                     show_col_types = FALSE) 
+```
+
+
+## Performance
+
+### No stratification
+```{r}
+strat_none_best <- strat_none |> 
+  group_by(algorithm, feature_set, hp1, hp2, hp3, resample) |> 
+   summarize(median_roc_auc = median(roc_auc),
+             n_folds = n(), .groups = "drop") |> 
+  relocate(n_folds) |> 
+  arrange(desc(median_roc_auc)) |> 
+  ungroup() |> 
+  slice_max(median_roc_auc) |> 
+  glimpse()
+
+strat_none |> 
+  filter(hp1 == strat_none_best$hp1 & hp2 == strat_none_best$hp2 & hp3 == strat_none_best$hp3 &
+           resample == strat_none_best$resample) |> 
+  ggplot() +
+  geom_histogram(aes(x = roc_auc), bins = 15, color = "black", fill = "light grey")  +
+  geom_vline(aes(xintercept = median(strat_none_best$median_roc_auc)), color = "red") +
+  xlim(0.5,1.0)
+```
+
+### yes/no stratification
+```{r}
+strat_yn_best <- strat_yn |> 
+  group_by(algorithm, feature_set, hp1, hp2, hp3, resample) |> 
+   summarize(median_roc_auc = median(roc_auc),
+             n_folds = n(), .groups = "drop") |> 
+  relocate(n_folds) |> 
+  arrange(desc(median_roc_auc)) |> 
+  ungroup() |> 
+  slice_max(median_roc_auc) |> 
+  glimpse()
+
+strat_yn |> 
+  filter(hp1 == strat_yn_best$hp1 & hp2 == strat_yn_best$hp2 & hp3 == strat_yn_best$hp3 &
+           resample == strat_yn_best$resample) |> 
+  ggplot() +
+  geom_histogram(aes(x = roc_auc), bins = 15, color = "black", fill = "light grey")  +
+  geom_vline(aes(xintercept = median(strat_yn_best$median_roc_auc)), color = "red") +
+  xlim(0.5,1.0)
+```
+
+### low/high stratification
+```{r}
+strat_lh_best <- strat_lh |> 
+  group_by(algorithm, feature_set, hp1, hp2, hp3, resample) |> 
+   summarize(median_roc_auc = median(roc_auc),
+             n_folds = n(), .groups = "drop") |> 
+  relocate(n_folds) |> 
+  arrange(desc(median_roc_auc)) |> 
+  ungroup() |> 
+  slice_max(median_roc_auc) |> 
+  glimpse()
+
+strat_lh |> 
+  filter(hp1 == strat_lh_best$hp1 & hp2 == strat_lh_best$hp2 & hp3 == strat_lh_best$hp3 &
+           resample == strat_lh_best$resample) |> 
+  ggplot() +
+  geom_histogram(aes(x = roc_auc), bins = 15, color = "black", fill = "light grey")  +
+  geom_vline(aes(xintercept = median(strat_lh_best$median_roc_auc)), color = "red") +
+  xlim(0.5,1.0)
+```
+
+### none/low/high stratification
+```{r}
+strat_nlh_best <- strat_nlh |> 
+  group_by(algorithm, feature_set, hp1, hp2, hp3, resample) |> 
+   summarize(median_roc_auc = median(roc_auc),
+             n_folds = n(), .groups = "drop") |> 
+  relocate(n_folds) |> 
+  arrange(desc(median_roc_auc)) |> 
+  ungroup() |> 
+  slice_max(median_roc_auc) |> 
+  glimpse()
+
+strat_nlh |> 
+  filter(hp1 == strat_nlh_best$hp1 & hp2 == strat_nlh_best$hp2 & hp3 == strat_nlh_best$hp3 &
+           resample == strat_nlh_best$resample) |> 
+  ggplot() +
+  geom_histogram(aes(x = roc_auc), bins = 15, color = "black", fill = "light grey")  +
+  geom_vline(aes(xintercept = median(strat_nlh_best$median_roc_auc)), color = "red") +
+  xlim(0.5,1.0)
+```
+
