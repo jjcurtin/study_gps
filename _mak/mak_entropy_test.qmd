@@ -1,0 +1,185 @@
+---
+title: "Entropy testing"
+author: "Claire Punturieri, Chris Janssen"
+date: "`r lubridate::today()`"
+output: 
+  html_document:
+    toc: true 
+    toc_depth: 4
+format:
+  html:
+    embed-resources: true
+editor_options: 
+  chunk_output_type: console
+---
+
+# Housekeeping
+
+## Status
+
+In progress as of 12/2025.
+
+## Notes
+
+# Set Up
+
+## Set up environment
+
+```{r}
+#| message: false
+#| warning: false
+
+options(conflicts.policy = "depends.ok")
+devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true")
+```
+
+## Paths
+
+```{r}
+path_shared <- format_path("risk/data_processed/shared")
+path_gps <- format_path("risk/data_processed/gps")
+```
+
+## Packages and source
+
+```{r}
+#| message: false
+#| warning: false
+#| echo: false
+
+# for data wrangling
+library(tidyverse, exclude = c("accumulate",
+                               "when"))
+library(janitor, exclude = c("chisq.test", 
+                             "fisher.test"))
+library(lubridate)
+library(future)
+```
+
+## Load in data
+
+```{r}
+gps <- read_csv(here::here(path_shared, "gps_enriched.csv.xz"), 
+                 show_col_types = FALSE) |>
+  # basic conversions
+  mutate(time = with_tz(time, tz = "America/Chicago"),
+         dist = dist / 1609.344,
+          duration = duration / 60,
+          speed = dist / duration,
+          dist_context = dist_context / 1609.344) |>
+  # processing messy data
+  mutate(duration = if_else(dist > 0.01 & duration == 0, NA_real_,
+                            duration),
+         duration = if_else(speed > 100, NA_real_,
+                            duration),
+         duration = if_else(duration > .5 & dist > 0.31, NA_real_,
+                            duration),
+         known_loc = if_else(dist_context <= 0.031 & speed <= 4,
+                             TRUE, FALSE),
+         known_loc = if_else(is.na(known_loc), FALSE, known_loc),
+         ### NEED TO CHECK THIS BELOW, NOT SURE IF WILL WORK
+         known_cluster = if_else(dist_cluster <= 0.031 & speed <= 4,
+                             TRUE, FALSE),
+         transit = if_else(speed <= 4, "no", "yes")) |>
+  # create new variable which represents time since start of study
+  # set to start at MIDNIGHT on DAY 2 of study
+  group_by(subid) |> 
+  mutate(start_date = as.Date(min(time)), # first day of participation
+         start_midnight = as.POSIXct(paste0(start_date + 1, " 00:00:00"), 
+                             tz = "America/Chicago"), 
+         time_hr =  as.numeric(difftime(time,
+                                        start_midnight,
+                                        units = "hours"))) |>
+  ungroup() |>
+  # no longer need this column following time_hr calculation
+  select(-start_midnight) |> 
+  # remove negative time windows
+  filter(time_hr >= 0)
+```
+
+Add code chunk here to merge gps data in with clusters (want each cluster to have a label, like cluster_id).
+
+# Test calculation of entropy
+```{r}
+calculate_location_entropy <- function(the_subid, the_dttm_label, x_all, 
+                                    period_durations, data_start) {
+  
+  # For use ONLY with geolocation data (not applicable to EMA, messages data)
+  # Gets value for col_name and returns a raw entropy, change entropy, and normalized values
+  # Representative of spatial regularity of movement patterns
+  
+  # the_subid: single integer subid
+  # the_dttm_label: single dttm for label onset
+  # x_all:  raw data for all subids and communications
+  # period_durations: vector of 1+ integer period_durations in hours
+  # data_start: a df with data_start = min(study_start, comm_start) for all subids
+  # col_name: column name for raw data for feature as string - should be continuous var
+  
+  # define entropy function
+  entropy <- function(x_all, cluster_id, duration) {
+    
+    # sum duration in each cluster
+    cluster_durations <- x_all |> 
+      group_by({{cluster_id}}) |>
+      summarise(duration = sum({{ duration }})) |> 
+      pull(duration)
+    
+    # get number of clusters for normalized entropy calc
+    n_clusters <- length(cluster_durations)
+    
+    # we have nothing to calculate if we have one or no clusters
+    if (n_clusters <= 1) {
+      return(tibble(raw = 0, norm = 0))
+    }
+    
+    # sum total time
+    total_time <- sum(cluster_durations)
+    
+    # calculate probabilities per cluster
+    probabilities <- cluster_durations / total_time
+
+    # compute raw entropy
+    raw_entropy <- -sum(probabilities * log(probabilities))
+    
+    # compute normalized entropy
+    norm_entropy <- raw_entropy/log(n_clusters)
+    
+    tibble(raw = raw_entropy, norm = norm_entropy)
+  }
+  
+  base_duration <- correct_period_duration(the_subid, the_dttm_label, 
+                                           data_start, Inf)  # use Inf to ignore period_duration
+  
+  # get baseline entropy using all data before label dttm
+  baseline <- x_all %>% 
+    get_x_period(the_subid, the_dttm_label, x_all = ., lead, period_duration = base_duration) %>% # Inf gives all data back to first obs
+    summarise("base" := entropy(cluster_id, duration)) %>%
+    pull(base)
+  
+  features <- foreach (period_duration = period_durations, .combine = "cbind") %do% {
+    
+    true_period_duration <- correct_period_duration(the_subid, the_dttm_label, 
+                                                    data_start, period_duration)
+    
+    raw <- x_all %>%
+      get_x_period(the_subid, the_dttm_label, ., lead, period_duration) %>%
+      summarise("raw" := entropy(cluster_id, duration)) %>%
+      pull(raw)
+    
+    tibble(
+      "p{period_duration}.rraw_entropy" := raw$raw,
+      "p{period_duration}.draw_entropy" := raw$raw - baseline$raw,
+      "p{period_duration}.rnorm_entropy" := raw$norm,
+      "p{period_duration}.dnorm_entropy" := raw$norm - baseline$norm) %>%
+      rename_with(~str_remove_all(.x, ".NA")) %>% 
+      rename_with(~str_remove(.x, "^NA."))
+  }
+  
+  features <- features %>%
+    mutate(subid = the_subid,
+           dttm_label = the_dttm_label) %>%
+    relocate(subid, dttm_label)
+  
+  return(features)
+}
+```
