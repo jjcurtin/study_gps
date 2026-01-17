@@ -1,0 +1,356 @@
+---
+title: "Subgroup Analysis"
+author: "Coco Yu, modified by Claire Punturieri"
+date: "`r lubridate::today()`"
+output: 
+  html_document:
+    toc: true 
+    toc_depth: 4
+format:
+  html:
+    embed-resources: true
+params:
+  study: "gps"
+  window: "1day"
+  version: "v6"
+  cv: "nested_1_x_10_3_x_10"
+  algorithms: "xgboost"   # "all" or name of specific algorithm
+  model: "main"
+editor_options: 
+  chunk_output_type: console
+---
+
+# Housekeeping
+
+## Code status
+
+## Notes
+
+
+# Set Up
+
+## Set Up Environment
+
+### Study parameters
+```{r}
+study <- params$study
+cv <- params$cv
+algorithms <- params$algorithms
+version <- params$version
+window <- params$window
+model <- params$model
+```
+
+### Defaults
+```{r}
+#| message: false
+#| warning: false
+
+# handle conflicts
+options(conflicts.policy = "depends.ok")
+devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/fun_ml.R?raw=true")
+tidymodels_conflictRules()
+
+knitr::opts_chunk$set(attr.output='style="max-height: 500px;"')
+
+options(tibble.width = Inf)
+options(tibble.print_max = Inf)
+```
+
+### Packages for script
+```{r}
+#| message: false
+#| warning: false
+
+library(tidyverse)
+library(tidyposterior)
+library(tidymodels)
+library(yardstick)
+
+theme_set(theme_classic())
+
+devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true")
+```
+
+
+### Absolute paths
+```{r}
+path_models <- format_path(str_c("studydata/risk/models/", study))
+path_gps <- format_path(str_c("studydata/risk/data_processed/", study))
+path_shared <- format_path(str_c("studydata/risk/data_processed/shared"))
+```
+
+## Data Cleaning
+
+Read in Data
+```{r}
+probs <- read_rds(here::here(path_models, str_c("inner_preds_", window, "_", version, "_",
+                                         cv, "_", model, ".rds"))) |> 
+  #pivot_longer(cols = starts_with("prob"), 
+               #names_to = "method", 
+               #values_to = ".pred_Lapse") |>
+  glimpse()
+
+labels <- read_csv(here::here(path_shared, "labels_gps_day_24h.csv"), col_types = cols()) |> 
+  mutate(day_start = as_datetime(day_start, tz = "America/Chicago"),
+         day_end = as_datetime(day_end, tz = "America/Chicago"))
+
+labels$id_obs <- 1: nrow(labels)
+
+screen <- read_csv(here::here(path_shared, "screen.csv"),
+                   col_types = cols()) |>
+  select(c(starts_with("dem"), subid)) |> 
+  glimpse()
+```
+
+Find demographic groups
+```{r}
+demographics <- labels |> 
+  left_join(screen, by = "subid") |> 
+  select(-day_start, -day_end, -lapse) |> 
+  distinct() |>
+  mutate(
+    race = case_when(
+      dem_3 == "White/Caucasian" & grepl("No", dem_4) ~ "white",
+      dem_3 != "White/Caucasian" | grepl("Yes", dem_4) ~ "non_white"),
+    sex = if_else(dem_2 == "Female", "female", "male"),
+    age = if_else(dem_1 >= 55, "older", "younger"),
+    income = if_else(dem_7 <= .5 * 30000, "below_poverty", "above_poverty")
+  ) |> 
+  select(-starts_with("dem")) |> 
+  glimpse()
+```
+
+```{r}
+probs <- probs |> 
+  left_join(demographics, by = "id_obs")
+```
+
+## Calculate auROC
+
+```{r}
+auroc_all <- probs |> 
+  group_by(inner_split_num, outer_split_num) |> 
+  summarize(auroc = roc_auc(cur_data(), prob_logi, truth = label)$.estimate)
+```
+
+```{r}
+auroc_race <- probs |> 
+  group_by(inner_split_num, outer_split_num, race) |> 
+  summarize(auroc = roc_auc(cur_data(), prob_logi, truth = label)$.estimate) |> 
+  ungroup() |> 
+  rename(subgroup = race)
+
+auroc_sex <- probs |> 
+  group_by(inner_split_num, outer_split_num, sex) |> 
+  summarize(auroc = roc_auc(cur_data(), prob_logi, truth = label)$.estimate) |> 
+  ungroup() |> 
+  bind_rows(auroc_all |> mutate(sex = "all")) |> 
+  rename(subgroup = sex)
+
+auroc_age <- probs |> 
+  group_by(inner_split_num, outer_split_num, age) |> 
+  summarize(auroc = roc_auc(cur_data(), prob_logi, truth = label)$.estimate) |>
+  ungroup() |> 
+  bind_rows(auroc_all |> mutate(age = "all")) |> 
+  rename(subgroup = age)
+
+auroc_income <- probs |> 
+  group_by(inner_split_num, outer_split_num, income) |> 
+  summarize(auroc = roc_auc(cur_data(), prob_logi, truth = label)$.estimate) |>
+  ungroup() |> 
+  bind_rows(auroc_all |> mutate(income = "all")) |> 
+  rename(subgroup = income)
+```
+
+## Model Comparison
+
+```{r}
+# contrast_table <- function(df, levels){
+#   df |> 
+#     filter(subgroup != "all") |>
+#     select(c("auroc", "subgroup", "inner_split_num", "outer_split_num")) |> 
+#     group_by(subgroup) |>
+#     pivot_wider(values_from = c("auroc"), names_from = subgroup) |>
+#     rename(id = outer_split_num, id2 = inner_split_num) |>
+#     perf_mod(formula = statistic ~ model + (1 | id/id2),
+#              # prior_intercept = rstanarm::student_t(autoscale = TRUE),
+#              # prior = rstanarm::student_t(autoscale = TRUE),
+#              # transform = tidyposterior::logit_trans,  # for skewed & bounded AUC
+#              # iter = 2000, chains = 4,
+#              adapt_delta = .99,
+#              # cores = 4, seed = 12345,
+#              family = gaussian, verbose = FALSE) |> 
+#     contrast_models(list_1 = levels[1], list_2 = levels[2]) |> 
+#     summary(size = 0) |> 
+#     mutate(metrics = "auroc", .before = contrast)
+#   }
+```
+
+```{r}
+# contrast_table(auroc_race, c("white", "non_white"))
+# contrast_table(auroc_sex, c("male", "female"))
+# contrast_table(auroc_age, c("younger", "older"))
+# contrast_table(auroc_income, c("above_poverty", "below_poverty"))
+```
+
+## CY figure
+
+Plots
+```{r}
+# auroc_plot <- auroc_race |> 
+#   mutate(group = "race") |> 
+#   bind_rows(auroc_sex |> mutate(group = "sex")) |> 
+#   bind_rows(auroc_age |> mutate(group = "age")) |> 
+#   bind_rows(auroc_income |> mutate(group = "income"))
+```
+
+```{r}
+# ggpubr::ggarrange(
+#   auroc_race |> 
+#     ggplot(aes(x = factor(subgroup, levels = c("all", "white", "non_white")), 
+#                y = auroc, fill = subgroup)) +
+#     geom_boxplot() +
+#     theme(legend.position = "none", axis.text.x = element_text(angle = 10)) +
+#     scale_fill_manual(values = c("#80B1D3", "#B5D66E", "#F28072")) +
+#     ylim(0, 1) +
+#     labs(x = "Race"),
+#   auroc_sex |> 
+#     ggplot(aes(x = factor(subgroup, levels = c("all", "male", "female")),
+#                y = auroc, fill = subgroup)) +
+#     geom_boxplot() +
+#     theme(legend.position = "none", axis.text.x = element_text(angle = 10)) +
+#     scale_fill_manual(values = c("#80B1D3", "#B5D66E", "#F28072")) +
+#     ylim(0, 1) +
+#     labs(x = "Sex"),
+#   auroc_age |> 
+#     ggplot(aes(x = factor(subgroup, levels = c("all", "younger", "older")),
+#                y = auroc, fill = subgroup)) +
+#     geom_boxplot() +
+#     theme(legend.position = "none", axis.text.x = element_text(angle = 10)) +
+#     scale_fill_manual(values = c("#80B1D3", "#B5D66E", "#F28072")) +
+#     ylim(0, 1) +
+#     labs(x = "Age"),
+#   auroc_income |> 
+#     ggplot(aes(x = factor(subgroup, levels = 
+#                             c("all", "above_poverty", "below_poverty")),
+#                y = auroc, fill = subgroup)) +
+#     geom_boxplot() +
+#     theme(legend.position = "none", axis.text.x = element_text(angle = 10)) +
+#     scale_fill_manual(values = c("#80B1D3", "#B5D66E", "#F28072")) +
+#     ylim(0, 1) +
+#     labs(x = "Income")
+# )
+```
+
+## JC figure
+
+```{r}
+posterior_auroc <- function(df, levels){
+  q = c(.025, .5, .975)
+
+  df |> 
+    filter(subgroup != "all") |>
+    group_by(subgroup) |>
+    pivot_wider(values_from = auroc, names_from = subgroup) |>
+    rename(id = inner_split_num, id2 = outer_split_num) |>
+    perf_mod(formula = statistic ~ model + (1 | id2/id),
+             # prior_intercept = rstanarm::student_t(autoscale = TRUE),
+             # prior = rstanarm::student_t(autoscale = TRUE),
+             # transform = tidyposterior::logit_trans,  # for skewed & bounded AUC
+             # iter = 2000, chains = 4,
+             adapt_delta = .99,
+             # cores = 4, seed = 12345,
+             family = gaussian, verbose = FALSE)   |> 
+    # output of this needs to go into contrast models
+    tidy(seed = 123) |> 
+    group_by(model) |> 
+    summarize(median = quantile(posterior, probs = q[2]),
+              lower = quantile(posterior, probs = q[1]), 
+              upper = quantile(posterior, probs = q[3]))
+}
+```
+
+```{r}
+ci_sex <- posterior_auroc(auroc_sex, c("male", "female"))
+ci_race <- posterior_auroc(auroc_race, c("white", "non_white"))
+ci_income <- posterior_auroc(auroc_income, c("above_poverty", "below_poverty"))
+ci_age  <-posterior_auroc(auroc_age, c("younger", "older"))
+```
+
+```{r}
+ci <- ci_sex |> 
+    bind_rows(ci_race) |> 
+    bind_rows(ci_income) |> 
+    bind_rows(ci_age)
+```
+
+```{r}
+plot_ci <- function(d, title){
+  d |> 
+    ggplot(aes(x = model, color = model)) +
+    geom_point(aes(y = median), size = 3, shape = 18) +
+    geom_errorbar(aes(ymin = lower, ymax = upper), width = .2) +
+      #width = .2, position = position_dodge(.9)) +
+    geom_hline(yintercept = .5, linetype = "dotted", color = "black") +
+    coord_flip() +
+    ylab("auROC") +
+    xlab("Group") +
+    ggtitle(title) +
+    xlab("") +
+    theme(legend.position = "none") +
+    scale_y_continuous(breaks = seq(0.45, 0.70, 0.05), limits = c(0.45, 0.7)) +
+    #scale_y_continuous(breaks = seq(0.4, 1.0, 0.10), limits = c(0.4, 1.0)) +
+    #scale_color_manual(values = c("#7FBFFFFF","#4C4CFFFF"))
+    scale_color_manual(values = c("darkblue", "#af1f21")) +
+       theme(
+    # LABELS APPEARANCE
+     axis.title.x = element_text(size=12, colour = "black"),
+    axis.title.y = element_text(size=12, colour = "black"), 
+    axis.text.x = element_text(size=10, colour = "black"), 
+    axis.text.y = element_text(size=10, colour = "black"),
+    strip.text.x = element_text(size = 10, face="bold", colour = "black" ),
+    strip.text.y = element_text(size = 10, face="bold", colour = "black"),
+    axis.line.x = element_line(color="black", size = 0.3),
+    axis.line.y = element_line(color="black", size = 0.3)
+  )
+}
+```
+
+```{r}
+fig_sex  <- ci |>
+  filter(model == "male" | model == "female") |>
+  mutate(model = fct(model, levels = c("female", "male")),
+         model = fct_recode(model, male = "male", female = "female")) |> 
+  plot_ci("Sex")
+
+fig_race  <- ci |>
+  filter(model == "white" | model == "non_white") |>
+  mutate(model = fct(model, levels = c("non_white", "white")),
+         model = fct_recode(model, white = "white", nonwhite = "non_white")) |> 
+  plot_ci("Race/Ethnicity")
+
+fig_income  <- ci |>
+  filter(model == "above_poverty" | model == "below_poverty") |>
+  mutate(model = fct(model, levels = c("below_poverty", "above_poverty")),
+         model = fct_recode(model, `above poverty` = "above_poverty", `below poverty` = "below_poverty")) |> 
+  plot_ci("Income")
+  
+fig_age  <- ci |>
+  filter(model == "younger" | model == "older") |>
+  mutate(model = fct(model, levels = c("older", "younger"))) |> 
+  plot_ci("Age")
+```
+
+```{r}
+#| label: fig-fairness-subgroups
+#| fig-cap: 95% credible intervals across posterior probability distributions by subgroup at differential levels of privilege.
+#| fig-height: 4
+#| fig-width: 6
+
+tiff("fairness.tiff", units="in",width=6, height=4, res=300)
+
+cowplot::plot_grid(fig_race, fig_sex, fig_age, fig_income, align="v", scale = 0.95)
+
+dev.off()
+```
