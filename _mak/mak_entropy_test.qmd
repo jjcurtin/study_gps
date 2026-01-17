@@ -38,6 +38,7 @@ devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/format_p
 ```{r}
 path_shared <- format_path("risk/data_processed/shared")
 path_gps <- format_path("risk/data_processed/gps")
+path_gps2 <- format_path("risk/data_processed/gps2")
 ```
 
 ## Packages and source
@@ -59,8 +60,10 @@ library(future)
 ## Load in data
 
 ```{r}
-gps <- read_csv(here::here(path_shared, "gps_enriched.csv.xz"), 
-                 show_col_types = FALSE) |>
+gps <- #read_csv(here::here(path_shared, "gps_enriched.csv.xz"), 
+                 #show_col_types = FALSE) |>
+  read_csv(here::here("/Volumes/jjcurtin/studydata/risk/data_processed/shared/gps_enriched.csv.xz"), 
+                 show_col_types = FALSE) |> 
   # basic conversions
   mutate(time = with_tz(time, tz = "America/Chicago"),
          dist = dist / 1609.344,
@@ -77,9 +80,6 @@ gps <- read_csv(here::here(path_shared, "gps_enriched.csv.xz"),
          known_loc = if_else(dist_context <= 0.031 & speed <= 4,
                              TRUE, FALSE),
          known_loc = if_else(is.na(known_loc), FALSE, known_loc),
-         ### NEED TO CHECK THIS BELOW, NOT SURE IF WILL WORK
-         known_cluster = if_else(dist_cluster <= 0.031 & speed <= 4,
-                             TRUE, FALSE),
          transit = if_else(speed <= 4, "no", "yes")) |>
   # create new variable which represents time since start of study
   # set to start at MIDNIGHT on DAY 2 of study
@@ -98,6 +98,18 @@ gps <- read_csv(here::here(path_shared, "gps_enriched.csv.xz"),
 ```
 
 Add code chunk here to merge gps data in with clusters (want each cluster to have a label, like cluster_id).
+```{r}
+clusters <- read_csv(here::here("/Volumes/jjcurtin/studydata/risk/data_processed/gps2/data/stays_clustered.csv"), 
+                 show_col_types = FALSE) |> 
+  select(subid, cluster_id, lat, lon) |> 
+  distinct(cluster_id, .keep_all = TRUE)
+
+
+
+         ### NEED TO ADD THIS IN
+         #known_cluster = if_else(dist_cluster <= 0.031 & speed <= 4,
+                             #TRUE, FALSE)
+```
 
 # Test calculation of entropy
 ```{r}
