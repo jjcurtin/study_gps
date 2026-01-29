@@ -97,20 +97,6 @@ gps <- #read_csv(here::here(path_shared, "gps_enriched.csv.xz"),
   filter(time_hr >= 0)
 ```
 
-Add code chunk here to merge gps data in with clusters (want each cluster to have a label, like cluster_id).
-```{r}
-clusters <- read_csv(here::here("/Volumes/jjcurtin/studydata/risk/data_processed/gps2/data/stays_clustered.csv"), 
-                 show_col_types = FALSE) |> 
-  select(subid, cluster_id, lat, lon) |> 
-  distinct(cluster_id, .keep_all = TRUE)
-
-
-
-         ### NEED TO ADD THIS IN
-         #known_cluster = if_else(dist_cluster <= 0.031 & speed <= 4,
-                             #TRUE, FALSE)
-```
-
 # Test calculation of entropy
 ```{r}
 calculate_location_entropy <- function(the_subid, the_dttm_label, x_all, 
@@ -128,33 +114,33 @@ calculate_location_entropy <- function(the_subid, the_dttm_label, x_all,
   # col_name: column name for raw data for feature as string - should be continuous var
   
   # define entropy function
-  entropy <- function(x_all, cluster_id, duration) {
+  entropy <- function(x_all, context_id, duration) {
     
-    # sum duration in each cluster
-    cluster_durations <- x_all |> 
-      group_by({{cluster_id}}) |>
+    # sum duration at each cluster
+    context_durations <- x_all |> 
+      group_by({{context_id}}) |>
       summarise(duration = sum({{ duration }})) |> 
       pull(duration)
     
-    # get number of clusters for normalized entropy calc
-    n_clusters <- length(cluster_durations)
+    # get number of contexts for normalized entropy calc
+    n_contexts <- length(context_durations)
     
-    # we have nothing to calculate if we have one or no clusters
-    if (n_clusters <= 1) {
+    # we have nothing to calculate if we have one or no contexts
+    if (n_contexts <= 1) {
       return(tibble(raw = 0, norm = 0))
     }
     
     # sum total time
-    total_time <- sum(cluster_durations)
+    total_time <- sum(context_durations)
     
-    # calculate probabilities per cluster
-    probabilities <- cluster_durations / total_time
+    # calculate probabilities per context
+    probabilities <- context_durations / total_time
 
     # compute raw entropy
     raw_entropy <- -sum(probabilities * log(probabilities))
     
     # compute normalized entropy
-    norm_entropy <- raw_entropy/log(n_clusters)
+    norm_entropy <- raw_entropy/log(n_contexts)
     
     tibble(raw = raw_entropy, norm = norm_entropy)
   }
@@ -165,7 +151,7 @@ calculate_location_entropy <- function(the_subid, the_dttm_label, x_all,
   # get baseline entropy using all data before label dttm
   baseline <- x_all %>% 
     get_x_period(the_subid, the_dttm_label, x_all = ., lead, period_duration = base_duration) %>% # Inf gives all data back to first obs
-    summarise("base" := entropy(cluster_id, duration)) %>%
+    summarise("base" := entropy(pick(everything()), context_id, duration)) %>%
     pull(base)
   
   features <- foreach (period_duration = period_durations, .combine = "cbind") %do% {
@@ -175,7 +161,7 @@ calculate_location_entropy <- function(the_subid, the_dttm_label, x_all,
     
     raw <- x_all %>%
       get_x_period(the_subid, the_dttm_label, ., lead, period_duration) %>%
-      summarise("raw" := entropy(cluster_id, duration)) %>%
+      summarise("raw" := entropy(pick(everything()), context_id, duration)) %>%
       pull(raw)
     
     tibble(
@@ -194,4 +180,12 @@ calculate_location_entropy <- function(the_subid, the_dttm_label, x_all,
   
   return(features)
 }
+```
+
+```{r}
+feature_row <- calculate_location_entropy(subid,
+                             dttm_label,
+                             x_all  = data,
+                             period_durations = period_durations,
+                             data_start = dates)
 ```
