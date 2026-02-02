@@ -25,28 +25,30 @@ params:
 
 # Set up
 
-## Set up environment
+## Set up environment basics
 
 ```{r}
 #| message: false
 #| warning: false
 
-options(conflicts.policy = "depends.ok")
-devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true")
 library(tidyverse)
+
+options(conflicts.policy = "depends.ok")
 ```
 
 ## Paths
 
 ```{r}
+source("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true")
+
 name_job <- str_c("features_", params$sample, "_", params$window, "_", params$roll_dur, "h")
 
-path_chtc <- format_path(str_c("risk/chtc/gps/", name_job, "/output"))
+path_chtc <- format_path(str_c("risk/chtc/shared/features_gps/", name_job, "/output"))
 path_shared <- format_path("risk/data_processed/shared")
-features_file <- str_c(name_job, ".csv")
+features_file <- str_c("batch_features.csv")
 ```
 
-## Packages and source
+## Additional packages and source
 
 ```{r}
 #| message: false
@@ -54,11 +56,10 @@ features_file <- str_c(name_job, ".csv")
 #| echo: false
 
 # for data wrangling
-library(tidyverse)
 library(lubridate)
 
 # helpful lab functions
-devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/fun_eda.R?raw=true")
+source("https://github.com/jjcurtin/lab_support/blob/main/fun_eda.R?raw=true")
 
 # adjust plot visuals
 theme_set(theme_classic())
