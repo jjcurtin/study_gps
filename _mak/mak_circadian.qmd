@@ -32,25 +32,27 @@ https://www.physicsclassroom.com/class/waves/Lesson-2/Frequency-and-Period-of-a-
 
 # Set up
 
-## Set up environment
+## Load tidy and establish conflicts policy
 
 ```{r}
 #| message: false
 #| warning: false
 
+library(tidyverse)
+
 options(conflicts.policy = "depends.ok")
-devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true", 
-                      sha1 = "de12d764438078a9341db9bc0b2472c87e0ae846")
 ```
 
 ## Paths
 
 ```{r}
+source("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true")
+
 path_shared <- format_path("risk/data_processed/shared")
 path_gps <- format_path("risk/data_processed/gps")
 ```
 
-## Packages and source
+## Additional packages
 
 ```{r}
 #| message: false
@@ -58,10 +60,7 @@ path_gps <- format_path("risk/data_processed/gps")
 #| echo: false
 
 # for data wrangling
-library(tidyverse, exclude = c("accumulate",
-                               "when"))
-library(janitor, exclude = c("chisq.test", 
-                             "fisher.test"))
+library(janitor)
 library(lubridate)
 library(future)
 # for periodogram
@@ -142,79 +141,19 @@ gps_centroid <- gps |>
   select(subid, time, time_hr, lat_centroid, lon_centroid, context_id, type)
 ```
 
-We could also create clusters (below I am using Chris Janssen's clustering code). Note that context_id numbers repeat. Every subject's cluster counting restarts from 1 in Chris' code so there are multiple 1s (for example), but each is a DIFFERENT location relative to that person's own data.
+Let's check and see the number of unique context IDs per subject.
 ```{r}
-path_gps2 <- format_path("risk/data_processed/gps2/data")
-
-clusters <- read_csv(here::here(path_gps2, "gps2_clusters.csv"), 
-                 show_col_types = FALSE) |>
-  mutate(context_id = cluster)
-```
-
-Output
-```{r}
-gps_simple <- gps |> 
-  select(subid, lat, lon, dist, duration, speed, time, time_hr)
-```
-
-Finds the nearest context (i.e., cluster) to a given latitude and longitude coordinate.
-```{r}
-enrich_subid <- function(a_subid, gps, locs) {
-  gps <- gps |>  
-    filter(subid == a_subid)
-  
-  locs <- locs |>  
-    filter(subid == a_subid)
-  
-  enriched <- gps |> 
-    bind_cols(
-      map2(gps$lon, gps$lat, 
-           \(lon, lat) find_nearest_context(lon, lat, context = locs)) |> 
-      bind_rows()
-    )
-  
-  return(enriched)
-}
-```
-
-Generate clustered points. An individual is identified as having been at a cluster when they are within 50 meters and moving less than 4 mph (this is the same threshold we used to identify if someone was at a self-reported context).
-```{r}
-if (file.exists(here::here(path_gps, "gps_clustered.csv"))) {
-  
-  gps_clustered <- read_csv(here::here(path_gps, "gps_clustered.csv"),
-                            show_col_types = FALSE) |> 
-    filter(at_cluster == TRUE)
-  
-} else {
-  
-  subid_all <- list(gps_simple$subid) |> unlist() |> unique()
-  
-  gps_clustered <- subid_all |> 
-    map(\(subid) enrich_subid(subid, gps = gps_simple, locs = clusters)) |> 
-    bind_rows() |>
-    mutate(at_cluster = if_else(dist_context <= 50 & speed <= 4,
-                                TRUE, FALSE),
-           at_cluster = if_else(is.na(at_cluster), FALSE, at_cluster)) |>
-    write_csv((here::here(path_gps, "gps_clustered.csv")))
-    
-  gps_clustered <- gps_clustered |> filter(at_cluster == TRUE) 
-}
-```
-
-Data exploration.
-```{r}
-gps_clustered |> 
-  distinct(subid, context_id) |>
-  count(subid, name = "n_unique_contexts") |> 
-  view()
-
-gps_clustered |>
-  group_by(subid) |>
-  summarise(n_clusters = n_distinct(context_id)) |>
-  pull(n_clusters) |>
+gps_centroid |> 
+  group_by(subid) |> 
+  summarise(count = n_distinct(context_id)) |> 
+  pull(count) |> 
   hist()
-```
 
+gps_centroid |> 
+  group_by(subid) |> 
+  summarise(count = n_distinct(context_id)) |> 
+  arrange(desc(count))
+```
 
 # Proof of concept: calculate circadian movement per Saeb 2015
 
@@ -222,11 +161,7 @@ This proof of concept looks at one person's data over their entire course on stu
 
 First grab one person's data.
 ```{r}
-## to use centroid method
-#gps_one <- gps_centroid |> filter(subid == 1)
-
-## to use clustering method
-gps_one <- gps_clustered |> filter(subid == 1)
+gps_one <- gps_centroid |> filter(subid == 1)
 ```
 
 
@@ -264,13 +199,11 @@ Information on the first argument:
 In the Saeb paper, it looks like they calculate this based on latitude and longitude. Let's try getting periodograms for latitude and longitude separately and see what happens. I have also played around with using whether or not someone is at a known location as input, but decided to try to follow the Saeb methods more closely.
 ```{r}
 lomb_lat <- gps_one |>
-  #select(time_hr, lat_centroid) |>
-  select(time_hr, lat_context) |>
+  select(time_hr, lat_centroid) |>
   lsp(ofac = 4, from = 0.01, to = 0.1, type = "frequency")
 
 lomb_lon <- gps_one |>
-  #select(time_hr, lon_centroid) |>
-  select(time_hr, lon_context) |> 
+  select(time_hr, lon_centroid) |>
   lsp(ofac = 4, from = 0.01, to = 0.1, type = "frequency")
 ```
 
@@ -550,8 +483,8 @@ calc_cm <- function(df) {
 
   # calculate energy by latitude and longitude
   # Saeb and colleagues and others who have followed have done each calculation separately
-  e_lat <- compute_e(df |> select(time_hr, lat_context))
-  e_lon <- compute_e(df |> select(time_hr, lon_context))
+  e_lat <- compute_e(df |> select(time_hr, lat_centroid))
+  e_lon <- compute_e(df |> select(time_hr, lon_centroid))
 
   # calculate CM by summing our energy values and taking the log
   # Saeb and colleagues take the log to account for skewness
@@ -649,9 +582,9 @@ cm_window <- function(df, subid_arg, time_col = "time_hr", date_col = "time", wi
 
 Create windows for each subject, starting from midnight on their second day of study participation.
 ```{r}
-cm_windows <- gps_clustered$subid |> 
+cm_windows <- gps_centroid$subid |> 
   unique() |> 
-  furrr::future_map(\(subid) cm_window(df = gps_clustered,
+  furrr::future_map(\(subid) cm_window(df = gps_centroid,
                                  subid_arg = subid,
                                  time_col = "time_hr",
                                  date_col = "time")) |>
@@ -660,9 +593,9 @@ cm_windows <- gps_clustered$subid |>
 
 Let's run this over all of our subjects.
 ```{r}
-cm_results <- gps_clustered$subid |>
+cm_results <- gps_centroid$subid |>
   unique() |> 
-  furrr::future_map(\(subid) cm_slide(gps_df = gps_clustered,
+  furrr::future_map(\(subid) cm_slide(gps_df = gps_centroid,
                                       window_df = cm_windows,
                                  subid_arg = subid,
                                  time_col = "time_hr",
