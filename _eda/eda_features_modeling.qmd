@@ -1,0 +1,404 @@
+---
+title: "EDA of CHTC features - Modeling"
+author: "Claire Punturieri"
+date: "`r lubridate::today()`"
+format: 
+  html:
+    toc: true
+    toc_depth: 4
+    embed-resources: true
+editor_options: 
+  chunk_output_type: console
+params:
+  window: "day"
+  roll_dur: 1 # 1 24
+  sample: "gps" # ema messages
+---
+
+# Housekeeping
+
+## Code Status
+
+
+## Notes
+
+ - Perhaps want a feature that captures alcohol not at home or at work, maybe the presence of alcohol is more meaningful when someone does not expect it?
+ - 
+
+# Set up
+
+## Set up environment basics
+
+```{r}
+#| message: false
+#| warning: false
+
+library(tidyverse)
+library(tidymodels)
+
+options(conflicts.policy = "depends.ok")
+```
+
+## Paths
+
+```{r}
+source("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true")
+
+features_file <- str_c("features_", params$sample, "_", params$window, "_", params$roll_dur, "h.csv")
+
+path_shared <- format_path("risk/data_processed/shared")
+```
+
+## Additional packages and source
+
+```{r}
+#| message: false
+#| warning: false
+#| echo: false
+
+# helpful lab functions
+source("https://github.com/jjcurtin/lab_support/blob/main/fun_eda.R?raw=true")
+
+# adjust plot visuals
+theme_set(theme_classic())
+options(tibble.width = Inf, dplyr.print_max = Inf)
+```
+
+## Load in data
+
+Load in features data and strat data -- these are combined formally in mak_combined_features.qmd but is reproduced below for simplicity. We'll also load in GPS data to fil
+```{r}
+features <- read_csv(here::here(path_shared, features_file), 
+                 show_col_types = FALSE)
+
+strat <- read_csv(here::here(path_shared, "strat_lh.csv"), 
+                    show_col_types = FALSE)
+
+all <- left_join(features, strat, by = c("subid"))
+```
+
+Take eyeball sample stratified on participants who are high and low lapse.
+```{r}
+set.seed(20211121)
+eyeball <- all |>
+  select(-contains("pass_poi"), -contains("entropy"),
+         -contains("var_location"), -contains("adi_cats")) |> 
+  group_initial_split(group = subid, prop = .10, strata = strat) |>
+  analysis()
+
+eyeball_raw <- eyeball |> select(subid, dttm_label, lapse, contains("l0.r"), strat)
+  
+eyeball_diff <- eyeball |> select(subid, dttm_label, lapse, contains("l0.d"), strat)
+```
+
+## EDA - Location
+
+```{r}
+locations <- read_csv(here::here(path_shared, "locations.csv"),
+                      show_col_types = FALSE)
+
+loc_eyeball <- locations |> 
+  filter(subid %in% eyeball$subid)
+```
+
+```{r}
+loc_eyeball |>
+  tab2(type, alcohol)
+```
+
+```{r}
+loc_eyeball |> 
+  tab2(type, emotion)
+```
+
+```{r}
+loc_eyeball |> 
+  tab2(type, drank)
+```
+
+```{r}
+loc_eyeball |> 
+  tab2(type, risk)
+```
+
+```{r}
+loc_eyeball |> 
+  tab2(type, avoid)
+```
+
+Is drinking somewhere where alcohol is not available more meaningful? (E.g., you have to bring your own?)
+```{r}
+loc_eyeball |> 
+  tab2(drank, alcohol)
+```
+
+```{r}
+loc_eyeball |> 
+  tab2(alcohol, avoid)
+```
+
+```{r}
+loc_eyeball |> 
+  tab2(alcohol, risk)
+```
+
+Let's look specifically at the relationship between work and home and other location characteristics.
+```{r}
+loc_eyeball |> 
+  filter(type == "home" | type == "work") |> 
+  pivot_longer(
+    cols = c(alcohol, avoid, risk, drank, emotion),
+    names_to = "variable",
+    values_to = "value"
+  ) |> 
+  count(variable, type, value) |> 
+  group_by(variable, type) |> 
+  mutate(rate = n/sum(n))
+```
+
+What about homes of friends and family?
+```{r}
+loc_eyeball |> 
+  filter(type == "friend" | type == "family") |> 
+  pivot_longer(
+    cols = c(alcohol, avoid, risk, drank, emotion),
+    names_to = "variable",
+    values_to = "value"
+  ) |> 
+  count(variable, type, value) |> 
+  group_by(variable, type) |> 
+  mutate(rate = n/sum(n))
+```
+
+## EDA - Raw Features
+
+### Alcohol at frequent places
+
+Time spent at home, work, and the presence of alcohol are all related.
+
+Relationship between time spent at home and alcohol.
+```{r}
+eyeball_raw |> 
+  select(contains("type.home"), contains("alcohol.yes")) |>
+  cor(use = "pairwise.complete.obs") |> 
+  corrplot::corrplot.mixed()
+```
+
+Relationship between time spent at work and alcohol.
+```{r}
+eyeball_raw |> 
+  select(contains("type.work"), contains("alcohol.yes")) |>
+  cor(use = "pairwise.complete.obs") |> 
+  corrplot::corrplot.mixed()
+```
+
+### High risk locations and emotions
+
+Relationship between risk high and emotion unpleasant. -- Not correlated?
+```{r}
+eyeball_raw |> 
+  select(contains("risk.high"), contains ("emotion.unpleasant")) |> 
+  cor(use = "pairwise.complete.obs") |> 
+  corrplot::corrplot.mixed()
+```
+
+High risk and mixed emotions are highly correlated. Maybe high risk locations are more likely to have mixed emotions? (E.g., I go out with my friends who I really enjoy, but I know they will pressure me to drink)
+```{r}
+eyeball_raw |> 
+  select(contains("risk.high"), contains ("emotion.mixed")) |> 
+  cor(use = "pairwise.complete.obs") |> 
+  corrplot::corrplot.mixed()
+```
+
+Higher risk places and pleasant emotions are inversely correlated, makes sense.
+```{r}
+eyeball_raw |> 
+  select(contains("risk.high"), contains ("emotion.pleasant")) |> 
+  cor(use = "pairwise.complete.obs") |> 
+  corrplot::corrplot.mixed()
+```
+
+### Home and temp residence
+```{r}
+eyeball_raw |> 
+  select(contains("temporaryresidence"), contains("type.home")) |> 
+  cor(use = "pairwise.complete.obs") |> 
+  corrplot::corrplot.mixed()
+```
+
+### Healthy behaviors and emotions
+
+```{r}
+eyeball_raw |> 
+  select(contains("fitness"), contains ("emotion.neutral")) |> 
+  cor(use = "pairwise.complete.obs") |> 
+  corrplot::corrplot.mixed()
+```
+
+```{r}
+eyeball_raw |> 
+  select(contains("aa"), contains ("emotion.pleasant")) |> 
+  cor(use = "pairwise.complete.obs") |> 
+  corrplot::corrplot.mixed()
+```
+
+```{r}
+eyeball_raw |> 
+  select(contains("healthcare"), contains ("emotion.neutral")) |> 
+  cor(use = "pairwise.complete.obs") |> 
+  corrplot::corrplot.mixed()
+```
+
+### Social support and emotions
+
+```{r}
+eyeball_raw |> 
+  select(contains("friend"), contains("emotion.pleasant")) |> 
+  cor(use = "pairwise.complete.obs") |> 
+  corrplot::corrplot.mixed()
+```
+
+```{r}
+eyeball_raw |> 
+  select(contains("family"), contains("emotion.pleasant")) |> 
+  cor(use = "pairwise.complete.obs") |> 
+  corrplot::corrplot.mixed()
+```
+
+### Relationships with lapse count
+
+#### Emotions
+
+```{r}
+eyeball_raw |> 
+  select(contains("emotion.pleasant"), contains("strat")) |>
+  mutate(strat = if_else(strat == "low lapse", 0, 1)) |> 
+  cor(use = "pairwise.complete.obs") |> 
+  corrplot::corrplot.mixed()
+```
+
+```{r}
+eyeball_raw |> 
+  select(contains("emotion.unpleasant"), contains("strat")) |>
+  mutate(strat = if_else(strat == "low lapse", 0, 1)) |> 
+  cor(use = "pairwise.complete.obs") |> 
+  corrplot::corrplot.mixed()
+```
+
+```{r}
+eyeball_raw |> 
+  select(contains("emotion.neutral"), contains("strat")) |>
+  mutate(strat = if_else(strat == "low lapse", 0, 1)) |> 
+  cor(use = "pairwise.complete.obs") |> 
+  corrplot::corrplot.mixed()
+```
+
+```{r}
+eyeball_raw |> 
+  select(contains("emotion.mixed"), contains("strat")) |>
+  mutate(strat = if_else(strat == "low lapse", 0, 1)) |> 
+  cor(use = "pairwise.complete.obs") |> 
+  corrplot::corrplot.mixed()
+```
+
+#### Risk
+
+```{r}
+eyeball_raw |> 
+  select(contains("risk.high"), contains("strat")) |>
+  mutate(strat = if_else(strat == "low lapse", 0, 1)) |> 
+  cor(use = "pairwise.complete.obs") |> 
+  corrplot::corrplot.mixed()
+```
+
+```{r}
+eyeball_raw |> 
+  select(contains("risk.medium"), contains("strat")) |>
+  mutate(strat = if_else(strat == "low lapse", 0, 1)) |> 
+  cor(use = "pairwise.complete.obs") |> 
+  corrplot::corrplot.mixed()
+```
+
+```{r}
+eyeball_raw |> 
+  select(contains("risk.low"), contains("strat")) |>
+  mutate(strat = if_else(strat == "low lapse", 0, 1)) |> 
+  cor(use = "pairwise.complete.obs") |> 
+  corrplot::corrplot.mixed()
+```
+
+```{r}
+eyeball_raw |> 
+  select(contains("risk.no"), contains("strat")) |>
+  mutate(strat = if_else(strat == "low lapse", 0, 1)) |> 
+  cor(use = "pairwise.complete.obs") |> 
+  corrplot::corrplot.mixed()
+```
+
+#### Alcohol
+
+```{r}
+eyeball_raw |> 
+  select(contains("alcohol.no"), contains("strat")) |>
+  mutate(strat = if_else(strat == "low lapse", 0, 1)) |> 
+  cor(use = "pairwise.complete.obs") |> 
+  corrplot::corrplot.mixed()
+```
+
+```{r}
+eyeball_raw |> 
+  select(contains("alcohol.yes"), contains("strat")) |>
+  mutate(strat = if_else(strat == "low lapse", 0, 1)) |> 
+  cor(use = "pairwise.complete.obs") |> 
+  corrplot::corrplot.mixed()
+```
+
+#### Avoid
+
+```{r}
+eyeball_raw |> 
+  select(contains("avoid.yes"), contains("strat")) |>
+  mutate(strat = if_else(strat == "low lapse", 0, 1)) |> 
+  cor(use = "pairwise.complete.obs") |> 
+  corrplot::corrplot.mixed()
+```
+
+```{r}
+eyeball_raw |> 
+  select(contains("avoid.no"), contains("strat")) |>
+  mutate(strat = if_else(strat == "low lapse", 0, 1)) |> 
+  cor(use = "pairwise.complete.obs") |> 
+  corrplot::corrplot.mixed()
+```
+
+#### Time spent at home
+
+```{r}
+eyeball_raw |> 
+  select(contains("type.home"), contains("strat")) |>
+  mutate(strat = if_else(strat == "low lapse", 0, 1)) |> 
+  cor(use = "pairwise.complete.obs") |> 
+  corrplot::corrplot.mixed()
+```
+
+#### Time spent outside of the home in the evening
+
+```{r}
+eyeball_raw |> 
+  select(contains("evening_out.yes"), contains("strat")) |>
+  mutate(strat = if_else(strat == "low lapse", 0, 1)) |> 
+  cor(use = "pairwise.complete.obs") |> 
+  corrplot::corrplot.mixed()
+```
+
+```{r}
+eyeball_raw |> 
+  select(contains("evening_out.no"), contains("strat")) |>
+  mutate(strat = if_else(strat == "low lapse", 0, 1)) |> 
+  cor(use = "pairwise.complete.obs") |> 
+  corrplot::corrplot.mixed()
+```
+
+## EDA - Difference Features
+
+Placeholder. Interpretability of difference features less clear so leaving blank for now.

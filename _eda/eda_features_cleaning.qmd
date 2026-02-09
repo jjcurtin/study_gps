@@ -1,5 +1,5 @@
 ---
-title: "EDA of CHTC features"
+title: "EDA of CHTC features - Cleaning"
 author: "Claire Punturieri"
 date: "`r lubridate::today()`"
 format: 
@@ -22,6 +22,8 @@ params:
 
 ## Notes
 
+ - Maximum of rate sum features should probably be 1 for raw features? If we are calculating a rate that is the total amount of time in that period at a given location divided by the total amount of time in a period, logically that value cannot be over 1. Maybe for GPS data we need to drop the first row in a given period, because duration is the amount of time that has passed since the previous point.
+
 
 # Set up
 
@@ -32,6 +34,7 @@ params:
 #| warning: false
 
 library(tidyverse)
+library(tidymodels)
 
 options(conflicts.policy = "depends.ok")
 ```
@@ -56,7 +59,7 @@ features_file <- str_c("batch_features.csv")
 #| echo: false
 
 # for data wrangling
-library(lubridate)
+library(skimr)
 
 # helpful lab functions
 source("https://github.com/jjcurtin/lab_support/blob/main/fun_eda.R?raw=true")
@@ -73,7 +76,7 @@ features <- read_csv(here::here(path_chtc, features_file),
                  show_col_types = FALSE)
 ```
 
-## EDA
+# EDA - Cleaning
 
 Verify percentage of lapses looks reasonable.
 ```{r}
@@ -89,6 +92,16 @@ features |>
          numeric.p100) |>
   filter(!skim_variable == "subid" & !skim_variable == "label_num") |> 
   arrange(desc(numeric.p100), skim_variable) 
+```
+
+```{r}
+features |> glimpse()
+```
+
+```{r}
+features |>
+  skimr::skim_without_charts() |> 
+  select(skim_variable, numeric.p0, numeric.p100, numeric.sd, complete_rate)
 ```
 
 Check raw scores (numeric.p0 should = 0).
@@ -124,9 +137,11 @@ features |>
   arrange(desc(n_missing), skim_variable)
 ```
 
-### Correlations between contextual features
+## Correlations between contextual features
 
-#### Alcohol
+Sanity check that calculations are correct, features should be at least somewhat inversely correlated.
+
+### Alcohol
 ```{r}
 cor_table <- data.frame(
   period = c("6h", "12h", "24h", "48h", "72h", "168h"),
@@ -161,7 +176,7 @@ cat("Correlation between DIFFERENCE 'alcohol.yes' and 'alcohol.no' rates\n\n")
 print(cor_table)
 ```
 
-#### Drank
+### Drank
 ```{r}
 cor_table <- data.frame(
   period = c("6h", "12h", "24h", "48h", "72h", "168h"),
@@ -196,7 +211,7 @@ cat("Correlation between DIFFERENCE 'drank.yes' and 'drank.no' rates\n\n")
 print(cor_table)
 ```
 
-#### Avoid
+### Avoid
 ```{r}
 cor_table <- data.frame(
   period = c("6h", "12h", "24h", "48h", "72h", "168h"),
@@ -229,6 +244,47 @@ cor_table <- data.frame(
 
 cat("Correlation between DIFFERENCE 'avoid.yes' and 'avoid.no' rates\n\n")
 print(cor_table)
+```
+
+## NZV
+
+Based on the requirements of `step_nzv()`:
+```{r}
+?step_nzv
+```
+
+"This step diagnoses predictors that have one unique value (i.e. are zero variance predictors) or predictors that have both of the following characteristics:
+
+1) they have very few unique values relative to the number of samples and
+
+2) the ratio of the frequency of the most common value to the frequency of the second most common value is large."
+
+Check unique values relative to number of samples. `unique_cut` default is 10.
+```{r}
+p_unique <- function(var_name, d){
+  
+  length(unique(d[[var_name]]))/nrow(d)*100
+  
+}
+
+p <- names(features) |> 
+  map(\(var_name) p_unique(var_name, features)) |> 
+  cbind()
+```
+
+Check ratio frequency. `freq_cut` default is 95/5.
+```{r}
+p_freq <- function(var_name, d){
+  t <- d |> 
+      janitor::tabyl({{var_name}}) |> 
+      arrange(desc(n))
+ 
+  t$n[1]/t$n[2] 
+}
+
+f <- names(features) |> 
+  map(\(var_name) p_freq(var_name, features)) |> 
+  cbind()
 ```
 
 ### Save out to shared folder
