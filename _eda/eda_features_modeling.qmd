@@ -19,11 +19,13 @@ params:
 
 ## Code Status
 
+In progress 2/2026.
 
 ## Notes
 
  - Perhaps want a feature that captures alcohol not at home or at work, maybe the presence of alcohol is more meaningful when someone does not expect it?
- - 
+ - Is there value in dropping the "other" category?
+ - What about drinking at a location where alcohol is not available? Is that qualitatively more meaningful and a riskier behavior that we want to assign greater weight to?
 
 # Set up
 
@@ -66,7 +68,7 @@ options(tibble.width = Inf, dplyr.print_max = Inf)
 
 ## Load in data
 
-Load in features data and strat data -- these are combined formally in mak_combined_features.qmd but is reproduced below for simplicity. We'll also load in GPS data to fil
+Load in features data and strat data -- these are combined formally in mak_combined_features.qmd but is reproduced below for simplicity.
 ```{r}
 features <- read_csv(here::here(path_shared, features_file), 
                  show_col_types = FALSE)
@@ -95,56 +97,75 @@ eyeball_diff <- eyeball |> select(subid, dttm_label, lapse, contains("l0.d"), st
 
 ```{r}
 locations <- read_csv(here::here(path_shared, "locations.csv"),
-                      show_col_types = FALSE)
+                      show_col_types = FALSE) |> 
+  filter(subid %in% features$subid) # filter down to subjects we are using
 
-loc_eyeball <- locations |> 
-  filter(subid %in% eyeball$subid)
+#loc_eyeball <- locations |> 
+  #filter(subid %in% eyeball$subid)
 ```
 
 ```{r}
-loc_eyeball |>
+locations |>
   tab2(type, alcohol)
 ```
 
+Pleasant doesn't mean protective. Family, friends, and bars are often rated as "pleasant", but folks have often drank in those settings before.
 ```{r}
-loc_eyeball |> 
+locations |> 
   tab2(type, emotion)
 ```
 
 ```{r}
-loc_eyeball |> 
+locations |> 
   tab2(type, drank)
 ```
 
 ```{r}
-loc_eyeball |> 
+locations |> 
   tab2(type, risk)
 ```
 
 ```{r}
-loc_eyeball |> 
+locations |> 
   tab2(type, avoid)
 ```
 
-Is drinking somewhere where alcohol is not available more meaningful? (E.g., you have to bring your own?)
+Is spending time at a location where you have drank somewhere where alcohol is not available more meaningful? (E.g., you have to bring your own?)
 ```{r}
-loc_eyeball |> 
+locations |> 
+  tab2(drank, alcohol)
+
+locations |> 
+  filter(alcohol == "no") |> 
+  tab2(drank, alcohol)
+
+locations |> 
+  filter(alcohol == "yes") |> 
   tab2(drank, alcohol)
 ```
 
+What about being at a location where you have drank before which you also want to avoid, is that more important?
 ```{r}
-loc_eyeball |> 
+locations |> 
+  tab2(alcohol, avoid)
+
+locations |> 
+  filter(drank == "no") |> 
+  tab2(alcohol, avoid)
+
+locations |> 
+  filter(drank == "yes") |> 
   tab2(alcohol, avoid)
 ```
 
 ```{r}
-loc_eyeball |> 
+locations |> 
   tab2(alcohol, risk)
 ```
 
 Let's look specifically at the relationship between work and home and other location characteristics.
 ```{r}
-loc_eyeball |> 
+locations |> 
   filter(type == "home" | type == "work") |> 
   pivot_longer(
     cols = c(alcohol, avoid, risk, drank, emotion),
@@ -158,7 +179,7 @@ loc_eyeball |>
 
 What about homes of friends and family?
 ```{r}
-loc_eyeball |> 
+locations |> 
   filter(type == "friend" | type == "family") |> 
   pivot_longer(
     cols = c(alcohol, avoid, risk, drank, emotion),
