@@ -286,6 +286,48 @@ eyeball_raw |>
   corrplot::corrplot.mixed()
 ```
 
+### Most correlated features
+
+```{r}
+patterns <- c("type.aa", "type.airport", "type.bar", "type.cafe",
+              "type.church", "type.communityspacerecreation",
+              "type.errands", "type.family", "type.fitness", "type.friend",
+              "type.healthcare", "type.home", "type.library",
+              "type.liquorstore", "type.other", "type.park",
+              "type.publicdrinkingspace", "type.restaurant", "type.school",
+              "type.temporaryresidence", "type.travelstop", "type.volunteer",
+              "type.work", "drank.yes", "drank.no", "alcohol.yes", "alcohol.no",
+              "emotion.pleasant", "emotion.unpleasant", "emotion.mixed",
+              "emotion.neutral", "risk.high", "risk.medium", "risk.low",
+              "risk.no", "avoid.yes", "avoid.no", "transit.yes", "transit.no",
+              "evening_out.yes", "evening_out.no", "home.yes", "home.no")
+```
+
+```{r}
+cor_long <- eyeball_raw |> 
+  select(-strat, -subid, -dttm_label, -lapse) |> 
+  cor(use = "pairwise.complete.obs") |>
+  as.data.frame() |>
+  rownames_to_column("var1") |>
+  pivot_longer(-var1, names_to = "var2", values_to = "correlation") |>
+  filter(var1 < var2)
+
+cor_filtered <- cor_long |>
+  rowwise() |>
+  mutate(shared_pattern = any(
+    sapply(patterns, function(p)
+      str_detect(var1, p) & str_detect(var2, p)
+    )
+  )) |>
+  ungroup() |>
+  filter(!shared_pattern) |>
+  select(-shared_pattern) |> 
+  arrange(desc(abs(correlation)))
+
+head(cor_filtered, 10)
+
+```
+
 ### Relationships with lapse count
 
 #### Emotions
@@ -420,6 +462,23 @@ eyeball_raw |>
   corrplot::corrplot.mixed()
 ```
 
+#### Highest correlation with lapse count
+
+```{r}
+strat_cor <- eyeball_raw |> 
+  select(-lapse, -subid, -dttm_label) |> 
+  mutate(strat = if_else(strat == "low lapse", 0, 1)) |> 
+  summarise(across(-strat, 
+                   ~ cor(.x, strat, use = "complete.obs"))) |> 
+  pivot_longer(everything(),
+               names_to = "variable",
+               values_to = "correlation") |> 
+  arrange(desc(abs(correlation)))
+
+
+strat_cor |> head(n = 20)
+```
+
 ## EDA - Difference Features
 
-Placeholder. Interpretability of difference features less clear so leaving blank for now.
+Maybe consider adding this in? More difficult to interpret.
