@@ -203,7 +203,7 @@ build_recipe <- function(d, config) {
   # algorithm specific steps
   if (algorithm == "glmnet") {
     rec <- rec  |>
-      step_dummy(all_nominal_predictors()) |>
+      step_dummy(all_nominal_predictors(), one_hot = TRUE) |>
       step_normalize(all_predictors())
   } 
   
@@ -213,7 +213,7 @@ build_recipe <- function(d, config) {
   
   if (algorithm == "xgboost") {
     rec <- rec  |> 
-      step_dummy(all_nominal_predictors())
+      step_dummy(all_nominal_predictors(), one_hot = TRUE)
   } 
   
   # final steps for all algorithms
