@@ -11,7 +11,7 @@ editor_options:
   chunk_output_type: console
 params:
   window: "day"
-  roll_dur: 1 # 1 24
+  roll_dur: 24 # 1 24
   sample: "gps" # ema messages
 ---
 
@@ -135,6 +135,20 @@ features |>
   filter(!skim_variable == "subid" & !skim_variable == "label_num") |>
   filter(grepl("rvar|dvar", skim_variable)) |> 
   arrange(desc(n_missing), skim_variable)
+```
+
+Sum the total number of raw values above 1 across every category.
+```{r}
+features |> 
+  select(-subid, -dttm_label, -lapse) |>
+  summarise(across(where(is.numeric), ~ sum(.x > 1, na.rm = TRUE))) |> 
+    pivot_longer(
+    cols = everything(),
+    names_to = "variable",
+    values_to = "n_above_1"
+  ) |> 
+  view()
+  
 ```
 
 ## Correlations between contextual features

@@ -23,9 +23,21 @@ In progress 2/2026.
 
 ## Notes
 
- - Perhaps want a feature that captures alcohol not at home or at work, maybe the presence of alcohol is more meaningful when someone does not expect it?
- - Is there value in dropping the "other" category?
- - What about drinking at a location where alcohol is not available? Is that qualitatively more meaningful and a riskier behavior that we want to assign greater weight to?
+First retrain features to be 24hr rolls
+
+Then retrain models with correct ratesum
+
+Candidate feature engineering changes:
+ - Reduce lookback windows (24h 168h)
+ - Combine high/medium and low/no risk
+ - Drop emotion == mixed
+ - Drop type == other
+ - Target encoding for type -- comparison between all categorical variables by target or one hot encoding that are not binary
+ 
+Secondary list:
+ - Combine feature for pleasant protective locations versus not
+ 
+24h rolls
 
 # Set up
 
@@ -104,6 +116,21 @@ locations <- read_csv(here::here(path_shared, "locations.csv"),
   #filter(subid %in% eyeball$subid)
 ```
 
+Count of locations check.
+```{r}
+locations |> 
+  group_by(subid) |> 
+  summarise(count = n()) |> 
+  pull(count) |> 
+  hist()
+
+locations |> 
+  group_by(subid) |> 
+  summarise(count = n()) |> 
+  pull(count) |> 
+  median()
+```
+
 ```{r}
 locations |>
   tab2(type, alcohol)
@@ -137,11 +164,7 @@ locations |>
 
 locations |> 
   filter(alcohol == "no") |> 
-  tab2(drank, alcohol)
-
-locations |> 
-  filter(alcohol == "yes") |> 
-  tab2(drank, alcohol)
+  tab2(type, drank)
 ```
 
 What about being at a location where you have drank before which you also want to avoid, is that more important?
