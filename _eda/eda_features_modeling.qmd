@@ -23,12 +23,12 @@ In progress 2/2026.
 
 ## Notes
 
-First retrain features to be 24hr rolls
+First retrain features to be 24hr rolls [x]
 
-Then retrain models with correct ratesum
+Retrain models with correct ratesum and different period duration (two and all) options, raw diff all scoring methods
+Claire will look at features before running models to make sure nothing got screwed up
 
 Candidate feature engineering changes:
- - Reduce lookback windows (24h 168h)
  - Combine high/medium and low/no risk
  - Drop emotion == mixed
  - Drop type == other

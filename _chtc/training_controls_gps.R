@@ -32,11 +32,13 @@ source("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true
 study <- "gps"
 window <- "day"
 lead <- 0
-version <- "v13" 
+version <- "v14" 
 algorithm <- "xgboost"
-model <- "act_v_pass"
+model <- "raw_v_diff"
 
-feature_set <- c("id", "id_act", "id_pass", "id_act_pass") # GPS feature set name
+feature_set <- c("raw_allpd", "raw_twopd",
+                 "diff_allpd", "diff_twopd",
+                 "all_allpd", "all_twopd") # GPS feature set name
 data_trn <- str_c("features_combined.csv")
 
 seed_splits <- 102030
@@ -156,22 +158,27 @@ build_recipe <- function(d, config) {
     rec <- rec |> 
       step_rm(strat) # remove strat variable
   }
-
+  
+  # currently fitting only active and id features 3/4/26
+  rec <- rec |> 
+    step_rm(contains("pass_")) # claire check
+  
+  
+  
   # specify features for different configs 
-  if(feature_set == "id") {
+  if(str_detect(feature_set, "raw")) {
     rec <- rec |> 
-      step_rm(contains("act_")) |> 
-      step_rm(contains("pass_"))
+      step_rm(contains("diff")) # claire check
   }
   
-  if(feature_set == "id_pass") {
+  if(str_detect(feature_set, "diff")) {
     rec <- rec |> 
-      step_rm(contains("act_"))
+      step_rm(contains("raw")) # claire check
   }
   
-  if(feature_set == "id_act") {
+  if(str_detect(feature_set, "twopd")) {
     rec <- rec |> 
-      step_rm(contains("pass_"))
+      step_rm(contains("6", "12", "48", "72")) # claire check
   }
   
   rec <- rec |>
