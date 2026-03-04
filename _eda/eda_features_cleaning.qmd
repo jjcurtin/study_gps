@@ -58,9 +58,6 @@ features_file <- str_c("batch_features.csv")
 #| warning: false
 #| echo: false
 
-# for data wrangling
-library(skimr)
-
 # helpful lab functions
 source("https://github.com/jjcurtin/lab_support/blob/main/fun_eda.R?raw=true")
 
@@ -133,7 +130,7 @@ features |>
   select(skim_variable, n_missing, complete_rate, numeric.p0, numeric.p50, 
          numeric.p100) |>
   filter(!skim_variable == "subid" & !skim_variable == "label_num") |>
-  filter(grepl("rvar|dvar", skim_variable)) |> 
+  #filter(grepl("rvar|dvar", skim_variable)) |> 
   arrange(desc(n_missing), skim_variable)
 ```
 
