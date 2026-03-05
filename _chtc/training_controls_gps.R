@@ -21,9 +21,10 @@
 # glmnet with lh strat, movement and context and weather features, hour roll (v10)
 # xgboost with lh strat, movement and context and weather and circadian features, hour roll (v11)
 # xgboost with lh strat, divided across demo/demo+passive+active/demo+active (v12) -- accidentally ran with demographics but not aud id
+# xgboost with lh strat, divided across id/id+passive+active/id+active (v13)
 
 # currently running:
-# xgboost with lh strat, divided across id/id+passive+active/id+active (v12)
+# xgboost with lh strat, divided across raw, diff, all for active features, also comparing 24, 168 windows to all windows (v14)
 
 # source format_path
 source("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true")
@@ -161,24 +162,29 @@ build_recipe <- function(d, config) {
   
   # currently fitting only active and id features 3/4/26
   rec <- rec |> 
-    step_rm(contains("pass_")) # claire check
-  
-  
+    step_rm(
+      contains("pass_"),
+      contains("entropy"),
+      contains("transit")
+    )
   
   # specify features for different configs 
   if(str_detect(feature_set, "raw")) {
     rec <- rec |> 
-      step_rm(contains("diff")) # claire check
+      step_rm(contains("dif"))
   }
   
-  if(str_detect(feature_set, "diff")) {
+  if(str_detect(feature_set, "dif")) {
     rec <- rec |> 
-      step_rm(contains("raw")) # claire check
+      step_rm(contains("raw"))
   }
   
   if(str_detect(feature_set, "twopd")) {
     rec <- rec |> 
-      step_rm(contains("6", "12", "48", "72")) # claire check
+      step_rm(contains("p6"),
+              contains("p12"),
+              contains("p48"),
+              contains("p72"))
   }
   
   rec <- rec |>
