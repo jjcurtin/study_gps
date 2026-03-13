@@ -29,10 +29,14 @@ Retrain models with correct ratesum and different period duration (two and all) 
 Claire will look at features before running models to make sure nothing got screwed up
 
 Candidate feature engineering changes:
- - Combine high/medium and low/no risk
- - Drop emotion == mixed
+ - Combine high/medium and low/no risk [x]
+ - Three level risk model
  - Drop type == other
- - Target encoding for type -- comparison between all categorical variables by target or one hot encoding that are not binary
+ - Target encoding for type -- comparison between all categorical variables by target or one hot encoding that are not binary (what does this mean!!!)
+ - Consider retain or drop entropy
+ - Consider retain or drop weather
+ - Review final set of features for any drops
+ - Consider role of baseline ID beyond
  
 Secondary list:
  - Combine feature for pleasant protective locations versus not
