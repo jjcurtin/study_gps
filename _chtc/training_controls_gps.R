@@ -22,9 +22,12 @@
 # xgboost with lh strat, movement and context and weather and circadian features, hour roll (v11)
 # xgboost with lh strat, divided across demo/demo+passive+active/demo+active (v12) -- accidentally ran with demographics but not aud id
 # xgboost with lh strat, divided across id/id+passive+active/id+active (v13)
+# xgboost with lh strat, divided across raw, diff, all for active features, also comparing 24, 168 windows to all windows (v14)
+# same as v14 but with risk level condensed (high/medium versus low/no) versus all separate (v15)
+# raw two period duration with three levels of risk (low, no, highmed) (V16)
 
 # currently running:
-# xgboost with lh strat, divided across raw, diff, all for active features, also comparing 24, 168 windows to all windows (v14)
+# raw two period duration, w/ w/o other, w/ w/o nos/neutrals
 
 # source format_path
 source("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true")
@@ -33,13 +36,12 @@ source("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true
 study <- "gps"
 window <- "day"
 lead <- 0
-version <- "v14" 
+version <- "v17" 
 algorithm <- "xgboost"
-model <- "raw_v_diff"
+model <- "other_v_no"
 
-feature_set <- c("raw_allpd", "raw_twopd",
-                 "diff_allpd", "diff_twopd",
-                 "all_allpd", "all_twopd") # GPS feature set name
+feature_set <- c("other-incl_no-excl", "other-excl_no-incl",
+                 "other-incl_no-incl", "other-excl_no-excl") # GPS feature set name
 data_trn <- str_c("features_combined.csv")
 
 seed_splits <- 102030
@@ -160,31 +162,33 @@ build_recipe <- function(d, config) {
       step_rm(strat) # remove strat variable
   }
   
+  # steps decided based on testing!
+  rec <- rec |>
+    stem_rm(contains("dif"),
+            contains("p6"),
+            contains("p12"),
+            contains("p48"),
+            contains("p72"),
+            contains("risk_lowno."),
+            contains("risk_himed."))
+  
   # currently fitting only active and id features 3/4/26
   rec <- rec |> 
     step_rm(
       contains("pass_"),
-      contains("entropy"),
       contains("transit")
     )
   
   # specify features for different configs 
-  if(str_detect(feature_set, "raw")) {
+  if(str_detect(feature_set, "no-excl")) {
     rec <- rec |> 
-      step_rm(contains("dif"))
+      step_rm(contains("_no."),
+              contains("_neutral."))
   }
   
-  if(str_detect(feature_set, "dif")) {
+  if(str_detect(feature_set, "other-excl")) {
     rec <- rec |> 
-      step_rm(contains("raw"))
-  }
-  
-  if(str_detect(feature_set, "twopd")) {
-    rec <- rec |> 
-      step_rm(contains("p6"),
-              contains("p12"),
-              contains("p48"),
-              contains("p72"))
+      step_rm(contains("_other."))
   }
   
   rec <- rec |>
