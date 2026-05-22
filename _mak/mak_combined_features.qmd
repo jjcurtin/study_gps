@@ -68,43 +68,29 @@ cm |> distinct(subid) |> nrow()
 strat |> distinct(subid) |> nrow() 
 ```
 
-Get rid of other features (e.g. no) that aren't useful, and remove Chris' features. CP commenting out for now, think we want everything.
+Remove features we don't need for now.
 ```{r}
 #gps <- gps |>
-  # not useful
-  #select(-contains(".no")) |> 
-  #select(-contains("neutral")) |>
-  #select(-contains("other")) |> 
-  # chris features
   #select(-contains("poi_category")) |> 
   #select(-contains("adi_cats"))
+```
+
+Remove duplicated rows because of Daylight savings
+Only needed for 24 hour rolls
+```{r}
+gps <- gps |> distinct(subid, dttm_label, .keep_all = TRUE)
 ```
 
 Clean feature names with John's function.
 ```{r}
 gps <- gps |> 
-  rename_gps_features_stage1()
+  rename_gps_features_stage1() |>
+  reorder_feature_names(type = "gps")
 ```
 
 
 Temporary cleaning of feature names, maybe integrate with John's code or just change how features are generated.
 ```{r}
-# change passive gps features
-features_to_act <- c("evening_out", "evening_out.no",
-                     "home", "home.no", "location_var")
-
-gps <- gps |> 
-  rename_with(
-    ~ sub(
-        # Match: last segment before optional .no
-        paste0("(", paste(features_to_act, collapse = "|"), ")$"),
-        # Replace with: act_ + matched segment
-        "act_\\1",
-        .x
-    ),
-    starts_with("p")
-  )
-
 # change weather names
 weather <- weather |> 
   rename_with(function(x) {
@@ -153,11 +139,6 @@ aud_id <- aud_id |>
   rename_with(~ paste0("id_", .x), -1)
   
 ```
-Remove diff features from monthly
-```{r}
-# monthly <- monthly |> 
-#   select(-contains("drecent"))
-```
 
 Look at features for each signal
 
@@ -168,14 +149,6 @@ names(aud_id)
 names(weather)
 names(cm)
 names(strat)
-```
-
-Remove duplicated rows because of Daylight savings
-Only needed for 24 hour rolls
-```{r}
-# ema <- ema |> distinct(subid, dttm_label, .keep_all = TRUE)
- gps <- gps |> distinct(subid, dttm_label, .keep_all = TRUE)
-# monthly <- monthly |> distinct(subid, dttm_label, .keep_all = TRUE)
 ```
 
 

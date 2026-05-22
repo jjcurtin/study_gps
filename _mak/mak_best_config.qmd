@@ -11,10 +11,10 @@ format:
     embed-resources: true
 params:
   study: "gps"
-  version: "v12"
+  version: "v18"
   cv: "kfold_6_x_5"
   algorithms: "xgboost"   # "all" or name of specific algorithm
-  model: "act_v_pass"
+  model: "weather_v_none"
 editor_options: 
   chunk_output_type: console
 ---
@@ -67,7 +67,7 @@ library(tidyverse)
 
 theme_set(theme_classic())
 
-devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/fun_eda.R?raw=true")
+source("https://github.com/jjcurtin/lab_support/blob/main/fun_eda.R?raw=true")
 ```
 
 ### Paths

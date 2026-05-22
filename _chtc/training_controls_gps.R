@@ -25,9 +25,10 @@
 # xgboost with lh strat, divided across raw, diff, all for active features, also comparing 24, 168 windows to all windows (v14)
 # same as v14 but with risk level condensed (high/medium versus low/no) versus all separate (v15)
 # raw two period duration with three levels of risk (low, no, highmed) (V16)
+# raw two period duration, w/ w/o other, w/ w/o nos/neutrals (v17)
 
 # currently running:
-# raw two period duration, w/ w/o other, w/ w/o nos/neutrals
+# raw two period duration, w/o other and with nos/neutrals, comparing w/ w/o weather features (v18)
 
 # source format_path
 source("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true")
@@ -36,12 +37,11 @@ source("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true
 study <- "gps"
 window <- "day"
 lead <- 0
-version <- "v17" 
+version <- "v18" 
 algorithm <- "xgboost"
-model <- "other_v_no"
+model <- "weather_v_none"
 
-feature_set <- c("other-incl_no-excl", "other-excl_no-incl",
-                 "other-incl_no-incl", "other-excl_no-excl") # GPS feature set name
+feature_set <- c("weather_incl", "weather_excl") # GPS feature set name
 data_trn <- str_c("features_combined.csv")
 
 seed_splits <- 102030
@@ -164,33 +164,28 @@ build_recipe <- function(d, config) {
   
   # steps decided based on testing!
   rec <- rec |>
-    stem_rm(contains("dif"),
+    step_rm(contains("dif"),
             contains("p6"),
             contains("p12"),
             contains("p48"),
             contains("p72"),
             contains("risk_lowno."),
-            contains("risk_himed."))
+            contains("risk_himed."),
+            contains("_other."))
   
-  # currently fitting only active and id features 3/4/26
+  # removing transit and circadian movement from these models
   rec <- rec |> 
     step_rm(
-      contains("pass_"),
+      contains("pass_cm"),
       contains("transit")
     )
   
-  # specify features for different configs 
-  if(str_detect(feature_set, "no-excl")) {
+  # with and without weather
+  if(feature_set == "weather_excl") {
     rec <- rec |> 
-      step_rm(contains("_no."),
-              contains("_neutral."))
+      step_rm(contains("pass_")) # remaining passive vars are weather
   }
-  
-  if(str_detect(feature_set, "other-excl")) {
-    rec <- rec |> 
-      step_rm(contains("_other."))
-  }
-  
+
   rec <- rec |>
     step_zv(all_predictors()) |> 
     step_impute_median(all_numeric_predictors()) |> 
@@ -229,6 +224,7 @@ build_recipe <- function(d, config) {
   } 
   
   if (algorithm == "xgboost") {
+    
     rec <- rec  |> 
       step_dummy(all_nominal_predictors(), one_hot = TRUE)
   } 
