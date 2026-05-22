@@ -54,7 +54,7 @@ library(tidyverse)
 library(lubridate)
 
 # helpful lab functions
-devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/fun_eda.R?raw=true")
+source("https://github.com/jjcurtin/lab_support/blob/main/fun_eda.R?raw=true")
 
 # adjust plot visuals
 theme_set(theme_classic())
@@ -86,7 +86,7 @@ features |>
   arrange(desc(numeric.p100), skim_variable) 
 ```
 
-Check raw scores (numeric.p0 should = 0).
+Check raw scores (numeric.p0 can be negative for temperature).
 ```{r}
 features |>  
   skimr::skim_without_charts() |> 
@@ -97,7 +97,7 @@ features |>
   arrange(desc(numeric.p0), skim_variable)
 ```
 
-Check difference scores (numeric.p0 can be less than 0)
+Check difference scores (all numeric.p0 can be less than 0)
 ```{r}
 features |>  
   skimr::skim_without_charts() |> 
