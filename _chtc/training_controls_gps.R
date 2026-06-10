@@ -26,9 +26,11 @@
 # same as v14 but with risk level condensed (high/medium versus low/no) versus all separate (v15)
 # raw two period duration with three levels of risk (low, no, highmed) (V16)
 # raw two period duration, w/ w/o other, w/ w/o nos/neutrals (v17)
-
-# currently running:
 # raw two period duration, w/o other and with nos/neutrals, comparing w/ w/o weather features (v18)
+
+# currently running
+# final config, baseline v full with xgboost - claire, 19
+# final config, baseline v full with glmnet - kendra, 20
 
 # source format_path
 source("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true")
@@ -37,11 +39,11 @@ source("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true
 study <- "gps"
 window <- "day"
 lead <- 0
-version <- "v18" 
-algorithm <- "xgboost"
-model <- "weather_v_none"
+version <- "v20" 
+algorithm <- "glmnet" # glmnet
+model <- "full_v_baseline"
 
-feature_set <- c("weather_incl", "weather_excl") # GPS feature set name
+feature_set <- c("full", "baseline") # GPS feature set name
 data_trn <- str_c("features_combined.csv")
 
 seed_splits <- 102030
@@ -58,7 +60,7 @@ resample <- c("none", "up_1", "up_2", "up_3", "up_4", "up_5",
               "down_1", "down_2", "down_3", "down_4", "down_5")
 
 # CHTC SPECIFIC CONTROLS------ ---------------------
-username <- "punturieri" # for setting staging directory (until we have group staging folder)
+username <- "p/punturieri" # for setting staging directory (until we have group staging folder)
 stage_data <- FALSE # If FALSE .sif will still be staged, just not data_trn
 max_idle <- 1000
 request_cpus <- 1 
@@ -75,10 +77,10 @@ y_level_neg <- "no lapse"
 
 
 # CV SETTINGS---------------------------------
-cv_resample_type <- "kfold" # can be boot, kfold, or nested
-cv_resample = "6_x_5" # can be repeats_x_folds (e.g., 1_x_10, 10_x_10) or number of bootstraps (e.g., 100)
-cv_inner_resample <- NULL # can also be a single number for bootstrapping (i.e., 100)
-cv_outer_resample <- NULL # outer resample will always be kfold
+cv_resample_type <- "nested" # can be boot, kfold, or nested
+cv_resample = NULL # can be repeats_x_folds (e.g., 1_x_10, 10_x_10) or number of bootstraps (e.g., 100)
+cv_inner_resample <- "2_x_5" # can also be a single number for bootstrapping (i.e., 100)
+cv_outer_resample <- "6_x_5" # outer resample will always be kfold
 cv_group <- "subid" # set to NULL if not grouping
 cv_strat <- TRUE # whether or not you have a stratifying variable
 
@@ -97,10 +99,10 @@ path_batch <- format_path(str_c("risk/chtc/", study, "/", name_batch))
 path_data <- format_path(str_c("risk/data_processed/gps")) 
 
 # ALGORITHM-SPECIFIC HYPERPARAMETERS-----------
-hp1_glmnet <- c(0.05, seq(.1, 1, length.out = 10)) # alpha (mixture)
-hp2_glmnet_min <- -8 # min for penalty grid - will be passed into exp(seq(min, max, length.out = out))
-hp2_glmnet_max <- 2 # max for penalty grid
-hp2_glmnet_out <- 200 # length of penalty grid
+hp1_glmnet <- c(0.05, seq(.1, 1, length.out = 12)) # alpha (mixture)
+hp2_glmnet_min <- -10 # min for penalty grid - will be passed into exp(seq(min, max, length.out = out))
+hp2_glmnet_max <- 3 # max for penalty grid
+hp2_glmnet_out <- 300 # length of penalty grid
 
 #hp1_knn <- seq(5, 255, length.out = 26) # neighbors (must be integer)
 
@@ -108,9 +110,9 @@ hp2_glmnet_out <- 200 # length of penalty grid
 #hp2_rf <- c(2, 15, 30) # min_n
 #hp3_rf <- 1500 # trees (10 x's number of predictors)
 
-hp1_xgboost <- c(0.0001, 0.001, 0.01, 0.1, 0.2, 0.3, .4)  # learn_rate, how fast model fits residual error; high: faster, but may overshoot, low: slower, may get stuck on less optimal solutions
-hp2_xgboost <- c(1, 2, 3, 4) # tree_depth, complexity of tree structure (larger no. = more likely to overfit)
-hp3_xgboost <- c(10, 15, 20, 30, 40, 50)  # mtry, no. feats. to split on at each split
+hp1_xgboost <- c(0.001, 0.005, 0.01, 0.05, 0.1, 0.2, 0.3, 0.4)  # learn_rate, how fast model fits residual error; high: faster, but may overshoot, low: slower, may get stuck on less optimal solutions
+hp2_xgboost <- c(1, 2, 3, 4, 5, 6) # tree_depth, complexity of tree structure (larger no. = more likely to overfit)
+hp3_xgboost <- c(10, 15, 20, 30, 40, 50, 75)  # mtry, no. feats. to split on at each split
 # trees = 500
 # early stopping = 20
 
@@ -162,28 +164,12 @@ build_recipe <- function(d, config) {
       step_rm(strat) # remove strat variable
   }
   
-  # steps decided based on testing!
-  rec <- rec |>
-    step_rm(contains("dif"),
-            contains("p6"),
-            contains("p12"),
-            contains("p48"),
-            contains("p72"),
-            contains("risk_lowno."),
-            contains("risk_himed."),
-            contains("_other."))
   
-  # removing transit and circadian movement from these models
-  rec <- rec |> 
-    step_rm(
-      contains("pass_cm"),
-      contains("transit")
-    )
-  
-  # with and without weather
-  if(feature_set == "weather_excl") {
+  # baseline v full
+  if(feature_set == "baseline") {
     rec <- rec |> 
-      step_rm(contains("pass_")) # remaining passive vars are weather
+      # baseline model should have only demographics
+      step_rm(contains("gps_"))
   }
 
   rec <- rec |>
@@ -215,8 +201,10 @@ build_recipe <- function(d, config) {
   # algorithm specific steps
   if (algorithm == "glmnet") {
     rec <- rec  |>
-      step_dummy(all_nominal_predictors(), one_hot = TRUE) |>
-      step_normalize(all_predictors())
+      # check all num pred
+      step_normalize(all_numeric_predictors()) |> 
+      step_dummy(all_of(c("demo_educ", "demo_marital")), one_hot = TRUE) |> 
+      step_dummy(all_of(c("demo_sex", "demo_race")), one_hot = FALSE)
   } 
   
   if (algorithm == "random_forest") {
@@ -226,7 +214,8 @@ build_recipe <- function(d, config) {
   if (algorithm == "xgboost") {
     
     rec <- rec  |> 
-      step_dummy(all_nominal_predictors(), one_hot = TRUE)
+      step_dummy(all_of(c("demo_educ", "demo_marital")), one_hot = TRUE) |> 
+      step_dummy(all_of(c("demo_sex", "demo_race")), one_hot = FALSE)
   } 
   
   # final steps for all algorithms
