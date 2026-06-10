@@ -11,7 +11,7 @@ editor_options:
   chunk_output_type: console
 params:
   window: "day"
-  roll_dur: 1 # 1 24
+  roll_dur: 24 # 1 24
   sample: "gps" # ema messages
 ---
 
@@ -30,11 +30,10 @@ Claire will look at features before running models to make sure nothing got scre
 
 Candidate feature engineering changes:
  - Combine high/medium and low/no risk [x]
- - Three level risk model
- - Drop type == other
- - Target encoding for type -- comparison between all categorical variables by target or one hot encoding that are not binary (what does this mean!!!)
- - Consider retain or drop entropy
- - Consider retain or drop weather
+ - Three level risk model [x]
+ - Drop type == other [x]
+ - Remove nos, remove neutral [x]
+ - Consider retain or drop weather [x]
  - Review final set of features for any drops
  - Consider role of baseline ID beyond
  
