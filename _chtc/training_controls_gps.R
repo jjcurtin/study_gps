@@ -27,10 +27,12 @@
 # raw two period duration with three levels of risk (low, no, highmed) (V16)
 # raw two period duration, w/ w/o other, w/ w/o nos/neutrals (v17)
 # raw two period duration, w/o other and with nos/neutrals, comparing w/ w/o weather features (v18)
+# baseline (demographics) v full (demo + gps) with xgboost (v19)
+# baseline (demographics) v full (demo + gps) with glmnet (v20)
 
 # currently running
-# final config, baseline v full with xgboost - claire, 19
-# final config, baseline v full with glmnet - kendra, 20
+# baseline (demographics) v full (demo + gps) with glmnet, incl YJ transformation (V21)
+# baseline (demographics) v full (demo + gps) with rf (v22)
 
 # source format_path
 source("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true")
@@ -39,7 +41,7 @@ source("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true
 study <- "gps"
 window <- "day"
 lead <- 0
-version <- "v20" 
+version <- "v21" 
 algorithm <- "glmnet" # glmnet
 model <- "full_v_baseline"
 
@@ -106,9 +108,9 @@ hp2_glmnet_out <- 300 # length of penalty grid
 
 #hp1_knn <- seq(5, 255, length.out = 26) # neighbors (must be integer)
 
-#hp1_rf <- c(2, 10, 20, 30, 40) # mtry (p/3 for reg or square root of p for class)
-#hp2_rf <- c(2, 15, 30) # min_n
-#hp3_rf <- 1500 # trees (10 x's number of predictors)
+hp1_rf <- c(2, 10, 20, 30, 40, 50, 75) # mtry (p/3 for reg or square root of p for class)
+hp2_rf <- c(2, 5, 10, 15, 20, 30) # min_n
+hp3_rf <- 1500 # trees (10 x's number of predictors)
 
 hp1_xgboost <- c(0.001, 0.005, 0.01, 0.05, 0.1, 0.2, 0.3, 0.4)  # learn_rate, how fast model fits residual error; high: faster, but may overshoot, low: slower, may get stuck on less optimal solutions
 hp2_xgboost <- c(1, 2, 3, 4, 5, 6) # tree_depth, complexity of tree structure (larger no. = more likely to overfit)
@@ -202,6 +204,7 @@ build_recipe <- function(d, config) {
   if (algorithm == "glmnet") {
     rec <- rec  |>
       # check all num pred
+      step_YeoJohnson(all_numeric_predictors()) |> 
       step_normalize(all_numeric_predictors()) |> 
       step_dummy(all_of(c("demo_educ", "demo_marital")), one_hot = TRUE) |> 
       step_dummy(all_of(c("demo_sex", "demo_race")), one_hot = FALSE)
