@@ -29,9 +29,9 @@
 # raw two period duration, w/o other and with nos/neutrals, comparing w/ w/o weather features (v18)
 # baseline (demographics) v full (demo + gps) with xgboost (v19)
 # baseline (demographics) v full (demo + gps) with glmnet (v20)
+# baseline (demographics) v full (demo + gps) with glmnet, incl YJ transformation (V21)
 
 # currently running
-# baseline (demographics) v full (demo + gps) with glmnet, incl YJ transformation (V21)
 # baseline (demographics) v full (demo + gps) with rf (v22)
 
 # source format_path
@@ -41,8 +41,8 @@ source("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true
 study <- "gps"
 window <- "day"
 lead <- 0
-version <- "v21" 
-algorithm <- "glmnet" # glmnet
+version <- "v22" 
+algorithm <- "random_forest" # glmnet
 model <- "full_v_baseline"
 
 feature_set <- c("full", "baseline") # GPS feature set name

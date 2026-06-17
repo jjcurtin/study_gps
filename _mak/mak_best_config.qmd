@@ -11,9 +11,9 @@ format:
     embed-resources: true
 params:
   study: "gps"
-  version: "v19"
+  version: "v22"
   cv: "nested_2_x_5_6_x_5"
-  algorithms: "xgboost"   # "all" or name of specific algorithm
+  algorithms: "random_forest"   # "all" or name of specific algorithm
   model: "full_v_baseline"
 editor_options: 
   chunk_output_type: console
@@ -35,6 +35,8 @@ Currently being used to evaluate validation set performance.
 
 v19, xgboost
 v20, glmnet
+v21, glmnet with yj
+v22, rf
 
 # Set Up
 
@@ -212,7 +214,7 @@ for (k in algorithms) {
         separate(resample, c("resample", "under_ratio"), "_") |> 
         mutate(under_ratio = factor(under_ratio)) |> 
         ggplot(mapping = aes(x = hp1, 
-                         y = roc_auc, 
+                         y = median_roc_auc, 
                          group = hp2, 
                          color = hp2)) +
           geom_line() +
