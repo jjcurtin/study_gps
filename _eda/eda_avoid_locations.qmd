@@ -1,0 +1,72 @@
+---
+title: "EDA of Avoid Locations"
+author: "Claire Punturieri"
+date: "`r lubridate::today()`"
+format: 
+  html:
+    toc: true
+    toc_depth: 4
+    embed-resources: true
+editor_options: 
+  chunk_output_type: console
+---
+
+## Set up environment basics
+
+```{r}
+#| message: false
+#| warning: false
+
+library(tidyverse)
+library(tidymodels)
+
+options(conflicts.policy = "depends.ok")
+```
+
+## Paths
+
+```{r}
+source("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true")
+
+path_gps2 <- format_path("risk/data_processed/gps2/data")
+```
+
+## Additional packages and source
+
+```{r}
+#| message: false
+#| warning: false
+#| echo: false
+
+# helpful lab functions
+source("https://github.com/jjcurtin/lab_support/blob/main/fun_eda.R?raw=true")
+
+# adjust plot visuals
+theme_set(theme_classic())
+options(tibble.width = Inf, dplyr.print_max = Inf)
+```
+
+## Load data
+
+```{r}
+locations <- read_csv(here::here(path_gps2, "locs_gt.csv"), 
+                 show_col_types = FALSE)
+
+length(unique(locations$subid))
+```
+
+## Check avoid locations
+
+First check how many avoid locations there are.
+```{r}
+locations |>
+  mutate(avoid_bin = if_else(avoid == "yes", 1, 0)) |> 
+  tab(avoid_bin)
+```
+
+Now cross with whether or not this info was collected at intake.
+```{r}
+locations |>
+  mutate(avoid_bin = if_else(avoid == "yes", 1, 0)) |> 
+  tab2(avoid_bin, intake)
+```

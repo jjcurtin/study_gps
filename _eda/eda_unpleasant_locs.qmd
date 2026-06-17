@@ -1,0 +1,337 @@
+---
+title: "Unpleasant locations EDA"
+author: "Claire Punturieri"
+date: "`r lubridate::today()`"
+format: 
+  html:
+    toc: true
+    toc_depth: 4
+    embed-resources: true
+editor_options: 
+  chunk_output_type: console
+params:
+  window: "day"
+  roll_dur: 24 # 1 24
+  sample: "gps" # ema messages
+---
+
+
+## Set up environment basics
+
+```{r}
+#| message: false
+#| warning: false
+
+library(tidyverse)
+library(tidymodels)
+
+options(conflicts.policy = "depends.ok")
+```
+
+## Paths
+
+```{r}
+source("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true")
+
+features_file <- str_c("features_", params$sample, "_", params$window, "_", params$roll_dur, "h.csv")
+
+path_shared <- format_path("risk/data_processed/shared")
+```
+
+## Additional packages and source
+
+```{r}
+#| message: false
+#| warning: false
+#| echo: false
+
+# helpful lab functions
+source("https://github.com/jjcurtin/lab_support/blob/main/fun_eda.R?raw=true")
+
+# adjust plot visuals
+theme_set(theme_classic())
+options(tibble.width = Inf, dplyr.print_max = Inf)
+```
+
+## Load data
+
+```{r}
+features <- read_csv(here::here(path_shared, features_file), 
+                 show_col_types = FALSE)
+
+locations <- read_csv(here::here(path_shared, "locations.csv"),
+                      show_col_types = FALSE) |> 
+  filter(subid %in% features$subid) 
+```
+
+```{r}
+locations |> tab2(avoid, risk)
+
+# avoid == "yes"
+sum(locations$avoid == "yes", na.rm = TRUE)
+
+# avoid == "yes" AND risk == "high"
+sum(locations$avoid == "yes" & locations$risk == "high", na.rm = TRUE)
+
+# avoid == "no" AND risk == "high"
+sum(locations$avoid == "no" & locations$risk == "high", na.rm = TRUE)
+```
+
+# Examine distribution of avoid locations
+
+```{r}
+locations |> 
+  group_by(subid) |> 
+  filter(avoid == "yes") |> 
+  count(avoid) |> 
+  pull(n) |> 
+  hist()
+
+locations |> 
+  group_by(subid) |>
+  filter(avoid == "yes") |> 
+  count(avoid) |> 
+  pull(n) |> 
+  skim_all()
+```
+
+# Revised tables
+
+## Alcohol availability
+
+```{r}
+unpleasant_alc <- locations |> 
+  filter(emotion == "unpleasant") |> 
+  count(alcohol) |> 
+  mutate(group = "unpleasant")
+
+mixed_alc <- locations |> 
+  filter(emotion == "mixed") |> 
+  count(alcohol) |> 
+  mutate(group = "mixed")
+
+neutral_alc <- locations |> 
+  filter(emotion == "neutral") |> 
+  count(alcohol) |> 
+  mutate(group = "neutral")
+
+pleasant_alc <- locations |> 
+  filter(emotion == "pleasant") |> 
+  count(alcohol) |> 
+  mutate(group = "pleasant")
+
+all_alc <- locations |> 
+  count(alcohol) |> 
+  mutate(group = "all")
+```
+
+Leave out comparisons.
+```{r}
+all_alc_lo <- bind_rows(unpleasant_alc, mixed_alc, neutral_alc, pleasant_alc) |>
+  left_join(all_alc |> select(alcohol, n_all = n), by = "alcohol") |>
+  mutate(
+    n = n_all - n,
+    group = paste0("all_", group, "-left-out")
+  ) |>
+  select(alcohol, n, group)
+```
+
+```{r}
+bind_rows(all_alc, all_alc_lo, unpleasant_alc, mixed_alc, neutral_alc, pleasant_alc) |> 
+  group_by(group) |> 
+  mutate(freq = n / sum(n)) |> 
+  pivot_wider(names_from = alcohol, values_from = c(freq, n)) |> 
+  print_kbl(caption = "Emotions across Alcohol Availability at location")
+```
+
+## Type
+
+```{r}
+unpleasant_type <- locations |> 
+  filter(emotion == "unpleasant") |> 
+  count(type) |> 
+  mutate(group = "unpleasant")
+
+mixed_type <- locations |> 
+  filter(emotion == "mixed") |> 
+  count(type) |> 
+  mutate(group = "mixed")
+
+neutral_type <- locations |> 
+  filter(emotion == "neutral") |> 
+  count(type) |> 
+  mutate(group = "neutral")
+
+pleasant_type <- locations |> 
+  filter(emotion == "pleasant") |> 
+  count(type) |> 
+  mutate(group = "pleasant")
+
+all_type <- locations |> 
+  count(type) |> 
+  mutate(group = "all")
+```
+
+Leave out comparisons.
+```{r}
+all_type_lo <- bind_rows(unpleasant_type, mixed_type, neutral_type, pleasant_type) |>
+  left_join(all_type |> select(type, n_all = n), by = "type") |>
+  mutate(
+    n = n_all - n,
+    group = paste0("all_", group, "-left-out")
+  ) |>
+  select(type, n, group)
+```
+
+```{r}
+bind_rows(all_type, all_type_lo, unpleasant_type, mixed_type, neutral_type, pleasant_type) |> 
+  group_by(group) |> 
+  mutate(freq = n / sum(n)) |> 
+  pivot_wider(names_from = type, values_from = c(freq, n), values_fill = 0) |> 
+  print_kbl(caption = "Emotions across Type of location")
+```
+
+## Risk
+
+```{r}
+unpleasant_risk <- locations |> 
+  filter(emotion == "unpleasant") |> 
+  count(risk) |> 
+  mutate(group = "unpleasant")
+
+mixed_risk <- locations |> 
+  filter(emotion == "mixed") |> 
+  count(risk) |> 
+  mutate(group = "mixed")
+
+neutral_risk <- locations |> 
+  filter(emotion == "neutral") |> 
+  count(risk) |> 
+  mutate(group = "neutral")
+
+pleasant_risk <- locations |> 
+  filter(emotion == "pleasant") |> 
+  count(risk) |> 
+  mutate(group = "pleasant")
+
+all_risk <- locations |> 
+  count(risk) |> 
+  mutate(group = "all")
+```
+
+Leave out comparisons.
+```{r}
+all_risk_lo <- bind_rows(unpleasant_risk, mixed_risk, neutral_risk, pleasant_risk) |>
+  left_join(all_risk |> select(risk, n_all = n), by = "risk") |>
+  mutate(
+    n = n_all - n,
+    group = paste0("all_", group, "-left-out")
+  ) |>
+  select(risk, n, group)
+```
+
+```{r}
+bind_rows(all_risk, all_risk_lo, unpleasant_risk, mixed_risk, neutral_risk, pleasant_risk) |> 
+  group_by(group) |> 
+  mutate(freq = n / sum(n)) |> 
+  pivot_wider(names_from = risk, values_from = c(freq, n), values_fill = 0) |> 
+  print_kbl(caption = "Emotions across subj reported Risk level")
+```
+
+## Drank
+
+```{r}
+unpleasant_drank <- locations |> 
+  filter(emotion == "unpleasant") |> 
+  count(drank) |> 
+  mutate(group = "unpleasant")
+
+mixed_drank <- locations |> 
+  filter(emotion == "mixed") |> 
+  count(drank) |> 
+  mutate(group = "mixed")
+
+neutral_drank <- locations |> 
+  filter(emotion == "neutral") |> 
+  count(drank) |> 
+  mutate(group = "neutral")
+
+pleasant_drank <- locations |> 
+  filter(emotion == "pleasant") |> 
+  count(drank) |> 
+  mutate(group = "pleasant")
+
+all_drank <- locations |> 
+  count(drank) |> 
+  mutate(group = "all")
+```
+
+Leave out comparisons.
+```{r}
+all_drank_lo <- bind_rows(unpleasant_drank, mixed_drank,
+                          neutral_drank, pleasant_drank) |>
+  left_join(all_drank |> select(drank, n_all = n), by = "drank") |>
+  mutate(
+    n = n_all - n,
+    group = paste0("all_", group, "-left-out")
+  ) |>
+  select(drank, n, group)
+```
+
+```{r}
+bind_rows(all_drank, all_drank_lo, unpleasant_drank, mixed_drank,
+          neutral_drank, pleasant_drank) |> 
+  group_by(group) |> 
+  mutate(freq = n / sum(n)) |> 
+  pivot_wider(names_from = drank, values_from = c(freq, n), values_fill = 0) |> 
+  print_kbl(caption = "Emotions across whether or not subj has Drank there")
+```
+
+## Avoid
+
+```{r}
+unpleasant_avoid <- locations |> 
+  filter(emotion == "unpleasant") |> 
+  count(avoid) |> 
+  mutate(group = "unpleasant")
+
+mixed_avoid <- locations |> 
+  filter(emotion == "mixed") |> 
+  count(avoid) |> 
+  mutate(group = "mixed")
+
+neutral_avoid <- locations |> 
+  filter(emotion == "neutral") |> 
+  count(avoid) |> 
+  mutate(group = "neutral")
+
+pleasant_avoid <- locations |> 
+  filter(emotion == "pleasant") |> 
+  count(avoid) |> 
+  mutate(group = "pleasant")
+
+all_avoid <- locations |> 
+  count(avoid) |> 
+  mutate(group = "all")
+```
+
+Leave out comparisons.
+```{r}
+all_avoid_lo <- bind_rows(unpleasant_avoid, mixed_avoid,
+                          neutral_avoid, pleasant_avoid) |>
+  left_join(all_avoid |> select(avoid, n_all = n), by = "avoid") |>
+  mutate(
+    n = n_all - n,
+    group = paste0("all_", group, "-left-out")
+  ) |>
+  select(avoid, n, group)
+```
+
+```{r}
+bind_rows(all_avoid, all_avoid_lo, unpleasant_avoid, mixed_avoid,
+          neutral_avoid, pleasant_avoid) |> 
+  group_by(group) |> 
+  mutate(freq = n / sum(n)) |> 
+  pivot_wider(names_from = avoid, values_from = c(freq, n), values_fill = 0) |> 
+  print_kbl(caption = "Emotions across whether or not subj has wants to Avoid")
+```
