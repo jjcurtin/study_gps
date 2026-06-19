@@ -30,9 +30,10 @@
 # baseline (demographics) v full (demo + gps) with xgboost (v19)
 # baseline (demographics) v full (demo + gps) with glmnet (v20)
 # baseline (demographics) v full (demo + gps) with glmnet, incl YJ transformation (V21)
+# baseline (demographics) v full (demo + gps) with rf (v22)
 
 # currently running
-# baseline (demographics) v full (demo + gps) with rf (v22)
+# baseline (demographics) v full (demo + gps) with xgboost; expanded hyperparameters (v23)
 
 # source format_path
 source("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true")
@@ -41,8 +42,8 @@ source("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true
 study <- "gps"
 window <- "day"
 lead <- 0
-version <- "v22" 
-algorithm <- "random_forest" # glmnet
+version <- "v23" 
+algorithm <- "xgboost"
 model <- "full_v_baseline"
 
 feature_set <- c("full", "baseline") # GPS feature set name
@@ -112,9 +113,9 @@ hp1_rf <- c(2, 10, 20, 30, 40, 50, 75) # mtry (p/3 for reg or square root of p f
 hp2_rf <- c(2, 5, 10, 15, 20, 30) # min_n
 hp3_rf <- 1500 # trees (10 x's number of predictors)
 
-hp1_xgboost <- c(0.001, 0.005, 0.01, 0.05, 0.1, 0.2, 0.3, 0.4)  # learn_rate, how fast model fits residual error; high: faster, but may overshoot, low: slower, may get stuck on less optimal solutions
+hp1_xgboost <- c(0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05, 0.1)  # learn_rate, how fast model fits residual error; high: faster, but may overshoot, low: slower, may get stuck on less optimal solutions
 hp2_xgboost <- c(1, 2, 3, 4, 5, 6) # tree_depth, complexity of tree structure (larger no. = more likely to overfit)
-hp3_xgboost <- c(10, 15, 20, 30, 40, 50, 75)  # mtry, no. feats. to split on at each split
+hp3_xgboost <- c(10, 15, 20, 30, 40, 50, 65, 80, 95)  # mtry, no. feats. to split on at each split
 # trees = 500
 # early stopping = 20
 
