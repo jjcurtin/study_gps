@@ -11,9 +11,9 @@ format:
     embed-resources: true
 params:
   study: "gps"
-  version: "v22"
+  version: "v19"
   cv: "nested_2_x_5_6_x_5"
-  algorithms: "random_forest"   # "all" or name of specific algorithm
+  algorithms: "xgboost"   # "all" or name of specific algorithm
   model: "full_v_baseline"
 editor_options: 
   chunk_output_type: console
@@ -33,10 +33,10 @@ This script aggregates all results/metrics for a batch or batches of jobs that t
 
 Currently being used to evaluate validation set performance.
 
-v19, xgboost
-v20, glmnet
-v21, glmnet with yj
-v22, rf
+v19, xgboost (.710)
+v20, glmnet (.633)
+v21, glmnet with yj (.647)
+v22, rf (.677)
 
 # Set Up
 
@@ -126,11 +126,26 @@ results_all |>
 Summarize median auROCs by model parameters.
 ```{r}
 metrics_avg <- results_all |> 
-  group_by(algorithm, feature_set, hp1, hp2, hp3, resample) |> 
+  filter(feature_set == "full") |> 
+  group_by(hp1, hp2, hp3, resample) |> 
    summarize(median_roc_auc = median(roc_auc),
              n_folds = n(), .groups = "drop") |> 
   relocate(n_folds) |> 
   arrange(desc(median_roc_auc)) |> 
+  ungroup()
+```
+
+Summarize by outer fold.
+```{r}
+results_all |> 
+  filter(feature_set == "full") |> 
+  group_by(outer_split_num, hp1, hp2, hp3, resample) |> 
+   summarize(median_roc_auc = median(roc_auc),
+             n_folds = n(), .groups = "drop") |> 
+  relocate(n_folds) |>
+  group_by(outer_split_num) |> 
+  arrange(desc(median_roc_auc)) |> 
+  slice_head(n = 1) |> 
   ungroup()
 ```
 
