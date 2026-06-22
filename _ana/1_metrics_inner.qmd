@@ -11,7 +11,7 @@ format:
     embed-resources: true
 params:
   study: "gps"
-  version: "v19"
+  version: "v23"
   cv: "nested_2_x_5_6_x_5"
   algorithms: "xgboost"   # "all" or name of specific algorithm
   model: "full_v_baseline"
@@ -37,6 +37,7 @@ v19, xgboost (.710)
 v20, glmnet (.633)
 v21, glmnet with yj (.647)
 v22, rf (.677)
+v23, xgboost with expanded hyperparameters
 
 # Set Up
 
@@ -157,6 +158,8 @@ metrics_avg |>
 ```
 
 Pull out best configuration from metrics_avg and save out results for best configuration into models folder on server.
+
+CP: can delete?? think this was only used for reporting on val performance
 ```{r}
 best_config <- metrics_avg |>
   slice(1) |> 
