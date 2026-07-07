@@ -11,7 +11,7 @@ format:
     embed-resources: true
 params:
   study: "gps"
-  version: "v23"
+  version: "v24"
   cv: "nested_2_x_5_6_x_5"
   algorithms: "xgboost"   # "all" or name of specific algorithm
   model: "full_v_baseline"
@@ -38,6 +38,7 @@ v20, glmnet (.633)
 v21, glmnet with yj (.647)
 v22, rf (.677)
 v23, xgboost with expanded hyperparameters
+v24, xgboost with further expanded hyperparams (learning rate lower bound)
 
 # Set Up
 
@@ -116,15 +117,15 @@ Conduct final checks -- we expect to see results split evenly among possible hyp
 Following basic checks, save raw metrics file into the models folder on the server.
 ```{r}
 results_all |>
-  arrange(split_num, outer_split_num, inner_split_num, algorithm, resample) |> 
+  arrange(split_num, outer_split_num, inner_split_num, resample) |> 
   write_csv(here::here(path_models, str_c("inner_metrics_",
                                              version, "_",
                                              cv, "_", model, ".csv")))
 ```
 
-## Identify best configuration
+## Examine best configuration
 
-Summarize median auROCs by model parameters.
+Summarize median auROCs by model parameters -- what is the median auROC summarized across folds where each particular hyperparameter and resampling combination was evaluated? Evaluate how well each hyperparameter configuration performs.
 ```{r}
 metrics_avg <- results_all |> 
   filter(feature_set == "full") |> 
@@ -136,7 +137,14 @@ metrics_avg <- results_all |>
   ungroup()
 ```
 
-Summarize by outer fold.
+Check to make sure summarized tibble looks accurate.
+```{r}
+metrics_avg |> 
+  slice(1:50) |> 
+  print_kbl()
+```
+
+Summarize by outer fold -- what is the top performing configuration across each outer fold? Evaluate which hyperparameter configuration "wins" in each outer fold.
 ```{r}
 results_all |> 
   filter(feature_set == "full") |> 
@@ -149,34 +157,6 @@ results_all |>
   slice_head(n = 1) |> 
   ungroup()
 ```
-
-Check to make sure summarized tibble looks accurate.
-```{r}
-metrics_avg |> 
-  slice(1:50) |> 
-  print_kbl()
-```
-
-Pull out best configuration from metrics_avg and save out results for best configuration into models folder on server.
-
-CP: can delete?? think this was only used for reporting on val performance
-```{r}
-best_config <- metrics_avg |>
-  slice(1) |> 
-  print()
-
-results_all |> 
-  filter(algorithm == best_config$algorithm,
-         feature_set == best_config$feature_set,
-         hp1 == best_config$hp1,
-         hp2 == best_config$hp2,
-         hp3 == best_config$hp3, # comment out for glmnet
-         resample == best_config$resample) |>
-  write_csv(here::here(path_models, str_c("best_config_",
-                                             version, "_",
-                                             cv, "_", model, ".csv")))
-```
-
 
 ## Plot hyperparameters
 
@@ -497,258 +477,236 @@ for (k in algorithms) {
 
 Simplified xgboost (across one hyperparameter at a time).
 ```{r}
-for (k in algorithms) {
-  
-  results_k <- metrics_avg |> 
-      filter(algorithm == k)
-  
-  for (i in feature_sets) {
-  
-    results_i <- results_k |> 
-      filter(feature_set == i)
-    
-    
-    # XGBoost
-    if (k == "xgboost") {
+## hp1 x axis -- LEARNING RATE
+plot_title <- str_c("Plotting XGBoost hyperparameters for ", i, " feature set with DOWNSAMPLING")
       
-      ## hp1 x axis -- LEARNING RATE
-            plot_title <- str_c("Plotting XGBoost hyperparameters for ", i, " feature set with DOWNSAMPLING")
-      
-            plot_i <- results_i |>
-              mutate(log_hp1 = factor(round(log10(hp1), 2)), # prob have to change this to factor
-                     hp2 = factor(hp2, ordered = TRUE),
-                     hp3 = factor(hp3, ordered = TRUE),
-                     resample = factor(resample)) |> 
-              filter(str_detect(resample, "down")) |> 
-              ggplot(mapping = aes(x = log_hp1, 
-                                   y = median_roc_auc)) +
-              geom_point(color = "darkgray", alpha = .6) +
-              geom_line(
-                data = \(x) x |>
-                  group_by(log_hp1, resample) |>
-                  slice_max(median_roc_auc, n = 1) |>
-                  ungroup(),
-                aes(group = resample),
-                color = "blue",
-                linewidth = 1
-                ) +
-              facet_grid(~ resample) +
-              labs(title = plot_title, x = "log10 learning rate", y = "ROC AUC") +
-              theme(axis.text.x = element_text(angle = 45, hjust = 1))
-      
-            print(plot_i)
+plot_i <- metrics_avg |>
+  mutate(log_hp1 = factor(round(log10(hp1), 2)),
+         hp2 = factor(hp2, ordered = TRUE),
+         hp3 = factor(hp3, ordered = TRUE),
+         resample = factor(resample)) |> 
+  filter(str_detect(resample, "down")) |> 
+  ggplot(mapping = aes(x = log_hp1, 
+                       y = median_roc_auc)) +
+  geom_point(color = "darkgray", alpha = .6) +
+  geom_line(
+    data = \(x) x |>
+      group_by(log_hp1, resample) |>
+      slice_max(median_roc_auc, n = 1) |>
+      ungroup(),
+    aes(group = resample),
+    color = "blue",
+    linewidth = 1
+  ) +
+  facet_grid(~ resample) +
+  labs(title = plot_title, x = "log10 learning rate", y = "ROC AUC") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+print(plot_i)
        
-            plot_title <- str_c("Plotting XGBoost hyperparameters for ", i, " feature set with UPSAMPLING")
+plot_title <- str_c("Plotting XGBoost hyperparameters for ", i, " feature set with UPSAMPLING")
           
-            plot_i <- results_i |>
-              mutate(log_hp1 = factor(round(log10(hp1), 2)), # prob have to change this to factor
-                     hp2 = factor(hp2, ordered = TRUE),
-                     hp3 = factor(hp3, ordered = TRUE),
-                     resample = factor(resample)) |> 
-              filter(str_detect(resample, "up")) |> 
-              ggplot(mapping = aes(x = log_hp1, 
-                                   y = median_roc_auc)) +
-              geom_point(color = "darkgray", alpha = .6) +
-              geom_line(
-                data = \(x) x |>
-                  group_by(log_hp1, resample) |>
-                  slice_max(median_roc_auc, n = 1) |>
-                  ungroup(),
-                aes(group = resample),
-                color = "blue",
-                linewidth = 1
-                ) +
-              facet_grid(~ resample) +
-              labs(title = plot_title, x = "log10 learning rate", y = "ROC AUC") +
-              theme(axis.text.x = element_text(angle = 45, hjust = 1))
-      
-            print(plot_i)
-       
+plot_i <- results_i |>
+  mutate(log_hp1 = factor(round(log10(hp1), 2)), # prob have to change this to factor
+         hp2 = factor(hp2, ordered = TRUE),
+         hp3 = factor(hp3, ordered = TRUE),
+         resample = factor(resample)) |> 
+  filter(str_detect(resample, "up")) |> 
+  ggplot(mapping = aes(x = log_hp1, 
+                       y = median_roc_auc)) +
+  geom_point(color = "darkgray", alpha = .6) +
+  geom_line(
+    data = \(x) x |>
+      group_by(log_hp1, resample) |>
+      slice_max(median_roc_auc, n = 1) |>
+      ungroup(),
+    aes(group = resample),
+    color = "blue",
+    linewidth = 1
+  ) +
+  facet_grid(~ resample) +
+  labs(title = plot_title, x = "log10 learning rate", y = "ROC AUC") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
-            plot_title <- str_c("Plotting XGBoost hyperparameters for ", i, " feature set with NO RESAMPLING")
-      
-            plot_i <- results_i |>
-              mutate(log_hp1 = factor(round(log10(hp1), 2)), # prob have to change this to factor
-                     hp2 = factor(hp2, ordered = TRUE),
-                     hp3 = factor(hp3, ordered = TRUE),
-                     resample = factor(resample)) |> 
-              filter(str_detect(resample, "none")) |> 
-              ggplot(mapping = aes(x = log_hp1, 
-                                   y = median_roc_auc)) +
-              geom_point(color = "darkgray", alpha = .6) +
-              geom_line(
-                data = \(x) x |>
-                  group_by(log_hp1, resample) |>
-                  slice_max(median_roc_auc, n = 1) |>
-                  ungroup(),
-                aes(group = resample),
-                color = "blue",
-                linewidth = 1
-                ) +
-              labs(title = plot_title, x = "log10 learning rate", y = "ROC AUC") +
-              theme(axis.text.x = element_text(angle = 45, hjust = 1))
-      
-            print(plot_i)
-      
-      ## hp2 x axis -- TREE_DEPTH
-      
+print(plot_i)
 
-            plot_title <- str_c("Plotting XGBoost hyperparameters for ", i, " feature set with DOWNSAMPLING")
-      
-            plot_i <- results_i |>
-              mutate(log_hp1 = factor(log10(hp1)), # prob have to change this to factor
-                     hp2 = factor(hp2, ordered = TRUE),
-                     hp3 = factor(hp3, ordered = TRUE),
-                     resample = factor(resample)) |> 
-              filter(str_detect(resample, "down")) |> 
-              ggplot(mapping = aes(x = hp2, 
-                                   y = median_roc_auc)) +
-              geom_point(color = "darkgray", alpha = .6) +
-              geom_line(
-                data = \(x) x |>
-                  group_by(hp2, resample) |>
-                  slice_max(median_roc_auc, n = 1) |>
-                  ungroup(),
-                aes(group = resample),
-                color = "blue",
-                linewidth = 1
-                ) +
-              facet_grid(~ resample) +
-              labs(title = plot_title, x = "tree depth", y = "ROC AUC")
-      
-            print(plot_i)
-       
 
-            plot_title <- str_c("Plotting XGBoost hyperparameters for ", i, " feature set with UPSAMPLING")
-      
-            plot_i <- results_i |>
-              mutate(log_hp1 = factor(log10(hp1)), # prob have to change this to factor
-                     hp2 = factor(hp2, ordered = TRUE),
-                     hp3 = factor(hp3, ordered = TRUE),
-                     resample = factor(resample)) |> 
-              filter(str_detect(resample, "up")) |> 
-              ggplot(mapping = aes(x = hp2, 
-                                   y = median_roc_auc)) +
-              geom_point(color = "darkgray", alpha = .6) +
-              geom_line(
-                data = \(x) x |>
-                  group_by(hp2, resample) |>
-                  slice_max(median_roc_auc, n = 1) |>
-                  ungroup(),
-                aes(group = resample),
-                color = "blue",
-                linewidth = 1
-                ) +
-              facet_grid(~ resample) +
-              labs(title = plot_title, x = "tree depth", y = "ROC AUC")
-      
-            print(plot_i)
-            
-            plot_title <- str_c("Plotting XGBoost hyperparameters for ", i, " feature set with NO RESAMPLING")
-            
-            plot_i <- results_i |>
-              mutate(log_hp1 = factor(log10(hp1)), # prob have to change this to factor
-                     hp2 = factor(hp2, ordered = TRUE),
-                     hp3 = factor(hp3, ordered = TRUE),
-                     resample = factor(resample)) |> 
-              filter(str_detect(resample, "none")) |> 
-              ggplot(mapping = aes(x = hp2, 
-                                   y = median_roc_auc)) +
-              geom_point(color = "darkgray", alpha = .6) +
-              geom_line(
-                data = \(x) x |>
-                  group_by(hp2, resample) |>
-                  slice_max(median_roc_auc, n = 1) |>
-                  ungroup(),
-                aes(group = resample),
-                color = "blue",
-                linewidth = 1
-                ) +
-              labs(title = plot_title, x = "tree depth", y = "ROC AUC")
-      
-            print(plot_i)
-       
-       ## hp3 x axis -- MTRY
-            
-            plot_title <- str_c("Plotting XGBoost hyperparameters for ", i, " feature set with DOWNSAMPLING")
-            
-            plot_i <- results_i |>
-              mutate(log_hp1 = factor(log10(hp1)), # prob have to change this to factor
-                     hp2 = factor(hp2, ordered = TRUE),
-                     hp3 = factor(hp3, ordered = TRUE),
-                     resample = factor(resample)) |> 
-              filter(str_detect(resample, "down")) |> 
-              ggplot(mapping = aes(x = hp3, 
-                                   y = median_roc_auc)) +
-              geom_point(color = "darkgray", alpha = .6) +
-              geom_line(
-                data = \(x) x |>
-                  group_by(hp3, resample) |>
-                  slice_max(median_roc_auc, n = 1) |>
-                  ungroup(),
-                aes(group = resample),
-                color = "blue",
-                linewidth = 1
-                ) +
-              facet_grid(~ resample) +
-              labs(title = plot_title, x = "mtry", y = "ROC AUC")
-      
-            print(plot_i)
-       
-            plot_title <- str_c("Plotting XGBoost hyperparameters for ", i, " feature set with UPSAMPLING")
-            
-            plot_i <- results_i |>
-              mutate(log_hp1 = factor(log10(hp1)), # prob have to change this to factor
-                     hp2 = factor(hp2, ordered = TRUE),
-                     hp3 = factor(hp3, ordered = TRUE),
-                     resample = factor(resample)) |> 
-              filter(str_detect(resample, "up")) |> 
-              ggplot(mapping = aes(x = hp3, 
-                                   y = median_roc_auc)) +
-              geom_point(color = "darkgray", alpha = .6) +
-              geom_line(
-                data = \(x) x |>
-                  group_by(hp3, resample) |>
-                  slice_max(median_roc_auc, n = 1) |>
-                  ungroup(),
-                aes(group = resample),
-                color = "blue",
-                linewidth = 1
-                ) +
-              facet_grid(~ resample) +
-              labs(title = plot_title, x = "mtry", y = "ROC AUC")
-      
-            print(plot_i)
-       
-            plot_title <- str_c("Plotting XGBoost hyperparameters for ", i, " feature set with NO RESAMPLING")
-            
-            plot_i <- results_i |>
-              mutate(log_hp1 = factor(log10(hp1)), # prob have to change this to factor
-                     hp2 = factor(hp2, ordered = TRUE),
-                     hp3 = factor(hp3, ordered = TRUE),
-                     resample = factor(resample)) |> 
-              filter(str_detect(resample, "none")) |> 
-              ggplot(mapping = aes(x = hp3, 
-                                   y = median_roc_auc)) +
-              geom_point(color = "darkgray", alpha = .6) +
-              geom_line(
-                data = \(x) x |>
-                  group_by(hp3, resample) |>
-                  slice_max(median_roc_auc, n = 1) |>
-                  ungroup(),
-                aes(group = resample),
-                color = "blue",
-                linewidth = 1
-                ) +
-              labs(title = plot_title, x = "mtry", y = "ROC AUC")
-      
-            print(plot_i)
-       
+plot_title <- str_c("Plotting XGBoost hyperparameters for ", i, " feature set with NO RESAMPLING")
 
-            }  
-    
-    }
-  
-  
-  }
+plot_i <- results_i |>
+  mutate(log_hp1 = factor(round(log10(hp1), 2)), # prob have to change this to factor
+         hp2 = factor(hp2, ordered = TRUE),
+         hp3 = factor(hp3, ordered = TRUE),
+         resample = factor(resample)) |> 
+  filter(str_detect(resample, "none")) |> 
+  ggplot(mapping = aes(x = log_hp1, 
+                       y = median_roc_auc)) +
+  geom_point(color = "darkgray", alpha = .6) +
+  geom_line(
+    data = \(x) x |>
+      group_by(log_hp1, resample) |>
+      slice_max(median_roc_auc, n = 1) |>
+      ungroup(),
+    aes(group = resample),
+    color = "blue",
+    linewidth = 1
+  ) +
+  labs(title = plot_title, x = "log10 learning rate", y = "ROC AUC") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+print(plot_i)
+
+## hp2 x axis -- TREE_DEPTH
+
+plot_title <- str_c("Plotting XGBoost hyperparameters for ", i, " feature set with DOWNSAMPLING")
+
+plot_i <- results_i |>
+  mutate(log_hp1 = factor(log10(hp1)), # prob have to change this to factor
+         hp2 = factor(hp2, ordered = TRUE),
+         hp3 = factor(hp3, ordered = TRUE),
+         resample = factor(resample)) |> 
+  filter(str_detect(resample, "down")) |> 
+  ggplot(mapping = aes(x = hp2, 
+                       y = median_roc_auc)) +
+  geom_point(color = "darkgray", alpha = .6) +
+  geom_line(
+    data = \(x) x |>
+      group_by(hp2, resample) |>
+      slice_max(median_roc_auc, n = 1) |>
+      ungroup(),
+    aes(group = resample),
+    color = "blue",
+    linewidth = 1
+  ) +
+  facet_grid(~ resample) +
+  labs(title = plot_title, x = "tree depth", y = "ROC AUC")
+
+print(plot_i)
+
+
+plot_title <- str_c("Plotting XGBoost hyperparameters for ", i, " feature set with UPSAMPLING")
+
+plot_i <- results_i |>
+  mutate(log_hp1 = factor(log10(hp1)), # prob have to change this to factor
+         hp2 = factor(hp2, ordered = TRUE),
+         hp3 = factor(hp3, ordered = TRUE),
+         resample = factor(resample)) |> 
+  filter(str_detect(resample, "up")) |> 
+  ggplot(mapping = aes(x = hp2, 
+                       y = median_roc_auc)) +
+  geom_point(color = "darkgray", alpha = .6) +
+  geom_line(
+    data = \(x) x |>
+      group_by(hp2, resample) |>
+      slice_max(median_roc_auc, n = 1) |>
+      ungroup(),
+    aes(group = resample),
+    color = "blue",
+    linewidth = 1
+  ) +
+  facet_grid(~ resample) +
+  labs(title = plot_title, x = "tree depth", y = "ROC AUC")
+
+print(plot_i)
+
+plot_title <- str_c("Plotting XGBoost hyperparameters for ", i, " feature set with NO RESAMPLING")
+
+plot_i <- results_i |>
+  mutate(log_hp1 = factor(log10(hp1)), # prob have to change this to factor
+         hp2 = factor(hp2, ordered = TRUE),
+         hp3 = factor(hp3, ordered = TRUE),
+         resample = factor(resample)) |> 
+  filter(str_detect(resample, "none")) |> 
+  ggplot(mapping = aes(x = hp2, 
+                       y = median_roc_auc)) +
+  geom_point(color = "darkgray", alpha = .6) +
+  geom_line(
+    data = \(x) x |>
+      group_by(hp2, resample) |>
+      slice_max(median_roc_auc, n = 1) |>
+      ungroup(),
+    aes(group = resample),
+    color = "blue",
+    linewidth = 1
+  ) +
+  labs(title = plot_title, x = "tree depth", y = "ROC AUC")
+
+print(plot_i)
+
+## hp3 x axis -- MTRY
+
+plot_title <- str_c("Plotting XGBoost hyperparameters for ", i, " feature set with DOWNSAMPLING")
+
+plot_i <- metrics_avg |>
+  mutate(log_hp1 = factor(log10(hp1)), # prob have to change this to factor
+         hp2 = factor(hp2, ordered = TRUE),
+         hp3 = factor(hp3, ordered = TRUE),
+         resample = factor(resample)) |> 
+  filter(str_detect(resample, "down")) |> 
+  ggplot(mapping = aes(x = hp3, 
+                       y = median_roc_auc)) +
+  geom_point(color = "darkgray", alpha = .6) +
+  geom_line(
+    data = \(x) x |>
+      group_by(hp3, resample) |>
+      slice_max(median_roc_auc, n = 1) |>
+      ungroup(),
+    aes(group = resample),
+    color = "blue",
+    linewidth = 1
+  ) +
+  facet_grid(~ resample) +
+  labs(title = plot_title, x = "mtry", y = "ROC AUC")
+
+print(plot_i)
+
+plot_title <- str_c("Plotting XGBoost hyperparameters for ", i, " feature set with UPSAMPLING")
+
+plot_i <- metrics_avg |>
+  mutate(log_hp1 = factor(log10(hp1)), # prob have to change this to factor
+         hp2 = factor(hp2, ordered = TRUE),
+         hp3 = factor(hp3, ordered = TRUE),
+         resample = factor(resample)) |> 
+  filter(str_detect(resample, "up")) |> 
+  ggplot(mapping = aes(x = hp3, 
+                       y = median_roc_auc)) +
+  geom_point(color = "darkgray", alpha = .6) +
+  geom_line(
+    data = \(x) x |>
+      group_by(hp3, resample) |>
+      slice_max(median_roc_auc, n = 1) |>
+      ungroup(),
+    aes(group = resample),
+    color = "blue",
+    linewidth = 1
+  ) +
+  facet_grid(~ resample) +
+  labs(title = plot_title, x = "mtry", y = "ROC AUC")
+
+print(plot_i)
+
+plot_title <- str_c("Plotting XGBoost hyperparameters for ", i, " feature set with NO RESAMPLING")
+
+plot_i <- metrics_avg |>
+  mutate(log_hp1 = factor(log10(hp1)), # prob have to change this to factor
+         hp2 = factor(hp2, ordered = TRUE),
+         hp3 = factor(hp3, ordered = TRUE),
+         resample = factor(resample)) |> 
+  filter(str_detect(resample, "none")) |> 
+  ggplot(mapping = aes(x = hp3, 
+                       y = median_roc_auc)) +
+  geom_point(color = "darkgray", alpha = .6) +
+  geom_line(
+    data = \(x) x |>
+      group_by(hp3, resample) |>
+      slice_max(median_roc_auc, n = 1) |>
+      ungroup(),
+    aes(group = resample),
+    color = "blue",
+    linewidth = 1
+  ) +
+  labs(title = plot_title, x = "mtry", y = "ROC AUC")
+
+print(plot_i)
+       
 ```
