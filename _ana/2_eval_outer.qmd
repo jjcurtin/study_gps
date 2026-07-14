@@ -14,6 +14,7 @@ params:
   version: "v24"
   cv: "nested_2_x_5_6_x_5"
   model: "full_v_baseline"
+  batch: "full"
 editor_options: 
   chunk_output_type: console
 ---
@@ -21,8 +22,6 @@ editor_options:
 ### Code Status
 
 Being updated by CP for GPS
-
-- do we need to separate out full and baseline models here?
 
 ### Notes
 This script reads in CHTC performance metrics from the inner loops of CV, selects the best model configuration for each outer loop, trains those models and predicts into the outer held-out folds.  Returns metrics, predictions (probabilities) and SHAPs
@@ -34,7 +33,7 @@ This script creates the following files in the `models` folder
 * outer_shaps_*.csv
 * outer_shapsgrp_*.csv
 
-where * = window_lead_version_cv
+where * = version_cv_model
 
 
 ### Set Up Environment
@@ -44,6 +43,7 @@ study <- params$study
 version <- params$version
 cv <- params$cv
 model <- params$model
+batch <- params$batch
 
 library(tidyverse)
 library(tidymodels)
@@ -84,7 +84,7 @@ fit_predict_eval <- function(split_num, splits, configs_best){
            ppv_in = ppv, npv_in = npv) |> 
     # KLUDGE!!!!!
     mutate(algorithm = "xgboost",
-           feature_set = "full")
+           feature_set = batch)
     
   rec <- build_recipe(d = d_in, config = config_best)
   rec_prepped <- rec |> 
@@ -113,11 +113,11 @@ fit_predict_eval <- function(split_num, splits, configs_best){
     conf_mat(truth, estimate)
     
   metrics_out <- cm |> 
-    summary(event_level = "first") |>   
+    summary(event_level = "first") |>
     select(metric = .metric,
            estimate = .estimate) |> 
     filter(metric %in% c("sens", "spec", "ppv", "npv", "accuracy", "bal_accuracy")) |> 
-    suppressWarnings() |>  # warning not about metrics we are returning
+    suppressWarnings() |>  # warning not about metrics we are returning; check if still needed
     bind_rows(roc) |> 
     pivot_wider(names_from = "metric", values_from = "estimate") |>    
     relocate(roc_auc, sens, spec, ppv, npv, accuracy, bal_accuracy) |> 
@@ -147,13 +147,13 @@ fit_predict_eval <- function(split_num, splits, configs_best){
     model_cal <- fit_best_model(config_best, feat = feat_cal_in, "classification")
   
     # iso calibration
-    iso <- predict(model_cal, feat_cal_out,
-                   type = "prob") |> 
-      mutate(truth = feat_cal_out$y) |> 
-      cal_estimate_isotonic(truth = truth,
-                            estimate = starts_with(".pred_"))
-    preds_prob_iso <- preds_prob |> 
-      cal_apply(iso)
+    #iso <- predict(model_cal, feat_cal_out,
+                   #type = "prob") |> 
+      #mutate(truth = feat_cal_out$y) |> 
+     # cal_estimate_isotonic(truth = truth,
+                            #estimate = starts_with(".pred_"))
+    #preds_prob_iso <- preds_prob |> 
+      #cal_apply(iso)
   
     # logistic calibration
     logi <- predict(model_cal, feat_cal_out,
@@ -166,26 +166,23 @@ fit_predict_eval <- function(split_num, splits, configs_best){
       cal_apply(logi)
 
     # beta calibration
-    beta <- predict(model_cal, feat_cal_out,
-                   type = "prob") |>
-      mutate(truth = feat_cal_out$y) |>
-      cal_estimate_beta(truth = truth,
-                             estimate = starts_with(".pred_"),
-                             smooth = TRUE)
-    preds_prob_beta <- preds_prob |>
-      cal_apply(beta)
+    #beta <- predict(model_cal, feat_cal_out,
+                   #type = "prob") |>
+      #mutate(truth = feat_cal_out$y) |>
+      #cal_estimate_beta(truth = truth,
+                             #estimate = starts_with(".pred_"),
+                             #smooth = TRUE)
+    #preds_prob_beta <- preds_prob |>
+      #cal_apply(beta)
 
     # combine raw and calibrated probs
     probs_out <- tibble(id_obs = d_out$id_obs,
                         outer_split_num = rep(split_num, nrow(preds_prob)),
                         prob_raw = preds_prob[[str_c(".pred_", y_level_pos)]],
-                        prob_iso = preds_prob_iso[[str_c(".pred_", y_level_pos)]],
+                        #prob_iso = preds_prob_iso[[str_c(".pred_", y_level_pos)]],
                         prob_logi = preds_prob_logi[[str_c(".pred_", y_level_pos)]],
-                        prob_beta = preds_prob_beta[[str_c(".pred_", y_level_pos)]],
-                        label = d_out$y) |> 
-      # cp: not sure if this is needed, used to be changing no and yes
-      mutate(label = fct_recode(label, "No lapse" = "no lapse",
-                                "Lapse" = "lapse"))
+                        #prob_beta = preds_prob_beta[[str_c(".pred_", y_level_pos)]],
+                        label = d_out$y)
   
     # SHAP in held out fold
     shaps_out <- SHAPforxgboost::shap.prep(xgb_model = extract_fit_engine(model_best),
@@ -202,9 +199,7 @@ fit_predict_eval <- function(split_num, splits, configs_best){
     probs_out <- tibble(id_obs = d_out$id_obs,
                         outer_split_num = rep(split_num, nrow(preds_prob)),
                         prob_raw = preds_prob[[str_c(".pred_", y_level_pos)]],
-                        label = d_out$y) |> 
-    mutate(label = fct_recode(label, "No lapse" = "no",
-                                "Lapse" = "yes"))
+                        label = d_out$y)
     return(list(probs_out = probs_out, 
                 metrics_out = metrics_out))
   }
@@ -226,7 +221,7 @@ metrics_raw <-
 Average metrics for each configuration across inner folds for each outer fold
 ```{r}
 metrics_avg <- metrics_raw |>
-  filter(feature_set == "full") |> 
+  filter(feature_set == batch) |> 
   group_by(hp1, hp2, hp3, resample, outer_split_num) |> 
    summarize(across(c(accuracy, bal_accuracy, roc_auc, sens, spec, ppv, npv),
                      median),
@@ -266,16 +261,13 @@ NOTE: Delete `outer_metrics_*` or this code chunk won't run!
 ```{r}
 if(!file.exists(here::here(path_models, str_c("outer_metrics_", 
                                   version, "_", 
-                                  cv, "_", model, ".rds")))){ 
+                                  cv, "_", batch, ".csv")))){ 
   
   # can source any training control given assumptions above
   batch_names <- list.dirs(path_input, full.names = FALSE, recursive = FALSE)
   batch_names <- batch_names[str_detect(batch_names, "train") & 
                                str_detect(batch_names, cv) &
                                str_detect(batch_names, version)]
-    #if (model == "main") {
-      #batch_names <- batch_names[!str_detect(batch_names, "baseline")]
-    #}
  
   batch_name <- batch_names[1] # can source any batch given assumptions above
   path_batch <- here::here(path_input, batch_name)
@@ -297,7 +289,7 @@ if(!file.exists(here::here(path_models, str_c("outer_metrics_",
   }
   
   d <- format_data(d) |> 
-    #arrange(label_num) |> cp note: do we need this??
+    #arrange(label_num) |> cp note: do we need this??; do not have currently
     mutate(id_obs = 1:nrow(d))  # tmp add for linking obs
   
   splits <- d |>  
@@ -314,7 +306,8 @@ if(!file.exists(here::here(path_models, str_c("outer_metrics_",
   write_csv(tibble(stage = "metrics_save",
                    outer_split_num = NA, 
                    start_time = Sys.time()),
-            here::here(path_models, str_c("tmp_metrics_outer_progress_", window)),
+            here::here(path_models, str_c("tmp_metrics_outer_progress_",
+                                          version, "_", cv, "_", batch)),
             append = TRUE)
   
   metrics_out <- all |> 
@@ -322,11 +315,12 @@ if(!file.exists(here::here(path_models, str_c("outer_metrics_",
     list_rbind() |> 
     write_csv(here::here(path_models, str_c("outer_metrics_", 
                                            version, "_", 
-                                           cv, "_", model, ".csv")))
+                                           cv, "_", batch, ".csv")))
   write_csv(tibble(stage = "probs_save",
                    outer_split_num = NA, 
                    start_time = Sys.time()),
-            here::here(path_models, str_c("tmp_metrics_outer_progress_",window)),
+            here::here(path_models, str_c("tmp_metrics_outer_progress_",
+                                           version, "_", cv, "_", batch)),
             append = TRUE)  
   
   probs_out <- all |> 
@@ -334,7 +328,7 @@ if(!file.exists(here::here(path_models, str_c("outer_metrics_",
     list_rbind() |> 
     write_csv(here::here(path_models, str_c("outer_preds_", 
                                            version, "_", 
-                                           cv, "_", model, ".csv")))
+                                           cv, "_", batch, ".csv")))
 
     write_csv(tibble(stage = "shaps_save",
                    outer_split_num = NA, 
@@ -342,7 +336,7 @@ if(!file.exists(here::here(path_models, str_c("outer_metrics_",
             here::here(path_models, str_c("tmp_metrics_outer_progress_", window)),
             append = TRUE)
     
-  if (model != "baseline") {
+  if (batch != "baseline") { # need to address this in less kludgy way
     # Don't save out shapley values for baseline model
     shaps_out <- all |> 
       map(\(l) pluck(l, "shaps_out")) |>
@@ -355,7 +349,7 @@ if(!file.exists(here::here(path_models, str_c("outer_metrics_",
                 mean_value = mean(mean_value)) |> 
       write_csv(here::here(path_models, str_c("outer_shaps_", 
                                              version, "_", 
-                                             cv, "_", model, ".csv")))
+                                             cv, "_", batch, ".csv")))
     }
     
 } else {
@@ -363,12 +357,12 @@ if(!file.exists(here::here(path_models, str_c("outer_metrics_",
   
   metrics_out <- read_csv(here::here(path_models, str_c("outer_metrics_", 
                                                        version, "_", 
-                                                       cv, "_", model, ".csv")))
+                                                       cv, "_", batch, ".csv")))
 
-  if (model != "baseline") {
+  if (batch != "baseline") {
     shaps_out <- read_csv(here::here(path_models, str_c("outer_shaps_", 
                                                      version, "_", 
-                                                     cv, "_", model, ".csv")))
+                                                     cv, "_", batch, ".csv")))
   }
 }
 ```
@@ -380,8 +374,8 @@ Now group SHAPs
 
 ```{r}
 if(!file.exists(here::here(path_models, str_c("outer_shapsgrp_",
-                                            version, "_",
-                                            cv, ".csv"))) & model != "baseline"){
+                                              version, "_", cv, "_", batch,
+                                              ".csv"))) & batch != "baseline"){
 
   message("Calculating grouped SHAPs")
   write_csv(tibble(stage = "shapsgrp_save",
@@ -549,7 +543,7 @@ if(!file.exists(here::here(path_models, str_c("outer_shapsgrp_",
   
   shaps_out_grp |>  write_csv(here::here(path_models, 
                                           str_c("outer_shapsgrp_", version, "_",
-                                                cv, "_", model, ".csv")))
+                                                cv, "_", batch, ".csv")))
   } else {
    message("Grouped SHAPs previously calculated")
 }
