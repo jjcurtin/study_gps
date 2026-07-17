@@ -31,44 +31,144 @@ library(probably)
 source("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true")
 
 path_input <- format_path("risk/models/gps")
+
+version <- params$version
+cv <- params$cv
+model <- params$model
+batch <- params$batch
+```
+
+Brier score function.
+```{r}
+get_brier <- function(split, df){
+  
+  #filter to split
+  probs_split <- df |> 
+    filter(outer_split_num == split)
+
+  raw <- probs_split |>
+    filter(method == "prob_raw") |> 
+    brier_class(label, .pred_lapse)
+  
+  logi_smooth <- probs_split |>
+    filter(method == "prob_logi_smooth") |> 
+    brier_class(label, .pred_lapse)
+  
+  logi_no_smooth <- probs_split |>
+    filter(method == "prob_logi_no_smooth") |> 
+    brier_class(label, .pred_lapse)
+  
+  #iso <- probs_split |>
+    #filter(method == "prob_iso") |> 
+    #brier_class(label, .pred_Lapse)
+  
+  #beta <- probs_split |>
+    #filter(method == "prob_beta") |> 
+    #brier_class(label, .pred_Lapse)
+  
+  brier <- tibble(raw = raw$.estimate, 
+                 logi_smooth = logi_smooth$.estimate,
+                 logi_no_smooth = logi_no_smooth$.estimate) 
+                 #iso = iso$.estimate) 
+  #               beta = beta$.estimate)
+  
+  #brier <- tibble(raw = raw$.estimate)
+  
+  return(brier)
+}
 ```
 
 ```{r}
-probs <- read_csv(here::here(path_input, str_c("outer_preds_", 
+preds <- read_csv(here::here(path_input, str_c("outer_preds_", 
                                             version, "_", 
                                             cv, "_", batch, ".csv")))
 
 ```
 
-Histogram of raw probabilities
-```{r}
-probs |> 
-  ggplot(aes(x = prob_raw)) +
-    geom_histogram() +
-    labs(title = "Histogram of Raw Probabilities")
+## Rank order and compare raw and platt calibration
 
-probs |> 
-  ggplot(aes(x = prob_logi)) +
-    geom_histogram() +
-    labs(title = "Histogram of Logi Probabilities")
+Smoothed
+```{r}
+cor(preds$prob_raw, preds$prob_logi_smooth, method = "spearman")
+
+plot(preds$prob_raw, qlogis(preds$prob_logi_smooth))
+
+preds |>
+  group_by(outer_split_num) |>
+  summarise(
+    spear = cor(prob_raw, prob_logi_smooth, method = "spearman")
+  ) |>
+  arrange(spear)
 ```
 
-Calibration plot
+Not smoothed
+```{r}
+cor(preds$prob_raw, preds$prob_logi_no_smooth, method = "spearman")
+
+plot(preds$prob_raw, qlogis(preds$prob_logi_no_smooth))
+
+preds |>
+  group_by(outer_split_num) |>
+  summarise(
+    spear = cor(prob_raw, prob_logi_no_smooth, method = "spearman")
+  ) |>
+  arrange(spear)
+```
+
+## Basic histogram and calibration plot
+
+Histogram of raw probabilities
+```{r}
+preds |> 
+  ggplot(aes(x = prob_raw)) +
+    geom_histogram(binwidth = .01) +
+    labs(title = "Histogram of Raw Probabilities") + 
+    scale_x_continuous(breaks = seq(0, 1, .25), limits = c(0, 1))
+
+preds |> 
+  ggplot(aes(x = prob_logi_smooth)) +
+    geom_histogram(binwidth = .01) +
+    labs(title = "Histogram of Logi Probabilities (Smoothed)") + 
+    scale_x_continuous(breaks = seq(0, 1, .25), limits = c(0, 1))
+
+preds |> 
+  ggplot(aes(x = prob_logi_no_smooth)) +
+    geom_histogram(binwidth = .01) +
+    labs(title = "Histogram of Logi Probabilities (Not Smoothed)") + 
+    scale_x_continuous(breaks = seq(0, 1, .25), limits = c(0, 1))
+```
+
+Calibration plot (original)
 ```{r}
 bin_width = 0.10
-cal_raw <- probs |> 
-  mutate(bins = cut(prob_raw, breaks = seq(0, 1, bin_width)), 
-         lapse = if_else(label == "lapse", 1, 0)) |> 
-  mutate(probs = "raw") 
+cal_raw <- preds |>
+  mutate(
+    prob = prob_raw,
+    bins = cut(prob, breaks = seq(0, 1, bin_width)),
+    lapse = if_else(label == "lapse", 1, 0),
+    probs = "raw"
+  )
 
-cal_logi <- probs |> 
-  mutate(bins = cut(prob_logi, breaks = seq(0, 1, bin_width)), 
-         lapse = if_else(label == "lapse", 1, 0)) |> 
-  mutate(probs = "logi") 
+cal_logi_smooth <- preds |>
+  mutate(
+    prob = prob_logi_smooth,
+    bins = cut(prob, breaks = seq(0, 1, bin_width)),
+    lapse = if_else(label == "lapse", 1, 0),
+    probs = "logi_smooth"
+  )
+
+cal_logi_no_smooth <- preds |>
+  mutate(
+    prob = prob_logi_no_smooth,
+    bins = cut(prob, breaks = seq(0, 1, bin_width)),
+    lapse = if_else(label == "lapse", 1, 0),
+    probs = "logi_no_smooth"
+  )
+
 
 cal_raw |> 
-  bind_rows(cal_logi) |> 
-  mutate(model = fct(probs, levels = c("raw", "logi"))) |> 
+  bind_rows(cal_logi_smooth, cal_logi_no_smooth) |> 
+  mutate(model = fct(probs, levels = c("raw", "logi_smooth", "logi_no_smooth"))) |> 
   group_by(bins, probs)  |>
   summarize(mean_lapse = mean(lapse),
             .groups = "drop") |>
@@ -80,10 +180,211 @@ cal_raw |>
     geom_point() +
     labs(x = "Predicted Lapse Probability (bin mid-point)",
          y = "Observed Lapse Probability",
-         title = "Calibration (Raw v Logi)") +
+         title = "Calibration (Raw v Platt, Smoothed and Unsmoothed)") +
     scale_x_continuous(breaks = seq(0, 1, bin_width),
                        limits = c(0, 1)) +
     scale_y_continuous(breaks = seq(0, 1, bin_width),
                        limits = c(0, 1))
 
 ```
+
+```{r}
+cal_tbl <- cal_raw |>
+  bind_rows(cal_logi_smooth, cal_logi_no_smooth) |>
+  group_by(bins, probs) |>
+  summarise(
+    mean_pred = mean(prob),
+    mean_lapse = mean(lapse),
+    n = n(),
+    .groups = "drop"
+  )
+
+cal_tbl
+```
+
+```{r}
+bin_width = 0.10
+cal_raw <- preds |>
+  mutate(
+    prob = prob_raw,
+    bins = cut(prob, breaks = seq(0, 1, bin_width)),
+    lapse = if_else(label == "lapse", 1, 0),
+    probs = "raw"
+  )
+
+cal_logi_smooth <- preds |>
+  mutate(
+    prob = prob_logi_smooth,
+    bins = cut(prob, breaks = seq(0, 1, bin_width)),
+    lapse = if_else(label == "lapse", 1, 0),
+    probs = "logi_smooth"
+  )
+
+cal_logi_no_smooth <- preds |>
+  mutate(
+    prob = prob_logi_no_smooth,
+    bins = cut(prob, breaks = seq(0, 1, bin_width)),
+    lapse = if_else(label == "lapse", 1, 0),
+    probs = "logi_no_smooth"
+  )
+
+
+cal_raw |> 
+  bind_rows(cal_logi_smooth, cal_logi_no_smooth) |> 
+  mutate(model = fct(probs, levels = c("raw", "logi_smooth", "logi_no_smooth"))) |> 
+  group_by(outer_split_num, bins, probs)  |>
+  summarize(mean_lapse = mean(lapse),
+            .groups = "drop") |>
+  mutate(bins = as.numeric(bins),
+         midpoints = bin_width/2 + bin_width * (bins - 1))  |> 
+  ggplot(data = _, aes(x = midpoints, y = mean_lapse, color = probs)) +
+    geom_abline(slope = 1, intercept = 0, linetype = "dotted") +
+    geom_line() +
+    geom_point() +
+    labs(x = "Predicted Lapse Probability (bin mid-point)",
+         y = "Observed Lapse Probability",
+         title = "Calibration (Raw v Platt, Smoothed and Unsmoothed)") +
+    scale_x_continuous(breaks = seq(0, 1, bin_width),
+                       limits = c(0, 1)) +
+    scale_y_continuous(breaks = seq(0, 1, bin_width),
+                       limits = c(0, 1)) +
+  facet_wrap(~ outer_split_num)
+
+```
+
+```{r}
+cal_error <- cal_raw |>
+  bind_rows(cal_logi_smooth, cal_logi_no_smooth) |>
+  group_by(outer_split_num, probs, bins) |>
+  summarize(
+    mean_lapse = mean(lapse),
+    mean_pred = mean(prob),
+    .groups = "drop"
+  ) |>
+  mutate(
+    calibration_error = abs(mean_pred - mean_lapse)
+  )
+
+cal_error |>
+  group_by(probs) |>
+  summarize(
+    mean_cal_error = mean(calibration_error),
+    median_cal_error = median(calibration_error),
+    max_cal_error = max(calibration_error)
+  )
+```
+
+## Brier scores
+
+```{r}
+brier_scores <- preds |>
+  pivot_longer(
+    cols = c(prob_raw, prob_logi_smooth, prob_logi_no_smooth),
+    names_to = "method",
+    values_to = ".pred_lapse"
+  ) |>
+  mutate(label = factor(label, levels = c("lapse", "no lapse"))) |> 
+  group_by(
+    outer_split_num,
+    method
+  ) |>
+  brier_class(
+    label,
+    .pred_lapse
+  )
+```
+
+```{r}
+brier_scores |>
+  group_by(method) |>
+  summarise(
+    mean_brier = mean(.estimate),
+    sd_brier = sd(.estimate),
+    median_brier = median(.estimate),
+    min_brier = min(.estimate),
+    max_brier = max(.estimate)
+  )
+
+```
+
+## KW Calibration
+
+Create histogram comparing raw/platt across lapse/no lapse cases.
+```{r}
+preds |> 
+  pivot_longer(cols = c(prob_raw, prob_logi), names_to = "prob_type", values_to = "prob") |>
+  mutate(prob_type = factor(prob_type, levels = c("prob_raw", "prob_logi"),
+                                labels = c("Raw (uncalibrated)", "Platt calibration"))) |> 
+  ggplot() +
+  geom_histogram(aes(x = prob, fill = prob_type), color = "white", bins = 40) +
+  facet_grid(label ~ prob_type, scales = "free_y") +
+  labs(x = "Probabilties",
+       y = NULL) +
+  scale_fill_manual(values = c("#240e31", "#046B52")) +
+  theme_classic() +
+  theme(axis.text=element_text(size=9.5),
+        panel.border = element_rect(colour = "black", fill = NA, linewidth = 1),
+        legend.position = "none")
+```
+
+Set up data to add rug to plot -- currently doesn't display properly on plot.
+```{r}
+bin_width = 0.10
+
+preds_all_logi <- preds |> 
+  mutate(bins = cut(prob_logi, breaks = seq(0, 1, bin_width)), 
+         lapse = if_else(label == "lapse", 1, 0),
+         prob = "Platt calibration")  
+
+preds_all_raw <- preds |> 
+  mutate(bins = cut(prob_raw, breaks = seq(0, 1, bin_width)), 
+         lapse = if_else(label == "lapse", 1, 0),
+         prob = "Raw (uncalibrated)") 
+
+rug_data <- preds_all_raw |> 
+  mutate(
+    bins = as.numeric(bins),
+    rug_center = bin_width/2 + bin_width * (bins - 1),
+    rug_x = rug_center + runif(n(), -bin_width/2, bin_width/2)
+  )
+```
+
+Create calibration plot.
+```{r}
+preds_all_raw |> 
+  bind_rows(preds_all_logi) |> 
+  mutate(prob = factor(prob, levels = c("Raw (uncalibrated)", 
+                                        "Platt calibration"))) |> 
+  group_by(bins,  prob)  |> 
+  summarize(mean_lapse = mean(lapse),
+            .groups = "drop") |> 
+  mutate(
+    bins = as.numeric(bins),
+    midpoints = bin_width/2 + bin_width * (bins - 1)
+  )  |> 
+  ggplot(aes(x = midpoints, y = mean_lapse, group = prob,
+             color = prob, linetype = prob)) +
+  geom_abline(slope = 1, intercept = 0, linetype = "longdash", color = "gray80") +
+  geom_line(linewidth = .7) +
+  labs(
+    x = "Predicted Lapse Probability (Bin Midpoint)",
+    y = "Observed Lapse Probability",
+    color = NULL,
+    linetype = NULL
+  ) +
+  ## currently makes this run super slow, think bc it's very condensed
+  #geom_rug(data = rug_data, aes(x = rug_x), sides = "b", alpha = 0.3,
+           #inherit.aes = FALSE) +
+  scale_x_continuous(breaks = seq(0, .8, bin_width), limits = c(0, .8)) +
+  scale_y_continuous(limits = c(-0.08, .8), breaks = seq(0,.8, bin_width),
+                     expand = c(0, 0)) +
+  coord_cartesian(clip = "off") +
+  scale_color_manual(values = c("#240e31", "#046B52")) +
+  scale_linetype_manual(values = c("solid", "twodash")) +
+  theme_classic() +
+  theme(axis.text=element_text(size=9.5),
+        legend.key.size = unit(0.25, "cm"),
+        panel.border = element_rect(colour = "black", fill = NA, linewidth = 1),
+        legend.position = "bottom") 
+```
+
