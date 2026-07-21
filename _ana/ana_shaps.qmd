@@ -1,0 +1,75 @@
+---
+title: "Model probabilities"
+author: "Adapted by Claire Punturieri for study_gps from KW"
+date: "`r lubridate::today()`"
+output: 
+  html_document:
+    toc: true 
+    toc_depth: 4
+format:
+  html:
+    embed-resources: true
+params:
+  version: "v24"
+  cv: "nested_2_x_5_6_x_5"
+  model: "full_v_baseline"
+  batch: "full"
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r}
+#| message: false
+#| warning: false
+
+library(tidyverse)
+library(tidymodels)
+
+options(conflicts.policy = "depends.ok")
+library(probably)
+
+source("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true")
+
+path_input <- format_path("risk/models/gps")
+
+version <- params$version
+cv <- params$cv
+model <- params$model
+batch <- params$batch
+```
+
+```{r}
+shaps <- read_csv(here::here(path_input, str_c("outer_shapsgrp_",
+                                              version, "_", cv, "_", batch,
+                                              ".csv")))
+
+```
+
+
+```{r}
+shap_levels <- shaps |> 
+  group_by(variable_grp) |>
+  summarize(mean_value = mean(abs(value)), .groups = "drop") |> 
+  arrange(desc(mean_value)) |> 
+  slice_head(n = 20) |> 
+  arrange(mean_value) |> 
+  pull(variable_grp)
+
+shaps |>
+  group_by(variable_grp) |>
+  summarize(mean_value = mean(abs(value)), .groups = "drop") |> 
+  filter(variable_grp %in% shap_levels) |> 
+  mutate(variable_grp = factor(variable_grp, levels = shap_levels)) |> 
+  ggplot(mapping = aes(x = variable_grp, y = mean_value)) +
+  geom_bar(fill = "#240e31", 
+           stat = "identity", position = "dodge") +
+  labs(y = "Mean(|Shapley Value|)",
+       x = NULL,
+       fill = NULL) +
+  theme_classic() +
+  theme(axis.text=element_text(size=9.5),
+        legend.key.size = unit(0.25, "cm"),
+        panel.border = element_rect(colour = "black", fill = NA, linewidth = 1),
+        legend.position = "right") +
+  coord_flip()
+```

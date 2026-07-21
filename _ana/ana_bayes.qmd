@@ -1,0 +1,92 @@
+---
+title: "ana_bayes"
+output: 
+  html_document:
+    toc: true 
+    toc_depth: 4
+format:
+  html:
+    embed-resources: true
+params:
+  version: "v24"
+  cv: "nested_2_x_5_6_x_5"
+  model: "full_v_baseline"
+  batch: "full"
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r}
+#| message: false
+#| warning: false
+
+library(tidyverse)
+library(tidymodels)
+library(tidyposterior)
+
+options(conflicts.policy = "depends.ok")
+library(probably)
+
+source("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true")
+
+path_input <- format_path("risk/models/gps")
+
+version <- params$version
+cv <- params$cv
+model <- params$model
+batch <- params$batch
+```
+
+```{r}
+preds <- read_csv(here::here(path_input, str_c("outer_preds_", 
+                                            version, "_", 
+                                            cv, "_", batch, ".csv")))
+
+```
+
+Create summary auroc by fold and repeat.
+```{r}
+auroc_summary <- preds |>
+  mutate(label = factor(label, levels = c("lapse", "no lapse"))) |>
+  group_by(outer_split_num) |>
+  roc_auc(truth = label, prob_logi) |>
+  ungroup() |> 
+  select(split_num = outer_split_num, "full" = .estimate) |> 
+  arrange(split_num) |> 
+  mutate(fold_num = rep(1:5, 6),
+         repeat_num = c(rep(1, 5), rep(2, 5), rep(3, 5), 
+                        rep(4, 5), rep(5, 5), rep(6, 5))) |> 
+  select(-split_num)
+```
+
+```{r}
+# Repeated CV (id = repeat, id2 = fold within repeat)
+# with a common variance:  statistic ~ model + (model | id2/id)
+## cp note: not comparing against other model here, so just include intercept
+# we believe help is reversed on this
+set.seed(101)
+pp <- auroc_summary |> 
+  rename(id = repeat_num,
+         id2 = fold_num) |> 
+  perf_mod(formula = statistic ~ 1 + (1 | id/id2),
+         transform = tidyposterior::logit_trans,  # for skewed & bounded AUC
+         iter = 6000, chains = 4, adapt_delta = .99, # still some divergence issues
+         family = gaussian, 
+)
+```
+
+Compare against chance performance.
+```{r}
+pp_tidy <- pp |> 
+  tidy(seed = 123) 
+
+q = c(.025, .5, .975)
+
+pp_tidy |> 
+  summarize(pp_median = quantile(posterior, probs = q[2]),
+            pp_lower = quantile(posterior, probs = q[1]), 
+            pp_upper = quantile(posterior, probs = q[3]))
+
+pp_tidy |> 
+ summarize(prob = mean(posterior > .5)) 
+```
