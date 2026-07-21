@@ -31,9 +31,12 @@
 # baseline (demographics) v full (demo + gps) with glmnet (v20)
 # baseline (demographics) v full (demo + gps) with glmnet, incl YJ transformation (V21)
 # baseline (demographics) v full (demo + gps) with rf (v22)
+# baseline (demographics) v full (demo + gps) with xgboost; expanded hyperparameters (v23)
+# baseline (demographics) v full (demo + gps) with xgboost; lower learning rate edge further (v24)
 
 # currently running
-# baseline (demographics) v full (demo + gps) with xgboost; expanded hyperparameters (v23)
+# baseline (demographics) v full (demo + gps) with xgboost2 (v25)
+#    xgboost2 has set learning rate, tunes on trees, no early stopping
 
 # source format_path
 source("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true")
@@ -42,8 +45,8 @@ source("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true
 study <- "gps"
 window <- "day"
 lead <- 0
-version <- "v23" 
-algorithm <- "xgboost"
+version <- "v25" 
+algorithm <- "xgboost2"
 model <- "full_v_baseline"
 
 feature_set <- c("full", "baseline") # GPS feature set name
@@ -59,8 +62,11 @@ configs_per_job <- 10 # number of model configurations that will be fit/evaluate
 # It is converted to  overratio (1/ratio) for up and smote
 # memory constraints with SMOTE
 # daily lapse base rate ~ 7% (~ 13:1 majority to minority cases)
-resample <- c("none", "up_1", "up_2", "up_3", "up_4", "up_5",
-              "down_1", "down_2", "down_3", "down_4", "down_5")
+
+#resample <- c("none", "up_1", "up_2", "up_3", "up_4", "up_5",
+              #"down_1", "down_2", "down_3", "down_4", "down_5")
+
+resample <- "none"
 
 # CHTC SPECIFIC CONTROLS------ ---------------------
 username <- "p/punturieri" # for setting staging directory (until we have group staging folder)
@@ -113,11 +119,17 @@ hp1_rf <- c(2, 10, 20, 30, 40, 50, 75) # mtry (p/3 for reg or square root of p f
 hp2_rf <- c(2, 5, 10, 15, 20, 30) # min_n
 hp3_rf <- 1500 # trees (10 x's number of predictors)
 
-hp1_xgboost <- c(0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05, 0.1)  # learn_rate, how fast model fits residual error; high: faster, but may overshoot, low: slower, may get stuck on less optimal solutions
-hp2_xgboost <- c(1, 2, 3, 4, 5, 6) # tree_depth, complexity of tree structure (larger no. = more likely to overfit)
+hp1_xgboost <- c(0.00001, 0.00005, 0.0001, 0.0005, 0.001, 0.01)  # learn_rate, how fast model fits residual error; high: faster, but may overshoot, low: slower, may get stuck on less optimal solutions; previously used .05 and never selected
+hp2_xgboost <- c(1, 2, 3, 4, 5) # tree_depth, complexity of tree structure (larger no. = more likely to overfit); previously used 6 and never selected
 hp3_xgboost <- c(10, 15, 20, 30, 40, 50, 65, 80, 95)  # mtry, no. feats. to split on at each split
 # trees = 500
 # early stopping = 20
+
+hp1_xgboost2 <- c(300, 600, 1000, 1500, 2500) # trees
+hp2_xgboost2 <- c(1, 2, 3, 4, 5) # tree_depth
+hp3_xgboost2 <- c(10, 15, 20, 30, 40, 50, 65, 80, 95) # mtry
+# no early stopping
+# learning rate (eta) set to .03
 
 #hp1_rda <- seq(0.1, 1, length.out = 10)  # frac_common_cov: Fraction of the Common Covariance Matrix (0-1; 1 = LDA, 0 = QDA)
 #hp2_rda <- seq(0.1, 1, length.out = 10) # frac_identity: Fraction of the Identity Matrix (0-1)
@@ -215,7 +227,7 @@ build_recipe <- function(d, config) {
     # no algorithm specific steps
   } 
   
-  if (algorithm == "xgboost") {
+  if (algorithm == "xgboost" | algorithm == "xgboost2") {
     
     rec <- rec  |> 
       step_dummy(all_of(c("demo_educ", "demo_marital")), one_hot = TRUE) |> 
