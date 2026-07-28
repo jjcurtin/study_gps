@@ -33,10 +33,13 @@
 # baseline (demographics) v full (demo + gps) with rf (v22)
 # baseline (demographics) v full (demo + gps) with xgboost; expanded hyperparameters (v23)
 # baseline (demographics) v full (demo + gps) with xgboost; lower learning rate edge further (v24)
-
-# currently running
 # baseline (demographics) v full (demo + gps) with xgboost2 (v25)
 #    xgboost2 has set learning rate, tunes on trees, no early stopping
+#    _trees version includes lowered trees hyperparameter
+#    _mtry version includes mtry at 5
+
+# currently running
+# v26
 
 # source format_path
 source("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true")
@@ -45,7 +48,7 @@ source("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true
 study <- "gps"
 window <- "day"
 lead <- 0
-version <- "v25" 
+version <- "v26" 
 algorithm <- "xgboost2"
 model <- "full_v_baseline"
 
@@ -55,7 +58,7 @@ data_trn <- str_c("features_combined.csv")
 seed_splits <- 102030
 
 ml_mode <- "classification"   # regression or classification
-configs_per_job <- 10 # number of model configurations that will be fit/evaluated within each CHTC
+configs_per_job <- 30 # number of model configurations that will be fit/evaluated within each CHTC
 
 # RESAMPLING FOR OUTCOME-----------------------------------
 # note that ratio is under_ratio, which is used by downsampling as is
@@ -101,7 +104,7 @@ cv_name <- if_else(cv_resample_type == "nested",
 
 # STUDY PATHS----------------------------
 # the name of the batch of jobs to set folder name
-name_batch <- str_c("train_", algorithm, "_", cv_name, "_", version, "_", model) 
+name_batch <- str_c("train_", algorithm, "_", cv_name, "_", version, "_", model, "_mtry") 
 # the path to the batch of jobs to put the folder name
 path_batch <- format_path(str_c("risk/chtc/", study, "/", name_batch)) 
 # location of data set
@@ -125,9 +128,10 @@ hp3_xgboost <- c(10, 15, 20, 30, 40, 50, 65, 80, 95)  # mtry, no. feats. to spli
 # trees = 500
 # early stopping = 20
 
-hp1_xgboost2 <- c(300, 600, 1000, 1500, 2500) # trees
-hp2_xgboost2 <- c(1, 2, 3, 4, 5) # tree_depth
-hp3_xgboost2 <- c(10, 15, 20, 30, 40, 50, 65, 80, 95) # mtry
+hp1_xgboost2 <- c(100, 150, 200, 250, 300, 400, 500) # trees, original: 300, 600, 1000, 1500, 2500
+hp2_xgboost2 <- c(1, 2, 3, 4) # tree_depth
+hp3_xgboost2 <- c(5, 10, 15, 20, 40, 95) # mtry, original 10 through 95
+hp4_xgboost2 <- c(1, 2, 4, 8, 13.5) # scale_pos_weight
 # no early stopping
 # learning rate (eta) set to .03
 
