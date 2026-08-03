@@ -11,7 +11,7 @@ format:
     embed-resources: true
 params:
   study: "gps"
-  version: "v24"
+  version: "v25"
   cv: "nested_2_x_5_6_x_5"
   model: "full_v_baseline"
   batch: "full"
@@ -83,7 +83,7 @@ fit_predict_eval <- function(split_num, splits, configs_best){
            roc_auc_in = roc_auc, sens_in =  sens, spec_in = spec, 
            ppv_in = ppv, npv_in = npv) |> 
     # KLUDGE!!!!!
-    mutate(algorithm = "xgboost",
+    mutate(algorithm = "xgboost2", # MAKE SURE TO UPDATE
            feature_set = batch)
     
   rec <- build_recipe(d = d_in, config = config_best)
@@ -100,8 +100,8 @@ fit_predict_eval <- function(split_num, splits, configs_best){
   
   # metrics from raw (uncalibrated) predictions for held out fold
   preds_prob <- predict(model_best, feat_out,
-                        type = "prob") #|> 
-    #mutate(id_obs = feat_out$id_obs)
+                        type = "prob")
+  
   preds_class <- predict(model_best, feat_out, type = "class")$.pred_class
 
   roc <- tibble(truth = feat_out$y, 
@@ -123,29 +123,28 @@ fit_predict_eval <- function(split_num, splits, configs_best){
     pivot_wider(names_from = "metric", values_from = "estimate") |>    
     relocate(roc_auc, sens, spec, ppv, npv, accuracy, bal_accuracy) |> 
     bind_cols(config_best) |>
-    relocate(outer_split_num, algorithm, feature_set, hp1, hp2, hp3, 
-             resample) |> 
+    relocate(outer_split_num, algorithm, feature_set, hp1, hp2, hp3) |> 
     relocate(accuracy_in, bal_accuracy_in, .after = last_col())
 
   if (batch != "baseline") {
     # train calibration model train/test split on held in data
     # Skip for baseline models
-    set.seed(2468)
-    cal_split <- d_in |> 
-      group_initial_split(group = all_of(cv_group), prop = 3/4)
-    d_cal_in <- training(cal_split) 
-    d_cal_out <- testing(cal_split)
-    
-    rec_prep <- rec |>  
-      prep(training = d_cal_in, strings_as_factors = FALSE)
-    
-    feat_cal_in <- rec_prep |> 
-      bake(new_data = NULL)
-  
-    feat_cal_out <- rec_prep |>  
-      bake(new_data = d_cal_out) 
-
-    model_cal <- fit_best_model(config_best, feat = feat_cal_in, "classification")
+    # set.seed(2468)
+    # cal_split <- d_in |> 
+    #   group_initial_split(group = all_of(cv_group), prop = 3/4)
+    # d_cal_in <- training(cal_split) 
+    # d_cal_out <- testing(cal_split)
+    # 
+    # rec_prep <- rec |>  
+    #   prep(training = d_cal_in, strings_as_factors = FALSE)
+    # 
+    # feat_cal_in <- rec_prep |> 
+    #   bake(new_data = NULL)
+    # 
+    # feat_cal_out <- rec_prep |>  
+    #   bake(new_data = d_cal_out) 
+    # 
+    # model_cal <- fit_best_model(config_best, feat = feat_cal_in, "classification")
   
     # iso calibration
     #iso <- predict(model_cal, feat_cal_out,
@@ -156,25 +155,25 @@ fit_predict_eval <- function(split_num, splits, configs_best){
     #preds_prob_iso <- preds_prob |> 
       #cal_apply(iso)
   
-    # logistic calibration - SMOOTHING
-    logi_smooth <- predict(model_cal, feat_cal_out,
-                   type = "prob") |>
-      mutate(truth = feat_cal_out$y) |>
-      cal_estimate_logistic(truth = truth,
-                             estimate = starts_with(".pred_"),
-                             smooth = TRUE)
-    preds_prob_logi_smooth <- preds_prob |>
-      cal_apply(logi_smooth)
-    
-    # logistic calibration - SMOOTHING
-    logi_no_smooth <- predict(model_cal, feat_cal_out,
-                   type = "prob") |>
-      mutate(truth = feat_cal_out$y) |>
-      cal_estimate_logistic(truth = truth,
-                             estimate = starts_with(".pred_"),
-                             smooth = FALSE)
-    preds_prob_logi_no_smooth <- preds_prob |>
-      cal_apply(logi_no_smooth)
+    # # logistic calibration - SMOOTHING
+    # logi_smooth <- predict(model_cal, feat_cal_out,
+    #                type = "prob") |>
+    #   mutate(truth = feat_cal_out$y) |>
+    #   cal_estimate_logistic(truth = truth,
+    #                          estimate = starts_with(".pred_"),
+    #                          smooth = TRUE)
+    # preds_prob_logi_smooth <- preds_prob |>
+    #   cal_apply(logi_smooth)
+    # # 
+    # # # logistic calibration - NO SMOOTHING
+    # logi_no_smooth <- predict(model_cal, feat_cal_out,
+    #                type = "prob") |>
+    #   mutate(truth = feat_cal_out$y) |>
+    #   cal_estimate_logistic(truth = truth,
+    #                          estimate = starts_with(".pred_"),
+    #                          smooth = FALSE)
+    # preds_prob_logi_no_smooth <- preds_prob |>
+    #   cal_apply(logi_no_smooth)
 
     # beta calibration
     #beta <- predict(model_cal, feat_cal_out,
@@ -191,8 +190,8 @@ fit_predict_eval <- function(split_num, splits, configs_best){
                         outer_split_num = rep(split_num, nrow(preds_prob)),
                         prob_raw = preds_prob[[str_c(".pred_", y_level_pos)]],
                         #prob_iso = preds_prob_iso[[str_c(".pred_", y_level_pos)]],
-                        prob_logi_smooth = preds_prob_logi_smooth[[str_c(".pred_", y_level_pos)]],
-                        prob_logi_no_smooth = preds_prob_logi_no_smooth[[str_c(".pred_", y_level_pos)]],
+                        #prob_logi_smooth = preds_prob_logi_smooth[[str_c(".pred_", y_level_pos)]],
+                        #prob_logi_no_smooth = preds_prob_logi_no_smooth[[str_c(".pred_", y_level_pos)]],
                         #prob_beta = preds_prob_beta[[str_c(".pred_", y_level_pos)]],
                         label = d_out$y)
   
@@ -227,29 +226,30 @@ metrics_raw <-
   glimpse()
 ```
 
-
 ### Identify best config for each outer fold (i.e., across inner folds)
 
 Average metrics for each configuration across inner folds for each outer fold
 ```{r}
 metrics_avg <- metrics_raw |>
-  filter(feature_set == batch) |> 
-  group_by(hp1, hp2, hp3, resample, outer_split_num) |> 
-   summarize(across(c(accuracy, bal_accuracy, roc_auc, sens, spec, ppv, npv),
+  filter(feature_set == batch) |> # full or baseline
+  group_by(hp1, hp2, hp3, resample, outer_split_num) |>
+   summarize(across(c(roc_auc, mn_log_loss, accuracy, bal_accuracy, sens, spec, ppv, npv),
                      median),
               n_jobs = n(), .groups = "drop") |> 
   relocate(outer_split_num, n_jobs) |> 
-  arrange(outer_split_num, desc(roc_auc))
+  arrange(outer_split_num, desc(roc_auc)) # set to either mn_log_loss from roc_auc -- using roc_auc now
+                                              # note that log loss needs to be ASCENDING
+                                              # while roc_auc needs to be DESCENDING
 ```
 
 Best configuration for each outer fold
 ```{r}
 configs_best <- metrics_avg |> 
   group_by(outer_split_num) |> 
-  arrange(desc(roc_auc)) |> 
+  arrange(desc(roc_auc)) |>
   slice(1) |> 
   ungroup() |> 
-  relocate(roc_auc, .before = accuracy)
+  relocate(roc_auc, .before = mn_log_loss)
 
 configs_best |> print_kbl()
 ```
@@ -257,11 +257,18 @@ configs_best |> print_kbl()
 ```{r}
 configs_best |> pull(roc_auc) |> mean()
 configs_best |> pull(roc_auc) |> median()
+
+configs_best |> pull(mn_log_loss) |> mean()
+configs_best |> pull(mn_log_loss) |> median()
 ```
 
 ```{r}
 configs_best |> 
   ggplot(aes(x = roc_auc)) +
+  geom_histogram(bins = 10)
+
+configs_best |> 
+  ggplot(aes(x = mn_log_loss)) +
   geom_histogram(bins = 10)
 ```
 
@@ -561,10 +568,7 @@ if(!file.exists(here::here(path_models, str_c("outer_shapsgrp_",
 }
 ```
 
-
 ### Final Review performance eval from outer loop
-
-Just don't run this part. :)
 
 Done more in depth later script but here is a quick look
 ```{r}
