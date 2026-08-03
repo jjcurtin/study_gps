@@ -39,7 +39,8 @@
 #    _mtry version includes mtry at 5
 
 # currently running
-# v26
+# baseline (demographics) v full (demo + gps) with xgboost2 (v26)
+#   v26 includes an update to xgboost2 where we now tune on scale_pos_weight
 
 # source format_path
 source("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true")
@@ -104,7 +105,7 @@ cv_name <- if_else(cv_resample_type == "nested",
 
 # STUDY PATHS----------------------------
 # the name of the batch of jobs to set folder name
-name_batch <- str_c("train_", algorithm, "_", cv_name, "_", version, "_", model, "_mtry") 
+name_batch <- str_c("train_", algorithm, "_", cv_name, "_", version, "_", model) 
 # the path to the batch of jobs to put the folder name
 path_batch <- format_path(str_c("risk/chtc/", study, "/", name_batch)) 
 # location of data set
