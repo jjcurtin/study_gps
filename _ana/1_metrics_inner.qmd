@@ -11,9 +11,9 @@ format:
     embed-resources: true
 params:
   study: "gps"
-  version: "v24"
+  version: "v26"
   cv: "nested_2_x_5_6_x_5"
-  algorithms: "xgboost"   # "all" or name of specific algorithm
+  algorithms: "xgboost2"   # "all" or name of specific algorithm
   model: "full_v_baseline"
 editor_options: 
   chunk_output_type: console
@@ -39,6 +39,8 @@ v21, glmnet with yj (.647)
 v22, rf (.677)
 v23, xgboost with expanded hyperparameters
 v24, xgboost with further expanded hyperparams (learning rate lower bound)
+v25, xgboost2 (.726)
+v26, xgboost2 with positive class weighting (.726)
 
 # Set Up
 
@@ -93,13 +95,39 @@ path_output <- format_path(str_c("risk/chtc/", study))
 
 Get batch name from above-specified model parameters.
 ```{r}
-batch_name <- str_c("train_", algorithms, "_", cv, "_", version, "_", model)
+if (version == "v25"){
+  
+  batch_name <- str_c("train_", algorithms, "_", cv, "_", version, "_", model)
+  batch_name2 <- str_c("train_", algorithms, "_", cv, "_", version, "_", model, "_trees")
+  batch_name3 <- str_c("train_", algorithms, "_", cv, "_", version, "_", model, "_mtry") 
+  
+} else {
+  
+  batch_name <- str_c("train_", algorithms, "_", cv, "_", version, "_", model)
+  
+}
 ```
 
 Load in results file.
 ```{r}
-results_all <- read_csv(here::here(path_input, batch_name, "output", "batch_results.csv"),
-                        show_col_types = FALSE)
+if (version == "v25") {
+  results_all <- read_csv(here::here(path_input, batch_name, "output", "batch_results.csv"),
+                          show_col_types = FALSE)
+
+  results_all2 <- read_csv(here::here(path_input, batch_name2, "output", "batch_results.csv"),
+                          show_col_types = FALSE)
+
+  results_all3 <- read_csv(here::here(path_input, batch_name3, "output", "batch_results.csv"),
+                          show_col_types = FALSE)
+  
+  results_all <- bind_rows(results_all, results_all2, results_all3)
+  
+} else {
+  
+  results_all <- read_csv(here::here(path_input, batch_name, "output", "batch_results.csv"),
+                          show_col_types = FALSE)
+  
+}
 ```
 
 Conduct final checks -- we expect to see results split evenly among possible hyperparameter combinations, resampling techniques, etc. If these numbers are not even, that suggests there may be a problem.
@@ -111,6 +139,7 @@ Conduct final checks -- we expect to see results split evenly among possible hyp
   results_all |> tab(hp1) |> print()
   results_all |> tab(hp2) |> print()
   results_all |> tab(hp3) |> print()
+  results_all |> tab(hp4) |> print() # for xgboost2, scale_pos_weight
   results_all |> tab(resample) |> print()
 ```
 
@@ -125,37 +154,23 @@ results_all |>
 
 ## Examine best configuration
 
-Summarize median auROCs by model parameters -- what is the median auROC summarized across folds where each particular hyperparameter and resampling combination was evaluated? Evaluate how well each hyperparameter configuration performs.
-```{r}
-metrics_avg <- results_all |> 
-  filter(feature_set == "full") |> 
-  group_by(hp1, hp2, hp3, resample) |> 
-   summarize(median_roc_auc = median(roc_auc),
-             n_folds = n(), .groups = "drop") |> 
-  relocate(n_folds) |> 
-  arrange(desc(median_roc_auc)) |> 
-  ungroup()
-```
+Summarize by outer fold -- what is the top performing configuration across each outer fold? Evaluate which hyperparameter configuration "wins" in each outer fold. Sort by either median_roc_auc or median_log_loss.
 
-Check to make sure summarized tibble looks accurate.
-```{r}
-metrics_avg |> 
-  slice(1:50) |> 
-  print_kbl()
-```
-
-Summarize by outer fold -- what is the top performing configuration across each outer fold? Evaluate which hyperparameter configuration "wins" in each outer fold.
 ```{r}
 results_all |> 
   filter(feature_set == "full") |> 
-  group_by(outer_split_num, hp1, hp2, hp3, resample) |> 
+  group_by(outer_split_num, hp1, hp2, hp3, hp4) |> 
    summarize(median_roc_auc = median(roc_auc),
+             median_log_loss = median(mn_log_loss),
              n_folds = n(), .groups = "drop") |> 
   relocate(n_folds) |>
   group_by(outer_split_num) |> 
-  arrange(desc(median_roc_auc)) |> 
+  arrange(desc(median_roc_auc)) |>
+  #arrange(median_log_loss) |>
   slice_head(n = 1) |> 
-  ungroup()
+  ungroup() |> 
+  pull(median_roc_auc) |> 
+  median()
 ```
 
 ## Plot hyperparameters
