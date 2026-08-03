@@ -10,7 +10,7 @@ format:
   html:
     embed-resources: true
 params:
-  version: "v24"
+  version: "v25"
   cv: "nested_2_x_5_6_x_5"
   model: "full_v_baseline"
   batch: "full"
@@ -42,14 +42,15 @@ batch <- params$batch
 preds <- read_csv(here::here(path_input, str_c("outer_preds_", 
                                             version, "_", 
                                             cv, "_", batch, ".csv")))
-
 ```
+
+## auROC
 
 Make basic curve.
 ```{r}
 roc_data <- preds |> 
   mutate(label = factor(label, levels = c("lapse", "no lapse"))) |> 
-  roc_curve(prob_logi, truth = label)
+  roc_curve(prob_raw, truth = label)
   
 plot_roc <- function(df, line_colors){
   df |> 
@@ -68,17 +69,16 @@ roc_data |>
   group_by(sensitivity, specificity) |> 
   summarise(.threshold = mean(.threshold)) |> 
   ggplot(aes(x = 1 - specificity, y = sensitivity)) +
-  #ggplot(aes(x = specificity, y = sensitivity, color = .threshold)) +
-  geom_path(linewidth = 1, color = "red") +
+  geom_path(linewidth = 1, color = "darkblue") +
   geom_abline(lty = 3) +
   coord_fixed(xlim = c(0, 1), ylim = c(0, 1)) +
   labs(x = "False Positive Rate",
        y = "True Positive Rate") +
   scale_x_continuous(breaks = seq(0,1,.25),
     labels = sprintf("%.2f", seq(0,1,.25))) + # to flip axis
-  #scale_color_gradient(low="darkblue", high = "red", name = "Threshold") +
   theme(axis.text = element_text(size = rel(1.50)), 
-        axis.title = element_text(size = rel(1.75)))
+        axis.title = element_text(size = rel(1.75))) +
+  theme_minimal()
 ```
 
 Add in curves for every outer fold.
@@ -86,7 +86,7 @@ Add in curves for every outer fold.
 roc_folds <- preds |>
   mutate(label = factor(label, levels = c("lapse", "no lapse"))) |> 
   nest(.by = outer_split_num, .key = "preds") |>
-  mutate(roc = map(preds, \(preds) roc_curve(preds, prob_logi,
+  mutate(roc = map(preds, \(preds) roc_curve(preds, prob_raw,
                                              truth = label)))
 
 fig_roc_folds <- roc_data |>   # plot region from full concatenated data
@@ -116,20 +116,85 @@ roc_data_smooth <- roc_data |> mutate(sensitivity = round(sensitivity, 4),
 #add full concatenated curve
 fig_roc_folds +
      geom_path(data = roc_data_smooth,
-               mapping = aes(x = 1 - specificity, y = sensitivity, color = "darkred"),
-               linewidth = 2) #+
-    #scale_color_gradient(low="blue", high="red")
+               mapping = aes(x = 1 - specificity, y = sensitivity),
+               color = "darkblue",
+               linewidth = 2) +
+  theme_minimal()
 ```
 
-Plot histograms of 30 held out auROCs.
+Plot histogram of 30 held out auROCs.
 ```{r}
 auroc_summary <- preds |>
   mutate(label = factor(label, levels = c("lapse", "no lapse"))) |>
   group_by(outer_split_num) |>
-  roc_auc(truth = label, prob_logi) |>
+  roc_auc(truth = label, prob_raw) |>
   ungroup()
 
 auroc_summary |>
   ggplot(aes(x = .estimate)) +
-  geom_histogram(binwidth = .02)
+  geom_histogram(binwidth = .02, color = "white", fill = "darkblue") +
+  theme_minimal() +
+  labs(x = "auROC")
+```
+
+## Log loss
+
+Plot histogram of 30 held out mean log loss.
+```{r}
+ll_summary <- preds |>
+  mutate(label = factor(label, levels = c("lapse", "no lapse"))) |>
+  group_by(outer_split_num) |>
+  mn_log_loss(truth = label, prob_raw) |>
+  ungroup()
+
+ll_summary |>
+  ggplot(aes(x = .estimate)) +
+  geom_histogram(binwidth = .02, color = "white", fill = "darkblue") +
+  theme_minimal() +
+  labs(x = "mean log loss")
+```
+
+Correlation between mean log loss and auROCs.
+```{r}
+cor(auroc_summary$.estimate, ll_summary$.estimate)
+cor(auroc_summary$.estimate, ll_summary$.estimate, method = "spearman")
+```
+
+Create a plot to see what the relationship looks like.
+```{r}
+ll_auroc_merge <- merge(auroc_summary, ll_summary, by = "outer_split_num")
+
+
+ggplot(ll_auroc_merge,
+       aes(x = .estimate.x, # auroc
+           y = .estimate.y)) + # ll
+  geom_point() +
+  geom_smooth(method = "loess", se = FALSE)
+```
+
+## Skill scores
+
+```{r}
+skill_summary <- preds |>
+  mutate(label = factor(label, levels = c("lapse", "no lapse"))) |>
+  group_by(outer_split_num) |>
+  summarize(p_null = mean(label == "lapse"), # lapse prevalence rate
+            # ll of probs against outcomes
+            ll_model = mn_log_loss_vec(label, prob_raw),
+            # ll of same prob (prevalence) for everyone
+            ll_null = mn_log_loss_vec(label, rep(p_null, n())),
+            # look at difference in performance between
+            # our model and one which only knows base rate
+            skill = 1 - ll_model / ll_null,
+            .groups = "drop")
+
+skill_summary |>
+  ggplot(aes(x = skill)) +
+  geom_histogram(binwidth = .02) +
+  geom_histogram(binwidth = .02, color = "white", fill = "darkblue") +
+  theme_minimal() +
+  labs(x = "skill score (mean log loss)")
+
+skill_summary |> pull(skill) |> mean()
+skill_summary |> pull(skill) |> median()
 ```
