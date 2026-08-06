@@ -11,7 +11,7 @@ format:
     embed-resources: true
 params:
   study: "gps"
-  version: "v26"
+  version: "v25"
   cv: "nested_2_x_5_6_x_5"
   algorithms: "xgboost2"   # "all" or name of specific algorithm
   model: "full_v_baseline"
