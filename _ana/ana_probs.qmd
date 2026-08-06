@@ -93,7 +93,7 @@ preds |>
   theme_light()
 ```
 
-Calibration plot (original)
+Calibration plot
 ```{r}
 bin_width = 0.10
 cal_raw <- preds |>
@@ -106,7 +106,6 @@ cal_raw <- preds |>
 
 
 cal_raw |> 
-  #mutate(model = fct(probs, levels = c("raw", "logi_smooth", "logi_no_smooth"))) |> 
   group_by(bins, probs)  |>
   summarize(mean_lapse = mean(lapse),
             .groups = "drop") |>
@@ -140,25 +139,26 @@ cal_raw <- preds |>
 
 
 cal_raw |> 
-  #mutate(model = fct(probs, levels = c("raw", "logi_smooth", "logi_no_smooth"))) |> 
   group_by(outer_split_num, bins, probs)  |>
   summarize(mean_lapse = mean(lapse),
+            n = n(),
             .groups = "drop") |>
+  filter(n >= 50) |> 
   mutate(bins = as.numeric(bins),
          midpoints = bin_width/2 + bin_width * (bins - 1))  |> 
-  ggplot(data = _, aes(x = midpoints, y = mean_lapse, color = probs)) +
+  ggplot(data = _, aes(x = midpoints, y = mean_lapse)) +
     geom_abline(slope = 1, intercept = 0, linetype = "dotted") +
-    geom_line() +
-    geom_point() +
+    geom_line(color = "darkgreen") +
+    geom_point(color = "darkgreen") +
     labs(x = "Predicted Lapse Probability (bin mid-point)",
          y = "Observed Lapse Probability",
-         title = "Calibration (Raw Probabilities)") +
+         title = "Raw Probabilities by Fold") +
     scale_x_continuous(breaks = seq(0, 1, bin_width),
                        limits = c(0, 1)) +
     scale_y_continuous(breaks = seq(0, 1, bin_width),
                        limits = c(0, 1)) +
   facet_wrap(~ outer_split_num) +
-  theme_minimal()
+  theme_classic()
 
 ```
 
@@ -184,7 +184,7 @@ cal_raw |>
     mean_lapse = mean(lapse),
     n = n(),
     .groups = "drop"
-  ) |> 
+  ) |>
   view()
 ```
 
@@ -234,85 +234,3 @@ brier_scores |>
     max_brier = max(.estimate)
   )
 ```
-
-## KW Calibration
-
-Create histogram comparing raw/platt across lapse/no lapse cases.
-```{r}
-preds |> 
-  pivot_longer(cols = c(prob_raw, prob_logi), names_to = "prob_type", values_to = "prob") |>
-  mutate(prob_type = factor(prob_type, levels = c("prob_raw", "prob_logi"),
-                                labels = c("Raw (uncalibrated)", "Platt calibration"))) |> 
-  ggplot() +
-  geom_histogram(aes(x = prob, fill = prob_type), color = "white", bins = 40) +
-  facet_grid(label ~ prob_type, scales = "free_y") +
-  labs(x = "Probabilties",
-       y = NULL) +
-  scale_fill_manual(values = c("#240e31", "#046B52")) +
-  theme_classic() +
-  theme(axis.text=element_text(size=9.5),
-        panel.border = element_rect(colour = "black", fill = NA, linewidth = 1),
-        legend.position = "none")
-```
-
-Set up data to add rug to plot -- currently doesn't display properly on plot.
-```{r}
-bin_width = 0.10
-
-preds_all_logi <- preds |> 
-  mutate(bins = cut(prob_logi, breaks = seq(0, 1, bin_width)), 
-         lapse = if_else(label == "lapse", 1, 0),
-         prob = "Platt calibration")  
-
-preds_all_raw <- preds |> 
-  mutate(bins = cut(prob_raw, breaks = seq(0, 1, bin_width)), 
-         lapse = if_else(label == "lapse", 1, 0),
-         prob = "Raw (uncalibrated)") 
-
-rug_data <- preds_all_raw |> 
-  mutate(
-    bins = as.numeric(bins),
-    rug_center = bin_width/2 + bin_width * (bins - 1),
-    rug_x = rug_center + runif(n(), -bin_width/2, bin_width/2)
-  )
-```
-
-Create calibration plot.
-```{r}
-preds_all_raw |> 
-  bind_rows(preds_all_logi) |> 
-  mutate(prob = factor(prob, levels = c("Raw (uncalibrated)", 
-                                        "Platt calibration"))) |> 
-  group_by(bins,  prob)  |> 
-  summarize(mean_lapse = mean(lapse),
-            .groups = "drop") |> 
-  mutate(
-    bins = as.numeric(bins),
-    midpoints = bin_width/2 + bin_width * (bins - 1)
-  )  |> 
-  ggplot(aes(x = midpoints, y = mean_lapse, group = prob,
-             color = prob, linetype = prob)) +
-  geom_abline(slope = 1, intercept = 0, linetype = "longdash", color = "gray80") +
-  geom_line(linewidth = .7) +
-  labs(
-    x = "Predicted Lapse Probability (Bin Midpoint)",
-    y = "Observed Lapse Probability",
-    color = NULL,
-    linetype = NULL
-  ) +
-  ## currently makes this run super slow, think bc it's very condensed
-  #geom_rug(data = rug_data, aes(x = rug_x), sides = "b", alpha = 0.3,
-           #inherit.aes = FALSE) +
-  scale_x_continuous(breaks = seq(0, .8, bin_width), limits = c(0, .8)) +
-  scale_y_continuous(limits = c(-0.08, .8), breaks = seq(0,.8, bin_width),
-                     expand = c(0, 0)) +
-  coord_cartesian(clip = "off") +
-  scale_color_manual(values = c("#240e31", "#046B52")) +
-  scale_linetype_manual(values = c("solid", "twodash")) +
-  theme_classic() +
-  theme(axis.text=element_text(size=9.5),
-        legend.key.size = unit(0.25, "cm"),
-        panel.border = element_rect(colour = "black", fill = NA, linewidth = 1),
-        legend.position = "bottom") 
-```
-
