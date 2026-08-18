@@ -69,8 +69,8 @@ roc_data |>
   group_by(sensitivity, specificity) |> 
   summarise(.threshold = mean(.threshold)) |> 
   ggplot(aes(x = 1 - specificity, y = sensitivity)) +
-  geom_path(linewidth = 1, color = "darkblue") +
-  geom_abline(lty = 3) +
+  geom_path(linewidth = 1, color = "#51856c") +
+  geom_abline(slope = 1, intercept = 0, linetype = "dotted", color = "#35383d") +
   coord_fixed(xlim = c(0, 1), ylim = c(0, 1)) +
   labs(x = "False Positive Rate",
        y = "True Positive Rate") +
@@ -91,7 +91,7 @@ roc_folds <- preds |>
 
 fig_roc_folds <- roc_data |>   # plot region from full concatenated data
   ggplot(aes(x = 1 - specificity, y = sensitivity)) +
-  geom_abline(lty = 3) +
+  geom_abline(slope = 1, intercept = 0, linetype = "dotted", color = "#35383d") +
   coord_fixed(xlim = c(0, 1), ylim = c(0, 1)) +
   labs(x = "Specificity",
        y = "Sensitivity") +
@@ -105,7 +105,8 @@ for (i in 1:nrow(roc_folds)) {
   fig_roc_folds <- fig_roc_folds +
      geom_path(data = roc_folds$roc[[i]],
                mapping = aes(x = 1 - specificity, y = sensitivity),
-               color = "gray")
+               color = "#b8c0cc",
+               linewidth = .1)
 }
 
 roc_data_smooth <- roc_data |> mutate(sensitivity = round(sensitivity, 4),
@@ -117,8 +118,8 @@ roc_data_smooth <- roc_data |> mutate(sensitivity = round(sensitivity, 4),
 fig_roc_folds +
      geom_path(data = roc_data_smooth,
                mapping = aes(x = 1 - specificity, y = sensitivity),
-               color = "darkblue",
-               linewidth = 2) +
+               color = "#51856c",
+               linewidth = 1.2) +
   theme_classic()
 ```
 
@@ -132,7 +133,8 @@ auroc_summary <- preds |>
 
 auroc_summary |>
   ggplot(aes(x = .estimate)) +
-  geom_histogram(binwidth = .02, color = "white", fill = "darkblue") +
+  geom_histogram(binwidth = .02, color = "white", fill = "#51856c") +
   theme_classic() +
-  labs(x = "auROC")
+  labs(x = "auROC",
+       y = "Count")
 ```

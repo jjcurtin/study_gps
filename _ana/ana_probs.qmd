@@ -70,9 +70,9 @@ text_labels <- text_labels |>
     label = paste0(
       "prevalence: ", round(prev, 3),
       "\nlog loss: ", round(log_loss_raw, 3),
-      "\nhp1: ", hp1,
-      "\nhp2: ", hp2,
-      "\nhp3: ", hp3,
+      "\ntrees: ", hp1,
+      "\ntree_depth: ", hp2,
+      "\nmtry: ", hp3,
       "\nauroc: ", round(roc_auc, 3)
     ))
 ```
@@ -81,16 +81,18 @@ Create faceted histograms.
 ```{r}
 preds |> 
   ggplot(aes(x = prob_raw)) +
-    geom_histogram(binwidth = .01) +
-    labs(title = "Histogram of Raw Probabilities") + 
+    geom_histogram(binwidth = .01, fill = "#51856c", color = "white") +
+    labs(title = "Histogram of Raw Probabilities by Fold",
+         x = "Raw Probabilities", y = "Count") + 
     scale_x_continuous(breaks = seq(0, 1, .25)) +
     coord_cartesian(xlim = c(0, 1)) +
+    scale_y_continuous(expand = expansion(mult = c(0, 0))) + # sit flush against x-axis
     facet_wrap(~ outer_split_num) +
   geom_text(
   data = text_labels,
   aes(x = Inf, y = Inf, label = label),
   hjust = 1.05, vjust = 1.1, size = 2.5) +
-  theme_light()
+  theme_classic()
 ```
 
 Calibration plot
@@ -111,10 +113,10 @@ cal_raw |>
             .groups = "drop") |>
   mutate(bins = as.numeric(bins),
          midpoints = bin_width/2 + bin_width * (bins - 1))  |> 
-  ggplot(data = _, aes(x = midpoints, y = mean_lapse, color = probs)) +
-    geom_abline(slope = 1, intercept = 0, linetype = "dotted") +
-    geom_line() +
-    geom_point() +
+  ggplot(data = _, aes(x = midpoints, y = mean_lapse)) +
+    geom_abline(slope = 1, intercept = 0, linetype = "dotted", color = "#35383d") +
+    geom_line(color = "#51856c", linewidth = .6) +
+    geom_point(color = "#51856c", shape = 18, size = 2.5) +
     labs(x = "Predicted Lapse Probability (bin mid-point)",
          y = "Observed Lapse Probability",
          title = "Calibration (Raw Probabilities)") +
@@ -122,7 +124,7 @@ cal_raw |>
                        limits = c(0, 1)) +
     scale_y_continuous(breaks = seq(0, 1, bin_width),
                        limits = c(0, 1)) +
-  theme_minimal()
+  theme_classic()
 
 ```
 
@@ -147,9 +149,9 @@ cal_raw |>
   mutate(bins = as.numeric(bins),
          midpoints = bin_width/2 + bin_width * (bins - 1))  |> 
   ggplot(data = _, aes(x = midpoints, y = mean_lapse)) +
-    geom_abline(slope = 1, intercept = 0, linetype = "dotted") +
-    geom_line(color = "darkgreen") +
-    geom_point(color = "darkgreen") +
+    geom_abline(slope = 1, intercept = 0, linetype = "dotted", color = "#35383d") +
+    geom_line(color = "#51856c", linewidth = .6) +
+    geom_point(color = "#51856c", shape = 18, size = 2.5) +
     labs(x = "Predicted Lapse Probability (bin mid-point)",
          y = "Observed Lapse Probability",
          title = "Raw Probabilities by Fold") +
@@ -207,6 +209,23 @@ cal_raw |>
     max_cal_error = max(calibration_error)
   )
 ```
+
+
+```{r}
+cal_raw |>
+  ggplot() +
+  geom_histogram(aes(x = prob_raw), color = "white",
+                 fill = "#51856c", bins = 40) +
+  facet_grid(~ label, scales = "free_y") +
+  labs(x = "Probabilties",
+       y = NULL) +
+  theme_classic() +
+      scale_y_continuous(expand = expansion(mult = c(0, 0))) + # sit flush against x-axis
+  theme(axis.text=element_text(size=9.5),
+        panel.border = element_rect(colour = "black", fill = NA, linewidth = 1),
+        legend.position = "none")
+```
+
 
 ## Brier scores
 

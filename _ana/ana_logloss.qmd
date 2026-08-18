@@ -56,9 +56,10 @@ ll_summary <- preds |>
 
 ll_summary |>
   ggplot(aes(x = .estimate)) +
-  geom_histogram(binwidth = .02, color = "white", fill = "darkblue") +
+  geom_histogram(binwidth = .02, color = "white", fill = "#51856c") +
   theme_classic() +
-  labs(x = "mean log loss")
+  labs(x = "mean Log Loss",
+       y = "Count")
 
 median(ll_summary$.estimate)
 ```
@@ -82,9 +83,10 @@ skill_summary <- preds |>
 skill_summary |>
   ggplot(aes(x = skill)) +
   geom_histogram(binwidth = .02) +
-  geom_histogram(binwidth = .02, color = "white", fill = "darkblue") +
+  geom_histogram(binwidth = .02, color = "white", fill = "#51856c") +
   theme_classic() +
-  labs(x = "skill score (mean log loss)")
+  labs(x = "Skill Score (mean Log Loss)",
+       y = "Count")
 
 skill_summary |> pull(skill) |> mean()
 skill_summary |> pull(skill) |> median()

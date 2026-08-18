@@ -10,7 +10,7 @@ format:
   html:
     embed-resources: true
 params:
-  version: "v24"
+  version: "v25"
   cv: "nested_2_x_5_6_x_5"
   model: "full_v_baseline"
   batch: "full"
@@ -61,13 +61,13 @@ shaps |>
   filter(variable_grp %in% shap_levels) |> 
   mutate(variable_grp = factor(variable_grp, levels = shap_levels)) |> 
   ggplot(mapping = aes(x = variable_grp, y = mean_value)) +
-  geom_bar(fill = "#240e31", 
+  geom_bar(fill = "#51856c", 
            stat = "identity", position = "dodge") +
   labs(y = "Mean(|Shapley Value|)",
        x = NULL,
        fill = NULL) +
   theme_classic() +
-  theme(axis.text=element_text(size=9.5),
+  theme(axis.text=element_text(size=9.5, face = "bold"),
         legend.key.size = unit(0.25, "cm"),
         panel.border = element_rect(colour = "black", fill = NA, linewidth = 1),
         legend.position = "right") +

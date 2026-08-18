@@ -79,6 +79,8 @@ auroc_all <- auroc_full |>
 
 ## Comparison: Full (demographics + GPS) vs Chance (.5)
 
+> CP note: this model still has one divergent transition. Worth simplifying model structure? Discuss w john.
+
 ```{r}
 # Repeated CV (id = repeat, id2 = fold within repeat)
 # with a common variance:  statistic ~ model + (model | id/id2)

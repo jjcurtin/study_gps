@@ -1,0 +1,219 @@
+---
+title: "Make auROCs for Model Fairness Evaluations"
+author: "Updated by CP from Kendra Wyant for GPS"
+date: "`r lubridate::today()`"
+output: 
+  html_document:
+    toc: true 
+    toc_depth: 4
+format:
+  html:
+    embed-resources: true
+params:
+  version: "v25"
+  cv: "nested_2_x_5_6_x_5"
+  model: "full_v_baseline"
+  batch: "full"
+editor_options: 
+  chunk_output_type: console
+---
+
+Notes:
+
+This is theoretically set up to work but just need to think about how to add in labels.
+
+### Set Up Environment
+
+Packages, functions, and paths
+```{r}
+#| message: false
+#| warning: false
+
+library(tidyverse)
+library(tidymodels)
+
+source("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true")
+
+path_shared <- format_path(str_c("risk/data_processed/shared"))
+path_models <- format_path(str_c("risk/models/gps"))
+
+version <- params$version
+cv <- params$cv
+model <- params$model
+batch <- params$batch
+```
+
+
+### Load model predictions
+
+```{r}
+preds <- read_csv(here::here(path_models, str_c("outer_preds_", 
+                                            version, "_", 
+                                            cv, "_", batch, ".csv")))
+
+
+#preds <- read_rds(here::here(path_models, "outer_preds_6_x_5_1_x_5_day_v10_nested_full.rds"))
+#preds_final <- read_rds(here::here(path_models, "preds_1_x_5_day_v10_kfold_full_final.rds"))
+```
+
+### Load fairness features
+
+```{r}
+labels <- read_csv(here::here(path_shared, "labels_gps_day_24h.csv"),
+                   show_col_types = FALSE) |> 
+  mutate(label_num = 1:n()) # CP think more about this, not sure if best place to add 
+
+dem <- read_csv(here::here(path_shared, "features_demographics.csv"),
+                 show_col_types = FALSE) |> 
+  filter(subid %in% labels$subid) |> 
+  mutate(demo_educ_comb = if_else(demo_educ == "College or more",
+                                  "College or more",
+                                  "Less than college"),
+         income_split = if_else(demo_income > 25100,
+                                "Above 2018 Poverty Line",
+                                "Below 2018 Povery Line"),
+         age_split = if_else(demo_age > 55, "Older than 55", "Younger than 55"))
+
+#dem <- read_csv(here::here(path_shared, "features_fairness.csv"),
+                 #show_col_types = FALSE) |>
+  #select(-ruca1) |> 
+  #filter(subid %in% labels$subid)
+```
+
+### Link features with predictions
+
+> CP Note: this is where label_num becomes important, need to do some thinking on how best to either add this in after the fact or if anything needs to be rerun.
+
+```{r}
+feat_preds <- labels |> 
+  select(id_obs = label_num,
+         label = lapse,
+         subid) |>
+  right_join(preds, by = c("id_obs", "label")) |> 
+  mutate(label = factor(label, levels = c("lapse", "no lapse"))) |> 
+  left_join(dem, by = "subid")
+
+# nrow(labels)
+# nrow(preds) # should be nrow(labels) * 6 (number of outer repeats)
+# nrow(feat_preds) # should be same as nrow(preds)
+
+# feat_preds_final <- labels |> 
+#   select(id_obs = label_num,
+#          label = lapse,
+#          subid) |>
+#   right_join(preds_final, by = c("id_obs", "label")) |> 
+#   mutate(label = factor(label, levels = c("Lapse", "No lapse"))) |> 
+#   left_join(dem, by = "subid")
+# 
+# # nrow(labels)
+# # nrow(preds_final) # should be same as nrow(labels)
+# # nrow(feat_preds_final) # should be same as nrow(preds_final)
+# 
+# feat_preds_final |> 
+#   write_rds(here::here(path_models, "fairness_preds_1_x_5_day_v10_kfold_full_final.rds"))
+```
+
+
+### Calculate auROCs by group
+
+This calculates auROC using test sets and raw probabilities.   
+
+function
+```{r}
+get_auroc_by_dem <- function(df, var) {
+  # df should be dataframe with demographic features and predictions
+  # var should be character or factor variable in df
+  
+  var_tmp <- df |> 
+      pull(get(var))
+   
+  var_levels <- 
+     if (class(var_tmp) != "factor") {
+       levels(as.factor(var_tmp))
+     } else levels(var_tmp)
+  
+  # create empty tibble with split nums
+  auroc <- tibble(outer_split_num = unique(df$outer_split_num)) |> 
+    arrange(outer_split_num) 
+    
+  for (level in var_levels) {
+     auroc_level <- df |>
+       filter(get(var) == level) |> 
+       nest(.by = outer_split_num, .key = "preds") |> 
+       mutate(auroc = map(preds, \(preds) roc_auc(preds, prob_raw, 
+                                             truth = label))) |> 
+       select(-preds) |> 
+       unnest(auroc) |> 
+       select(-c(.estimator, .metric)) |> 
+       rename(!!level:=.estimate)
+     
+     auroc <- auroc |> 
+       left_join(auroc_level, by = "outer_split_num")
+  }
+  
+  return(auroc)
+}
+```
+
+
+get auROCs 
+```{r}
+auroc_dem <- get_auroc_by_dem(df = feat_preds, var = "demo_sex") |> 
+  left_join(get_auroc_by_dem(df = feat_preds, var = "demo_race"), by = "outer_split_num") |> 
+  left_join(get_auroc_by_dem(df = feat_preds, var = "income_split"), by = "outer_split_num") |> 
+  left_join(get_auroc_by_dem(df = feat_preds, var = "age_split"), by = "outer_split_num")  |> 
+  left_join(get_auroc_by_dem(df = feat_preds, var = "demo_educ_comb"), by = "outer_split_num")  
+```
+
+> CP note: is it helpful or useful to get LL by demographic group? my understanding is that LL is calculated for each observation, so I'm not sure if this is 
+
+```{r}
+get_ll_by_dem <- function(df, var) {
+  # df should be dataframe with demographic features and predictions
+  # var should be character or factor variable in df
+  
+  var_tmp <- df |> 
+      pull(get(var))
+   
+  var_levels <- 
+     if (class(var_tmp) != "factor") {
+       levels(as.factor(var_tmp))
+     } else levels(var_tmp)
+  
+  # create empty tibble with split nums
+  ll <- tibble(outer_split_num = unique(df$outer_split_num)) |> 
+    arrange(outer_split_num) 
+    
+  for (level in var_levels) {
+     ll_level <- df |>
+       filter(get(var) == level) |> 
+       nest(.by = outer_split_num, .key = "preds") |> 
+       mutate(ll = map(preds, \(preds) mn_log_loss(preds, prob_raw, 
+                                             truth = label))) |> 
+       select(-preds) |> 
+       unnest(ll) |> 
+       select(-c(.estimator, .metric)) |> 
+       rename(!!level:=.estimate)
+     
+     ll <- ll |> 
+       left_join(ll_level, by = "outer_split_num")
+  }
+  
+  return(ll)
+}
+```
+
+get LLs
+```{r}
+ll_dem <- get_ll_by_dem(df = feat_preds, var = "demo_sex") |> 
+  left_join(get_ll_by_dem(df = feat_preds, var = "demo_race"), by = "outer_split_num") |> 
+  left_join(get_ll_by_dem(df = feat_preds, var = "income_split"), by = "outer_split_num") |> 
+  left_join(get_ll_by_dem(df = feat_preds, var = "age_split"), by = "outer_split_num")  |> 
+  left_join(get_ll_by_dem(df = feat_preds, var = "demo_educ_comb"), by = "outer_split_num")  
+```
+
+Save auroc_dem
+```{r}
+#auroc_dem |> 
+#  write_csv(here::here(path_models, "fairness_auroc_6_x_5_1_x_5_nested_v10_full.csv"))  
+```
