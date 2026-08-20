@@ -82,8 +82,6 @@ dem <- read_csv(here::here(path_shared, "features_demographics.csv"),
 
 ### Link features with predictions
 
-> CP Note: this is where label_num becomes important, need to do some thinking on how best to either add this in after the fact or if anything needs to be rerun.
-
 ```{r}
 feat_preds <- labels |> 
   select(id_obs = label_num,

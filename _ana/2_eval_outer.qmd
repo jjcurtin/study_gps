@@ -311,8 +311,9 @@ if(!file.exists(here::here(path_models, str_c("outer_metrics_",
     d <- read_rds(here::here(path_batch, "input", fn))
   }
   
-  d <- format_data(d) |> 
-    #arrange(label_num) |> cp note: do we need this??; do not have currently
+  d <- arrange(.data = d, subid, dttm_label) |>
+    format_data(d) |>
+    #arrange(label_num) |> cp note: do we need this??; do not have currently -- think adding above arrange will correct
     mutate(id_obs = 1:nrow(d))  # tmp add for linking obs
   
   splits <- d |>  
