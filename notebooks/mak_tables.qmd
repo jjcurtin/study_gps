@@ -1,0 +1,117 @@
+---
+title: "Make Tables for GPS"
+author: "Claire Punturieri"
+date: "`r lubridate::today()`"
+number-sections: true
+output: 
+  html_document:
+    toc: true 
+    toc_depth: 4
+format:
+  html:
+    embed-resources: true
+    toc: true
+    toc-depth: 4
+editor_options: 
+  chunk_output_type: console
+html-table-processing: none
+---
+
+```{r}
+#| message: false
+#| warning: false
+
+library(tidyverse)
+library(kableExtra, exclude = "group_rows")
+
+source("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true")
+
+path_shared <- format_path("risk/data_processed/shared")
+```
+
+## Demographics
+
+Load in study_dates.
+```{r}
+study_dates <- read_csv(file.path(path_shared,"study_dates_gps.csv"),
+                        show_col_types = FALSE)
+```
+
+Pull list of subject IDs with at least one month data, credible lapse reporting, and sufficient GPS data.
+```{r}
+subids_dates <- study_dates |>  
+  pull(subid) |>  
+  unique()
+```
+
+Clean up file and filter down to only subjects used for GPS.
+```{r}
+dem_data <- read_csv(file.path(path_shared, "screen.csv"),
+                     show_col_types = FALSE) |> 
+  select(subid,  
+         age = dem_1, 
+         sex = dem_2, 
+         race = dem_3, 
+         hispanic = dem_4,
+         education = dem_5,
+         work = dem_6,
+         income = dem_7,
+         contains("dsm")) |> 
+         mutate(hispanic = if_else(str_detect(hispanic, "Yes"), "1", "0")) |>  
+    mutate(american_native = ifelse(str_detect(race,"American Indian/Alaska Native"),1,0),
+        asian = ifelse(str_detect(race,"Asian"),1,0),
+        pacific = ifelse(str_detect(race,"Native Hawaiian or Other Pacific Islander"),1,0),
+        black = ifelse(str_detect(race,"Black/African American"),1,0),
+        white = ifelse(str_detect(race,"White/Caucasian"),1,0),
+        other = ifelse(str_detect(race,"Other/Multiracial"),1,0),
+        ) |> 
+  filter(subid %in% subids_dates)
+```
+
+
+Create table.
+```{r}
+#| label: tbl-1
+#| tbl-cap: "Demographic Characteristics"
+
+dem_data |>
+  mutate(
+    age_group = cut(
+      age,
+      breaks = c(18, 25, 35, 45, 55, 65, Inf),
+      labels = c(
+        "18-24",
+        "25-34",
+        "35-44",
+        "45-54",
+        "55-64",
+        "65+"
+      ),
+      right = FALSE
+    ),
+    income_group = cut(
+      income,
+      breaks = c(0, 25000, 50000, 100000, 150000, Inf),
+      labels = c(
+        "<$25,000",
+        "$25,000-$49,999",
+        "$50,000-$99,999",
+        "$100,000-$149,999",
+        "≥$150,000"
+      ),
+    right = FALSE
+  ),
+  hispanic = if_else(hispanic == 1, "Yes", "No")) |>
+  gtsummary::tbl_summary(include = c(age_group, sex,
+                                     education, work,
+                                     race, hispanic, income_group),
+                         label = list(
+                           age_group ~ "Age",
+                           sex ~ "Sex At Birth",
+                           race ~ "Race",
+                           hispanic ~ "Ethnicity",
+                           income_group ~ "Income"
+                         )) |> 
+  gtsummary::bold_labels()
+```
+

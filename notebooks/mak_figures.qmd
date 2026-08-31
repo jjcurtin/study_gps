@@ -1,0 +1,163 @@
+---
+title: "Make Figures for GPS"
+author: "Claire Punturieri"
+date: "`r lubridate::today()`"
+number-sections: true
+output: 
+  html_document:
+    toc: true 
+    toc_depth: 4
+format:
+  html:
+    embed-resources: true
+    toc: true
+    toc-depth: 4
+editor_options: 
+  chunk_output_type: console
+html-table-processing: none
+---
+
+```{r}
+#| message: false
+#| warning: false
+
+library(tidyverse)
+library(kableExtra, exclude = "group_rows")
+
+source("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true")
+
+path_shared <- format_path("risk/data_processed/shared")
+```
+
+```{r}
+probs <- read_csv(here::here(path_models, "outer_preds_v25_nested_2_x_5_6_x_5_full.csv"))
+
+pp_dem <- read_csv(here::here(path_models, 
+                              "pp_fairness_full.csv"),
+                   show_col_types = FALSE)
+```
+
+## auROC
+
+Make auROC figure with aggregated curve superimposed over individual (30) curves.
+```{r}
+#| label: fig-1
+#| fig-cap: "Area under the receiver operating characteristic curve (auROC) for the full model. An aggregated curve of model performance across 30 folds (dark green, bolded line) is superimposed over each fold's individual curve."
+#| code-fold: true
+
+roc_folds <- preds |>
+  mutate(label = factor(label, levels = c("lapse", "no lapse"))) |> 
+  nest(.by = outer_split_num, .key = "preds") |>
+  mutate(roc = map(preds, \(preds) roc_curve(preds, prob_raw,
+                                             truth = label)))
+
+fig_roc_folds <- roc_data |>   # plot region from full concatenated data
+  ggplot(aes(x = 1 - specificity, y = sensitivity)) +
+  geom_abline(slope = 1, intercept = 0, linetype = "dotted", color = "#35383d") +
+  coord_fixed(xlim = c(0, 1), ylim = c(0, 1)) +
+  labs(x = "Specificity",
+       y = "Sensitivity") +
+  scale_x_continuous(breaks = seq(0,1,.25),
+    labels = sprintf("%.2f", seq(1,0,-.25))) +
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank())
+
+for (i in 1:nrow(roc_folds)) {
+  fig_roc_folds <- fig_roc_folds +
+     geom_path(data = roc_folds$roc[[i]],
+               mapping = aes(x = 1 - specificity, y = sensitivity),
+               color = "#b8c0cc",
+               linewidth = .1)
+}
+
+roc_data_smooth <- roc_data |> mutate(sensitivity = round(sensitivity, 4),
+                                      specificity = round(specificity, 4)) |>
+  group_by(sensitivity, specificity) |>
+  summarise(.threshold = mean(.threshold))
+
+#add full concatenated curve
+fig_roc_folds +
+     geom_path(data = roc_data_smooth,
+               mapping = aes(x = 1 - specificity, y = sensitivity),
+               color = "#51856c",
+               linewidth = 1.2) +
+  theme_classic()
+```
+
+Plot histogram of 30 held out auROCs.
+```{r}
+#| label: fig-2
+#| fig-cap: "A histogram displaying median area under the receiver operating characteristic curve (auROC) for the full model across 30 folds."
+#| code-fold: true
+
+auroc_summary <- preds |>
+  mutate(label = factor(label, levels = c("lapse", "no lapse"))) |>
+  group_by(outer_split_num) |>
+  roc_auc(truth = label, prob_raw) |>
+  ungroup()
+
+auroc_summary |>
+  ggplot(aes(x = .estimate)) +
+  geom_histogram(binwidth = .02, color = "white", fill = "#51856c") +
+  theme_classic() +
+  labs(x = "auROC",
+       y = "Count")
+```
+
+## Fairness
+
+```{r}
+plot_ci <- function(d, title){
+  d |> 
+    ggplot(aes(x = model, color = model)) +
+    geom_point(aes(y = pp_median), size = 3, shape = 18) +
+    geom_errorbar(aes(ymin = pp_lower, ymax = pp_upper), width = .2) +
+    ylab("auROC") +
+    xlab("Group") +
+    ggtitle(title) +
+    xlab("") +
+    scale_y_continuous(breaks = seq(0.55, 0.80, 0.05), limits = c(0.55, 0.80)) +
+
+    scale_color_manual(values = c("#52679c", "#d97c7f"), guide = "none") +
+    theme_classic()
+}
+```
+
+```{r}
+fig_sex  <- pp_dem |>
+  filter(model == "Male" | model == "Female") |>
+  mutate(model = fct(model, levels = c("Female", "Male")),
+         model = fct_recode(model, Male = "Male", Female = "Female")) |> 
+  plot_ci("Sex")
+
+fig_race  <- pp_dem |>
+  filter(model == "White/Caucasian" | model == "Non-White and/or Hispanic") |>
+  mutate(model = fct(model, levels = c("Non-White and/or Hispanic", "White/Caucasian")),
+         model = fct_recode(model, `White/Caucasian` = "White/Caucasian", `Non-White and/or Hispanic` = "Non-White and/or Hispanic")) |> 
+  plot_ci("Race/Ethnicity")
+
+fig_income  <- pp_dem |>
+  filter(model == "Above 2018 Poverty Line" | model == "Below 2018 Poverty Line") |>
+  mutate(model = fct(model, levels = c("Below 2018 Poverty Line", "Above 2018 Poverty Line")),
+         model = fct_recode(model, `Above 2018 Poverty Line` = "Above 2018 Poverty Line", `Below 2018 Poverty Line` = "Below 2018 Poverty Line")) |> 
+  plot_ci("Income")
+  
+fig_age  <- pp_dem |>
+  filter(model == "Younger than 55" | model == "Older than 55") |>
+  mutate(model = fct(model, levels = c("Older than 55", "Younger than 55"))) |> 
+  plot_ci("Age")
+
+fig_education <- pp_dem |> 
+  filter(model == "College or more" | model == "Less than college") |>
+  mutate(model = fct(model, levels = c("Less than college", "College or more"))) |> 
+  plot_ci("Educational attainment")
+```
+
+```{r}
+#| label: fig-3
+#| fig-cap: "Bayesian comparisons of model performance by median auROC."
+#| code-fold: true
+
+cowplot::plot_grid(fig_race, fig_sex, fig_age, fig_income, fig_education, align="v", scale = 0.95)
+```
