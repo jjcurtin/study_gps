@@ -44,6 +44,22 @@ editor_options:
   chunk_output_type: console
 ---
 
+```{r}
+#| echo: false
+#| message: false
+
+library(tidyverse)
+
+source("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true")
+
+path_models <- format_path(str_c("risk/models/gps"))
+
+pp_perf <- read_csv(here::here(path_models, "pp_all_tibble.csv"),
+                    show_col_types = FALSE) 
+
+probs <- read_csv(here::here(path_models, "outer_preds_v25_nested_2_x_5_6_x_5_full.csv"))
+```
+
 ## Introduction
 
 About 1 in 10 adults in the United States met diagnostic criteria for alcohol use disorder (AUD) in 2022 [@samhsacenterforbehavioralhealthstatisticsandqualityHighlights2022National2022]. Of these individuals, many will experience AUD as a chronic, relapsing disorder marked by periods of recovery interspersed with returns back to harmful use [@mckayTreatingAlcoholismChronic2011a; @moosRatesPredictorsRelapse2006]. Lapses, or single instances of goal-inconsistent use, necessarily precede a relapse period [@witkiewitzRelapsePreventionAlcohol2004b]. This temporal precedence, combined with their clear definition and ease of observation, make them a suitable target for early intervention. Yet, even when someone anticipates an oncoming lapse, it may be difficult to pinpoint its specific driving forces. Moreover, the precipitants to a lapse will vary between and within people. These two factors can make maintaining recovery goals difficult and motivate the need for lifelong monitoring and support.
@@ -98,7 +114,7 @@ Participants enrolled in a three-month study consisting of five in-person visits
 
 To enable collection of geolocation data, participants downloaded either the Moves app or the FollowMee app during the intake visit. Moves was bought-out and subsequently deprecated while the study was ongoing (July 2018) and data collection continued using FollowMee until the end of the study. Both apps continuously tracked location via GPS and WiFi positioning technology. The FollowMee app uses adaptive sampling (samples location less frequently when the subject appears to be still), while the Moves app used fixed sampling (samples location steadily regardless of subject movement).
 
-After completion of the study, data were processed to filter out duplicated points, fast movement speeds (\>100mph), sudden positional jumps, and periods of long duration suggesting sampling error issues (\>24 hours with no movement or \>2 hours with a positional jump of more than 0.31 miles or 500 meters). Data points were classified as "in transit" when spacing between individual positions suggested a movement speed of greater than 4mph per NIH health guidelines [@u.s.departmentofhealthandhumanservicesPhysicalActivityGuidelines2018]. Participants were considered to be at a known contextual location if they were within 0.031 miles (50 meters) of a reported frequently visited location.
+After completion of the study, data were processed to filter out duplicated points, fast movement speeds (\>100mph), sudden positional jumps, and periods of long duration suggesting sampling error issues (\>24 hours with no movement or \>2 hours with a positional jump of more than 0.31 miles or 500 meters). Data points were classified as "in transit" when spacing between individual positions suggested a movement speed of greater than 4mph per NIH health guidelines [@u.s.departmentofhealthandhumanservicesPhysicalActivityGuidelines2018]. Participants were considered to be at a known contextual location if they were within 0.031 miles (50 meters) of a reported frequently visited location. Start and end dates were adjusted for subjects in the case of high missingness (e.g., if a subject was only adherent with GPS protocols for their last month on study, only their last month on study was retained). <!--CP: need to probably do something to make this sentence better.-->
 
 ### Data analytic strategy
 
@@ -151,21 +167,26 @@ Classes for fairness analyses were defined on the basis of personal individual c
 
 ## Results
 
-```{r}
-
-```
-
 ### Demographics
 
-A total of 192 individuals were eligible to participate in the study, of which 191 consented to participate and 169 enrolled in the study. Fifteen participants were excluded prior to the first monthly follow-up visit. One participant was excluded for not maintaining a recovery goal of abstinence during their time on study. Two participants were excluded due to low adherence to study procedures. A further five individuals were excluded due to poor geolocation data quality from software incompatibility, resulting in a final sample size of 146. A detailed breakdown of participant characteristics is presented in @tbl-demo. <!--CP: ADD IN TABLE-->
+A total of 192 individuals were eligible to participate in the study, of which 191 consented to participate and 169 enrolled in the study. Fifteen participants were excluded prior to the first monthly follow-up visit. One participant was excluded for not maintaining a recovery goal of abstinence during their time on study. Two participants were excluded due to low adherence to study procedures. A further five individuals were excluded due to poor geolocation data quality from software incompatibility, resulting in a final sample size of 146. A detailed breakdown of participant characteristics is presented in @tbl-1.
+
+{{< embed notebooks/mak_tables.qmd#tbl-1 >}}
 
 ### auROC and Model Comparisons
 
-The median auROC over all 30 folds was **INSERT**. **FIGURE HERE** displays a receiver operating characteristic curve representing aggregate predicted lapse probabilities across all folds superimposed over each fold's individual curve. An additional histogram of model performance distribution across folds can be seen in **FIGURE NUMBER** in the supplement.
+The median auROC over all 30 folds was `r sprintf("%.2f", pp_perf$pp_median[2])` (95% CI ([`r sprintf("%.2f", pp_perf$pp_lower[2])`, `r sprintf("%.2f", pp_perf$pp_upper[2])`])). @fig-1 displays a receiver operating characteristic curve representing aggregate predicted lapse probabilities across all folds superimposed over each fold's individual curve. An additional histogram of model performance distribution across folds can be seen in @fig-2. <!--CP: perhaps belongs in supplement?-->
 
-To further characterize the predictive value of our geolocation features, we further compared the performance of our model to one which only included demographic features (**INSERT**) as well as chance performance. Compared to these more simplistic models, the model including geolocation features performed better (probabilities = **INSERT**). **TABLE HERE** presents the median difference in auROC, 95% Bayesian credible interval, and posterior probability that the auROC difference was greater than 0 for all contrasts.
+To further characterize the predictive value of our geolocation features, we further compared the performance of our model to one which only included demographic features (`r sprintf("%.2f", pp_perf$pp_median[1])` (95% CI ([`r sprintf("%.2f", pp_perf$pp_lower[1])`, `r sprintf("%.2f", pp_perf$pp_upper[1])`])) as well as chance performance (.5). Compared to these more simplistic models, the model including geolocation features performed better (probabilities = 1).
 
-Across fairness subgroup comparisons... <!--CP: maybe time to bring this in for log loss?-->
+Across fairness subgroup comparisons, we did not find any evidence to suggest that performance differed by sex, income, race/ethnicity, age, or educational attainment (@fig-3). A table of these comparisons can be seen in @tbl-2. <!--CP: LEFT OFF HERE!! MAKE TABLE :^) -->
+
+<!--CP: maybe time to bring this in for log loss?-->
+
+{{< embed notebooks/mak_figures.qmd#fig-1 >}}
+{{< embed notebooks/mak_figures.qmd#fig-2 >}}
+{{< embed notebooks/mak_figures.qmd#fig-3 >}}
+{{< embed notebooks/mak_tables.qmd#tbl-2 >}}
 
 ### Calibration and Skill Scores
 
