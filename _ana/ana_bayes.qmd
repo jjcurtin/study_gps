@@ -79,7 +79,7 @@ auroc_all <- auroc_full |>
 
 ## Comparison: Full (demographics + GPS) vs Chance (.5)
 
-> CP note: this model still has one divergent transition. Worth simplifying model structure? Discuss w john.
+> CP note: this model still has one divergent transition. Worth simplifying model structure? Discuss w john. Actually the divergent transition went away but I don't understand how that happened i didn't change anything.
 
 ```{r}
 # Repeated CV (id = repeat, id2 = fold within repeat)
@@ -90,7 +90,7 @@ pp_full <- auroc_full |>
          id2 = fold_num) |> 
   perf_mod(formula = statistic ~ 1 + (1 | id/id2),
          transform = tidyposterior::logit_trans,  # for skewed & bounded AUC
-         iter = 10000, chains = 4, adapt_delta = .9999, # still some divergence issues
+         iter = 10000, chains = 4, adapt_delta = .9999,
          family = gaussian
 )
 ```
@@ -111,7 +111,7 @@ pp_full_tidy |>
  summarize(prob = mean(posterior > .5)) 
 ```
 
-## Comparison: Full (demopgrahics + GPS) vs Baseline (demographics only)
+## Comparison: Full (demographics + GPS) vs Baseline (demographics only)
 
 ```{r}
 # Repeated CV (id = repeat, id2 = fold within repeat)
