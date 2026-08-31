@@ -14,7 +14,7 @@ params:
   version: "v25"
   cv: "nested_2_x_5_6_x_5"
   model: "full_v_baseline"
-  batch: "full"
+  batch: "baseline"
 editor_options: 
   chunk_output_type: console
 ---
