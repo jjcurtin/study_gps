@@ -27,6 +27,9 @@ library(kableExtra, exclude = "group_rows")
 source("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true")
 
 path_shared <- format_path("risk/data_processed/shared")
+
+
+path_models <- format_path("risk/models/gps")
 ```
 
 ## Demographics (table 1)
