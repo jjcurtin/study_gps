@@ -110,7 +110,9 @@ cal_raw <- preds |>
 cal_raw |> 
   group_by(bins, probs)  |>
   summarize(mean_lapse = mean(lapse),
+            n = n(),
             .groups = "drop") |>
+  filter(n >= 50) |> 
   mutate(bins = as.numeric(bins),
          midpoints = bin_width/2 + bin_width * (bins - 1))  |> 
   ggplot(data = _, aes(x = midpoints, y = mean_lapse)) +

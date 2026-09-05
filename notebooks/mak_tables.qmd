@@ -29,7 +29,7 @@ source("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true
 path_shared <- format_path("risk/data_processed/shared")
 ```
 
-## Demographics
+## Demographics (table 1)
 
 Load in study_dates.
 ```{r}
@@ -113,5 +113,121 @@ dem_data |>
                            income_group ~ "Income"
                          )) |> 
   gtsummary::bold_labels()
+```
+
+## Fairness by auROC (table 2)
+
+```{r}
+contrast_dem_auroc <- read_csv((here::here(path_models, "pp_fairness_contrast_full.csv")))
+```
+
+
+```{r}
+#| label: tbl-2
+#| tbl-cap: "Bayesian comparisons of median auROCs by demographic subgroup"
+
+contrast_dem_auroc |> 
+  mutate(`Bayesian CI` = str_c("[", round(lower, 3), ", ", round(upper, 3), "]"),
+         `Median auROC Difference` = as.character(round(median, 3)),
+         Probability = sprintf("%.3f", probability)) |> 
+  select(Contrast = contrast, `Median auROC Difference`, `Bayesian CI`, Probability) |> 
+  knitr::kable() |> 
+  kable_classic() |> 
+  kableExtra::column_spec(1, width = "25em") |> 
+  kableExtra::add_footnote(#label = footnote_table_model,
+                           notation = "none",
+                           escape = FALSE) 
+```
+
+## Fairness by LL (table 3)
+
+```{r}
+contrast_dem_ll <- read_csv((here::here(path_models, "pp_fairness_contrast_logloss.csv")))
+```
+
+
+```{r}
+#| label: tbl-3
+#| tbl-cap: "Bayesian comparisons of median mean Log Loss by demographic subgroup"
+
+contrast_dem_ll |> 
+  mutate(`Bayesian CI` = str_c("[", round(lower, 3), ", ", round(upper, 3), "]"),
+         `Median mean Log Loss Difference` = as.character(round(median, 3)),
+         Probability = sprintf("%.3f", probability)) |> 
+  select(Contrast = contrast, `Median mean Log Loss Difference`, `Bayesian CI`, Probability) |> 
+  knitr::kable() |> 
+  kable_classic() |> 
+  kableExtra::column_spec(1, width = "25em") |> 
+  kableExtra::add_footnote(#label = footnote_table_model,
+                           notation = "none",
+                           escape = FALSE) 
+```
+
+## Bin counts for calibration plots (tables 4 + 5)
+
+
+```{r}
+probs <- read_csv(here::here(path_models, "outer_preds_v25_nested_2_x_5_6_x_5_full.csv"))
+
+bin_width = 0.10
+cal_raw <- probs |>
+  mutate(
+    prob = prob_raw,
+    bins = cut(prob, breaks = seq(0, 1, bin_width)),
+    lapse = if_else(label == "lapse", 1, 0),
+    probs = "raw")
+```
+
+Table 4 - collapsed across folds.
+```{r}
+#| label: tbl-4
+#| tbl-cap: "Bayesian comparisons of median mean Log Loss by demographic subgroup"
+
+cal_raw |>
+  group_by(bins, probs) |>
+  summarise(
+    mean_pred = mean(prob),
+    mean_lapse = mean(lapse),
+    n = n(),
+    .groups = "drop"
+  ) |>
+  mutate(mean_pred = (round(mean_pred, digits = 3) * 100),
+         mean_lapse = (round(mean_lapse, digits = 3)) * 100) |> 
+  select(`Bin width` = bins, `Mean Probability of Lapse` = mean_pred,
+         `Mean Lapse Percentage` = mean_lapse, Count = n) |>
+  knitr::kable() |> 
+  kable_classic() |> 
+  kableExtra::column_spec(1, width = "25em") |> 
+  kableExtra::add_footnote(#label = footnote_table_model,
+                           notation = "none",
+                           escape = FALSE) 
+```
+
+
+Table 5 - separated by fold.
+```{r}
+#| label: tbl-5
+#| tbl-cap: "Bayesian comparisons of median mean Log Loss by demographic subgroup"
+
+cal_raw |>
+  group_by(bins, probs, outer_split_num) |>
+  summarise(
+    mean_pred = mean(prob),
+    mean_lapse = mean(lapse),
+    n = n(),
+    .groups = "drop"
+  ) |> 
+  arrange(outer_split_num) |>
+  mutate(mean_pred = (round(mean_pred, digits = 3) * 100),
+         mean_lapse = (round(mean_lapse, digits = 3)) * 100) |> 
+  select(`Bin width` = bins, `Fold` = outer_split_num,
+         `Mean Probability of Lapse` = mean_pred,
+         `Mean Lapse Percentage` = mean_lapse, Count = n) |>
+  knitr::kable() |> 
+  kable_classic() |> 
+  kableExtra::column_spec(1, width = "25em") |> 
+  kableExtra::add_footnote(#label = footnote_table_model,
+                           notation = "none",
+                           escape = FALSE) 
 ```
 

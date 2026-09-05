@@ -32,9 +32,23 @@ path_shared <- format_path("risk/data_processed/shared")
 ```{r}
 probs <- read_csv(here::here(path_models, "outer_preds_v25_nested_2_x_5_6_x_5_full.csv"))
 
-pp_dem <- read_csv(here::here(path_models, 
+pp_dem_auroc <- read_csv(here::here(path_models, 
                               "pp_fairness_full.csv"),
                    show_col_types = FALSE)
+
+contrast_dem_auroc <- read_csv((here::here(path_models, "pp_fairness_contrast_full.csv")))
+
+pp_dem_ll <- read_csv(here::here(path_models, 
+                              "pp_fairness_full_logloss.csv"),
+                   show_col_types = FALSE)
+
+contrast_dem_ll <- read_csv(here::here(path_models, 
+                              "pp_fairness_contrast_logloss.csv"),
+                   show_col_types = FALSE)
+
+shaps <- read_csv(here::here(path_input, str_c("outer_shapsgrp_",
+                                              version, "_", cv, "_", batch,
+                                              ".csv")))
 ```
 
 ## auROC
@@ -105,59 +119,275 @@ auroc_summary |>
        y = "Count")
 ```
 
-## Fairness
+## Fairness - auROC
 
 ```{r}
-plot_ci <- function(d, title){
-  d |> 
-    ggplot(aes(x = model, color = model)) +
-    geom_point(aes(y = pp_median), size = 3, shape = 18) +
+fig_pp_auroc <- pp_dem_auroc |>
+  mutate(status = if_else(model == "Male" |
+                          model == "White/Caucasian" |
+                          model == "Above 2018 Poverty Line" |
+                          model == "Younger than 55" |
+                          model == "College or more",
+                          "Privileged", "Unprivileged"),
+         status = factor(status, levels = c("Unprivileged", "Privileged")),
+         category = case_when(model %in% c("Male", "Female") ~ "Sex",
+                              model %in% c("White/Caucasian",
+                                           "Non-White and/or Hispanic")
+                              ~ "Race/Ethnicity",
+                              model %in% c("Above 2018 Poverty Line",
+                                           "Below 2018 Poverty Line")
+                                ~ "Income",
+                              model %in% c("Younger than 55", "Older than 55")
+                              ~ "Age",
+                              model %in% c("College or more", "Less than college")
+                              ~ "Educational attainment")) |>
+  arrange(category, status) |> 
+  mutate(model = factor(model, levels = unique(model))) |> 
+  ggplot(aes(x = model, y = pp_median, color = status)) +
+    geom_point(aes(y = pp_median), size = 2, shape = 18) +
     geom_errorbar(aes(ymin = pp_lower, ymax = pp_upper), width = .2) +
-    ylab("auROC") +
-    xlab("Group") +
-    ggtitle(title) +
-    xlab("") +
-    scale_y_continuous(breaks = seq(0.55, 0.80, 0.05), limits = c(0.55, 0.80)) +
-
-    scale_color_manual(values = c("#52679c", "#d97c7f"), guide = "none") +
-    theme_classic()
-}
+  facet_grid(~ category,
+             scales = "free_x",
+space = "free_x") +
+ylab("median auROC") +
+    xlab(NULL) +
+  ggtitle("Figure A") +
+    scale_color_manual(values = c("#404E5C", "#CF1259"), guide = "none") +
+    theme_classic() +
+  theme(
+  axis.text.x = element_text(
+    angle = -45,
+    hjust = 0,
+    vjust = 1
+  )
+)
 ```
 
 ```{r}
-fig_sex  <- pp_dem |>
-  filter(model == "Male" | model == "Female") |>
-  mutate(model = fct(model, levels = c("Female", "Male")),
-         model = fct_recode(model, Male = "Male", Female = "Female")) |> 
-  plot_ci("Sex")
-
-fig_race  <- pp_dem |>
-  filter(model == "White/Caucasian" | model == "Non-White and/or Hispanic") |>
-  mutate(model = fct(model, levels = c("Non-White and/or Hispanic", "White/Caucasian")),
-         model = fct_recode(model, `White/Caucasian` = "White/Caucasian", `Non-White and/or Hispanic` = "Non-White and/or Hispanic")) |> 
-  plot_ci("Race/Ethnicity")
-
-fig_income  <- pp_dem |>
-  filter(model == "Above 2018 Poverty Line" | model == "Below 2018 Poverty Line") |>
-  mutate(model = fct(model, levels = c("Below 2018 Poverty Line", "Above 2018 Poverty Line")),
-         model = fct_recode(model, `Above 2018 Poverty Line` = "Above 2018 Poverty Line", `Below 2018 Poverty Line` = "Below 2018 Poverty Line")) |> 
-  plot_ci("Income")
-  
-fig_age  <- pp_dem |>
-  filter(model == "Younger than 55" | model == "Older than 55") |>
-  mutate(model = fct(model, levels = c("Older than 55", "Younger than 55"))) |> 
-  plot_ci("Age")
-
-fig_education <- pp_dem |> 
-  filter(model == "College or more" | model == "Less than college") |>
-  mutate(model = fct(model, levels = c("Less than college", "College or more"))) |> 
-  plot_ci("Educational attainment")
+fig_contrast_auroc <- contrast_dem_auroc |> 
+   ggplot(aes(x = contrast, color = contrast)) +
+    geom_point(aes(y = median), size = 2, shape = 18) +
+    geom_errorbar(aes(ymin = lower, ymax = upper), width = .2) +
+    ylab("Median auROC Difference") +
+    xlab(NULL) +
+    ggtitle("Figure B") +
+    geom_hline(yintercept = 0.00, linetype = "dashed") +
+    scale_color_manual(values = c("#404E5C", "#4F6272", "#B7C3F3", "#DD7596", "#CF1259"),name = "Contrast") +
+    theme_classic() +
+    theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(),
+          legend.position = "top", legend.direction = "vertical")
 ```
 
 ```{r}
 #| label: fig-3
-#| fig-cap: "Bayesian comparisons of model performance by median auROC."
+#| fig-cap: "Bayesian comparisons of model performance by median auROC and median auROC difference."
 #| code-fold: true
 
-cowplot::plot_grid(fig_race, fig_sex, fig_age, fig_income, fig_education, align="v", scale = 0.95)
+cowplot::plot_grid(fig_pp_auroc, fig_contrast_auroc, align="v", axis = "l", scale = 0.95)
+```
+
+## Fairness - LL
+
+```{r}
+fig_pp_ll <- pp_dem_ll |>
+  mutate(status = if_else(model == "Male" |
+                          model == "White/Caucasian" |
+                          model == "Above 2018 Poverty Line" |
+                          model == "Younger than 55" |
+                          model == "College or more",
+                          "Privileged", "Unprivileged"),
+         status = factor(status, levels = c("Unprivileged", "Privileged")),
+         category = case_when(model %in% c("Male", "Female") ~ "Sex",
+                              model %in% c("White/Caucasian",
+                                           "Non-White and/or Hispanic")
+                              ~ "Race/Ethnicity",
+                              model %in% c("Above 2018 Poverty Line",
+                                           "Below 2018 Poverty Line")
+                                ~ "Income",
+                              model %in% c("Younger than 55", "Older than 55")
+                              ~ "Age",
+                              model %in% c("College or more", "Less than college")
+                              ~ "Educational attainment")) |>
+  arrange(category, status) |> 
+  mutate(model = factor(model, levels = unique(model))) |> 
+  ggplot(aes(x = model, y = pp_median, color = status)) +
+    geom_point(aes(y = pp_median), size = 2, shape = 18) +
+    geom_errorbar(aes(ymin = pp_lower, ymax = pp_upper), width = .2) +
+  facet_grid(~ category,
+             scales = "free_x",
+space = "free_x") +
+ylab("median mean Log Loss") +
+    xlab(NULL) +
+  ggtitle("Figure A") +
+    scale_color_manual(values = c("#404E5C", "#CF1259"), guide = "none") +
+    theme_classic() +
+  theme(
+  axis.text.x = element_text(
+    angle = -45,
+    hjust = 0,
+    vjust = 1
+  )
+)
+```
+
+```{r}
+fig_contrast_ll <- contrast_dem_ll |> 
+   ggplot(aes(x = contrast, color = contrast)) +
+    geom_point(aes(y = median), size = 2, shape = 18) +
+    geom_errorbar(aes(ymin = lower, ymax = upper), width = .2) +
+    ylab("Median mean Log Loss Difference") +
+    xlab(NULL) +
+    ggtitle("Figure B") +
+    geom_hline(yintercept = 0.00, linetype = "dashed") +
+    scale_color_manual(values = c("#404E5C", "#4F6272", "#B7C3F3", "#DD7596", "#CF1259"),name = "Contrast") +
+    theme_classic() +
+    theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(),
+          legend.position = "top", legend.direction = "vertical")
+```
+
+```{r}
+#| label: fig-4
+#| fig-cap: "Bayesian comparisons of model performance by median mean Log Loss and median mean Log Loss difference."
+#| code-fold: true
+
+cowplot::plot_grid(fig_pp_ll, fig_contrast_ll, align="v", axis = "l", scale = 0.95)
+```
+
+## Calibration - collapsed and grouped by fold
+
+```{r}
+bin_width = 0.10
+cal_raw <- probs |>
+  mutate(
+    prob = prob_raw,
+    bins = cut(prob, breaks = seq(0, 1, bin_width)),
+    lapse = if_else(label == "lapse", 1, 0),
+    probs = "raw"
+  )
+```
+
+Collapsed
+
+```{r}
+#| label: fig-5
+#| fig-cap: "Calibration plot collapsd across folds (bins have N >= 50 observations)."
+#| code-fold: true
+
+cal_raw |> 
+  group_by(bins, probs)  |>
+  summarize(mean_lapse = mean(lapse),
+            n = n(),
+            .groups = "drop") |>
+  filter(n >= 50) |> 
+  mutate(bins = as.numeric(bins),
+         midpoints = bin_width/2 + bin_width * (bins - 1))  |> 
+  ggplot(data = _, aes(x = midpoints, y = mean_lapse)) +
+    geom_abline(slope = 1, intercept = 0, linetype = "dotted", color = "#35383d") +
+    geom_line(color = "#51856c", linewidth = .6) +
+    geom_point(color = "#51856c", shape = 18, size = 2.5) +
+    labs(x = "Predicted Lapse Probability (bin mid-point)",
+         y = "Observed Lapse Probability",
+         title = "Raw Probabilities") +
+    scale_x_continuous(breaks = seq(0, 1, bin_width),
+                       limits = c(0, 1)) +
+    scale_y_continuous(breaks = seq(0, 1, bin_width),
+                       limits = c(0, 1)) +
+  theme_classic()
+
+```
+
+Grouped by fold
+```{r}
+prob_grouped_plot <- cal_raw |> 
+  group_by(outer_split_num, bins, probs)  |>
+  summarize(mean_lapse = mean(lapse),
+            n = n(),
+            .groups = "drop") |>
+  filter(n >= 50) |> 
+  mutate(bins = as.numeric(bins),
+         midpoints = bin_width/2 + bin_width * (bins - 1))  |> 
+  ggplot(data = _, aes(x = midpoints, y = mean_lapse)) +
+    geom_abline(slope = 1, intercept = 0, linetype = "dotted", color = "#35383d") +
+    geom_line(color = "#51856c", linewidth = .6) +
+    geom_point(color = "#51856c", shape = 18, size = 2.5) +
+    labs(x = "Predicted Lapse Probability (bin mid-point)",
+         y = "Observed Lapse Probability",
+         title = "Figure A. Raw Probabilities by Fold") +
+    scale_x_continuous(breaks = seq(0, 1, bin_width),
+                       limits = c(0, 1)) +
+    scale_y_continuous(breaks = seq(0, 1, bin_width),
+                       limits = c(0, 1)) +
+  facet_wrap(~ outer_split_num) +
+  theme_classic() +
+  theme(
+  axis.text.x = element_text(
+    angle = -40,
+    hjust = 0,
+    vjust = 1,
+    size = 5
+  ),
+  axis.text.y = element_text(size = 5)
+)
+
+prob_grouped_hist <- probs |> 
+  ggplot(aes(x = prob_raw)) +
+    geom_histogram(binwidth = .03, fill = "#51856c", color = "white") +
+    labs(title = "Figure B. Histogram of Raw Probabilities by Fold",
+         x = "Raw Probabilities", y = "Count") + 
+    scale_x_continuous(breaks = seq(0, 1, .25)) +
+    coord_cartesian(xlim = c(0, 1)) +
+    scale_y_continuous(expand = expansion(mult = c(0, 0))) + # sit flush against x-axis
+    facet_wrap(~ outer_split_num) +
+  theme_classic() +
+  theme(
+  axis.text.x = element_text(
+    angle = -40,
+    hjust = 0,
+    vjust = 1
+  )
+)
+```
+
+```{r}
+#| label: fig-6
+#| fig-cap: "Raw probabilities displayed by fold, as shown by plotting predicted and observed lapse probabilities (A) and a histogram of predicted lapse probabilities (B)."
+#| code-fold: true
+
+cowplot::plot_grid(prob_grouped_plot, prob_grouped_hist, align="v", axis = "l", scale = 0.95)
+```
+
+## Shapley
+
+```{r}
+shap_levels <- shaps |> 
+  group_by(variable_grp) |>
+  summarize(mean_value = mean(abs(value)), .groups = "drop") |> 
+  arrange(desc(mean_value)) |> 
+  slice_head(n = 20) |> 
+  arrange(mean_value) |> 
+  pull(variable_grp)
+```
+
+```{r}
+#| label: fig-7
+#| fig-cap: "Mean absolute shapley values aggregated across all subjects and observations."
+#| code-fold: true
+
+shaps |>
+  group_by(variable_grp) |>
+  summarize(mean_value = mean(abs(value)), .groups = "drop") |> 
+  filter(variable_grp %in% shap_levels) |> 
+  mutate(variable_grp = factor(variable_grp, levels = shap_levels)) |> 
+  ggplot(mapping = aes(x = variable_grp, y = mean_value)) +
+  geom_bar(fill = "#51856c", 
+           stat = "identity", position = "dodge") +
+  labs(y = "Mean(|Shapley Value|)",
+       x = NULL,
+       fill = NULL) +
+  theme_classic() +
+  theme(axis.text=element_text(size=9.5),
+        legend.key.size = unit(0.25, "cm"),
+        panel.border = element_rect(colour = "black", fill = NA, linewidth = 1),
+        legend.position = "right") +
+  coord_flip()
 ```

@@ -37,10 +37,11 @@
 #    xgboost2 has set learning rate, tunes on trees, no early stopping
 #    _trees version includes lowered trees hyperparameter
 #    _mtry version includes mtry at 5
-
-# currently running
 # baseline (demographics) v full (demo + gps) with xgboost2 (v26)
 #   v26 includes an update to xgboost2 where we now tune on scale_pos_weight
+
+# currently running
+# N/A! testing time :^)
 
 # source format_path
 source("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true")
@@ -132,7 +133,7 @@ hp3_xgboost <- c(10, 15, 20, 30, 40, 50, 65, 80, 95)  # mtry, no. feats. to spli
 hp1_xgboost2 <- c(100, 150, 200, 250, 300, 400, 500) # trees, original: 300, 600, 1000, 1500, 2500
 hp2_xgboost2 <- c(1, 2, 3, 4) # tree_depth
 hp3_xgboost2 <- c(5, 10, 15, 20, 40, 95) # mtry, original 10 through 95
-hp4_xgboost2 <- c(1, 2, 4, 8, 13.5) # scale_pos_weight
+# hp4_xgboost2 <- c(1, 2, 4, 8, 13.5) # scale_pos_weight, commenting out, decided not to tune on this
 # no early stopping
 # learning rate (eta) set to .03
 

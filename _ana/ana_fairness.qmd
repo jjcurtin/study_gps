@@ -244,7 +244,7 @@ Bind all pp/contrast tibbles and save
 ```{r}
 list(sex[[1]], race[[1]], income[[1]], age[[1]], education[[1]]) |> 
   bind_rows() |> 
-  write_csv(here::here(path_models, "posteriors_fairness_v10_full.csv"))
+  write_csv(here::here(path_models, "posteriors_fairness_full.csv"))
 
 list(sex[[2]], race[[2]], income[[2]], age[[2]], education[[2]]) |> 
   bind_rows() |> 
@@ -256,8 +256,6 @@ list(sex[[3]], race[[3]], income[[3]], age[[3]], education[[3]]) |>
 ```
 
 ## LLs
-
-> CP note: is it helpful or useful to get LL by demographic group? my understanding is that LL is calculated for each observation, so I'm not sure if this is 
 
 ```{r}
 get_ll_by_dem <- function(df, var) {
@@ -301,11 +299,33 @@ ll_dem <- get_ll_by_dem(df = feat_preds, var = "demo_sex") |>
   left_join(get_ll_by_dem(df = feat_preds, var = "demo_race"), by = "outer_split_num") |> 
   left_join(get_ll_by_dem(df = feat_preds, var = "income_split"), by = "outer_split_num") |> 
   left_join(get_ll_by_dem(df = feat_preds, var = "age_split"), by = "outer_split_num")  |> 
-  left_join(get_ll_by_dem(df = feat_preds, var = "demo_educ_comb"), by = "outer_split_num")  
+  left_join(get_ll_by_dem(df = feat_preds, var = "demo_educ_comb"), by = "outer_split_num") |> 
+    mutate(fold_num = rep(1:5, 6),
+         repeat_num = c(rep(1, 5), rep(2, 5), rep(3, 5), 
+                        rep(4, 5), rep(5, 5), rep(6, 5))) |>
+  select(-outer_split_num)  
 ```
 
-Save auroc_dem
+Generate comparisons.
 ```{r}
-#auroc_dem |> 
-#  write_csv(here::here(path_models, "fairness_auroc_6_x_5_1_x_5_nested_v10_full.csv"))  
+sex_ll <- calc_pp(ll_dem, "sex") 
+race_ll <- calc_pp(ll_dem, "race")
+income_ll <- calc_pp(ll_dem, "income")
+age_ll <- calc_pp(ll_dem, "age")
+education_ll <- calc_pp(ll_dem, "education")
+```
+
+Bind all pp/contrast tibbles and save
+```{r}
+list(sex_ll[[1]], race_ll[[1]], income_ll[[1]], age_ll[[1]], education_ll[[1]]) |> 
+  bind_rows() |> 
+  write_csv(here::here(path_models, "posteriors_fairness_full_logloss.csv"))
+
+list(sex_ll[[2]], race_ll[[2]], income_ll[[2]], age_ll[[2]], education_ll[[2]]) |> 
+  bind_rows() |> 
+  write_csv(here::here(path_models, "pp_fairness_full_logloss.csv"))
+
+list(sex_ll[[3]], race_ll[[3]], income_ll[[3]], age_ll[[3]], education_ll[[3]]) |> 
+  bind_rows() |>
+  write_csv(here::here(path_models, "pp_fairness_contrast_logloss.csv"))
 ```
