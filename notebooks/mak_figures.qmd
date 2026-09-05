@@ -58,10 +58,10 @@ Make auROC figure with aggregated curve superimposed over individual (30) curves
 #| fig-cap: "Area under the receiver operating characteristic curve (auROC) for the full model. An aggregated curve of model performance across 30 folds (dark green, bolded line) is superimposed over each fold's individual curve."
 #| code-fold: true
 
-roc_folds <- preds |>
+roc_folds <- probs |>
   mutate(label = factor(label, levels = c("lapse", "no lapse"))) |> 
-  nest(.by = outer_split_num, .key = "preds") |>
-  mutate(roc = map(preds, \(preds) roc_curve(preds, prob_raw,
+  nest(.by = outer_split_num, .key = "probs") |>
+  mutate(roc = map(probs, \(probs) roc_curve(probs, prob_raw,
                                              truth = label)))
 
 fig_roc_folds <- roc_data |>   # plot region from full concatenated data
