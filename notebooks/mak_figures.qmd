@@ -22,6 +22,7 @@ html-table-processing: none
 #| warning: false
 
 library(tidyverse)
+library(tidymodels)
 library(kableExtra, exclude = "group_rows")
 
 source("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true")
