@@ -44,13 +44,51 @@ editor_options:
   chunk_output_type: console
 ---
 
+```{r}
+#| echo: false
+#| message: false
+
+library(tidyverse)
+library(tidymodels)
+
+source("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true")
+
+path_models <- format_path(str_c("risk/models/gps"))
+
+pp_perf <- read_csv(here::here(path_models, "pp_all_tibble.csv"),
+                    show_col_types = FALSE) 
+
+contrast_dem_auroc <- read_csv((here::here(path_models, "pp_fairness_contrast_full.csv")),
+                               show_col_types = FALSE)
+
+probs <- read_csv(here::here(path_models, "outer_preds_v25_nested_2_x_5_6_x_5_full.csv"),
+                  show_col_types = FALSE)
+
+contrast_dem_ll <- read_csv(here::here(path_models, 
+                              "pp_fairness_contrast_logloss.csv"),
+                   show_col_types = FALSE)
+
+skill_summary <- probs |>
+  mutate(label = factor(label, levels = c("lapse", "no lapse"))) |>
+  group_by(outer_split_num) |>
+  summarize(p_null = unique(prev_inner), # lapse prevalence rate from training
+            # ll of probs against outcomes
+            ll_model = mn_log_loss_vec(label, prob_raw),
+            # ll of same prob (prevalence) for everyone
+            ll_null = mn_log_loss_vec(label, rep(p_null, n())),
+            # look at difference in performance between
+            # our model and one which only knows base rate
+            skill = 1 - ll_model / ll_null,
+            .groups = "drop")
+```
+
 ## Introduction
 
 About 1 in 10 adults in the United States met diagnostic criteria for alcohol use disorder (AUD) in 2022 [@samhsacenterforbehavioralhealthstatisticsandqualityHighlights2022National2022]. Of these individuals, many will experience AUD as a chronic, relapsing disorder marked by periods of recovery interspersed with returns back to harmful use [@mckayTreatingAlcoholismChronic2011a; @moosRatesPredictorsRelapse2006]. Lapses, or single instances of goal-inconsistent use, necessarily precede a relapse period [@witkiewitzRelapsePreventionAlcohol2004b]. This temporal precedence, combined with their clear definition and ease of observation, make them a suitable target for early intervention. Yet, even when someone anticipates an oncoming lapse, it may be difficult to pinpoint its specific driving forces. Moreover, the precipitants to a lapse will vary between and within people. These two factors can make maintaining recovery goals difficult and motivate the need for lifelong monitoring and support.
 
 One way to provide ongoing assistance to individuals in recovery is through the development of a continuous risk monitoring and support system. An ideal version of this system consists of two core components. First, the system must be able to collect risk-relevant data with sufficient temporal precision. Next, the system should communicate factors driving (or mitigating) this risk to provide personalized recommendations (e.g., behavior modification, seeking out supports). Not only does this system need to be developed outright, it also needs to be designed to be both sustainable (i.e., can be used over an extended period of time) and scalable (i.e., can be effectively used by a maximal amount of people). These goals can be accomplished by integrating personal sensing data and machine learning within such a system.
 
-Personal sensing data are data derived via embedded sensors in technology such as smartphones, smartwatches, or wearables [@mohrPersonalSensingUnderstanding2017a], and can also include information collected from applications downloaded onto one of these devices like ecological momentary assessment (EMA) surveys. Other examples of these data are location information, text messages, and social media behavior. Because these devices are already ubiquitous within daily life, these data can viably be collected unobtrusively and continuously for clinical purposes. Many of these data do not require individuals to significantly change their behavior or routines in any way, making data collection both sustainable and ecologically valid. Machine learning models can then uncover relationships between antecedent behaviors present in these data and true lapse events. Importantly, the use of machine learning models enables scalability. Continuous and long-term lapse risk detection and accompanying recommendations cannot realistically be provided by clinicians in an already overburdened addiction treatment system [@mclellanCanNationalAddiction2003]. Irrespective of burden, *real time* risk detection and recommendations cannot reasonably be done by clinicians.
+Personal sensing data are data derived via embedded sensors in technology such as smartphones, smartwatches, or wearables [@mohrPersonalSensingUnderstanding2017a], and can also include information collected from applications downloaded onto one of these devices like ecological momentary assessment (EMA) surveys. Other examples of these data are location information, text messages, and social media behavior. Because these devices are already ubiquitous within daily life, these data can viably be collected unobtrusively and continuously for clinical purposes. Many of these data do not require individuals to significantly change their behavior or routines in any way, making data collection both sustainable and ecologically valid. Machine learning models can then uncover relationships between antecedent behaviors present in these data and true lapse events. Importantly, the use of machine learning models enables scalability. Continuous and long-term lapse risk detection and accompanying recommendations cannot realistically be provided by clinicians in an already overburdened addiction treatment system [@mclellanCanNationalAddiction2003]. Irrespective of burden, *real time* risk detection and recommendations cannot reasonably be done by clinicians on a day-by-day basis.
 
 Previous work has established the viability of brief daily surveys (also called "ecological momentary assessments" or EMAs) in predicting future alcohol use [@wyantMachineLearningModels2023]. EMAs typically consist of questions pertaining to lapse-relevant constructs such as self-efficacy, past use, stress, and mood. However, EMAs cannot feasibly capture all contributors to lapse. Reliance on self-report is likely only an effective tool for individuals who have a good level of insight and therefore are better able to identify these lapse precipitants. Moreover, completing several surveys per day might not be realistic for individuals with multiple jobs or comorbid conditions (e.g., depression). Predictions may be less reliable for individuals who provide either inaccurate or fewer responses.
 
@@ -62,6 +100,7 @@ Geolocation data consist of latitude and longitude coordinates and can be sample
 
 Beyond the potential benefits geolocation data offer relative to EMA, the importance of location, such as environmental cues or one's perceived riskiness of a setting, has been shown to play an important role in lapse [@janakPotentEffectEnvironmental2010; @waltonIndividualSocialEnvironmental2003;  @waltonSocialSettingsAddiction1995]. This link with lapse risk has led to the creation of coping skills that target substance-associated contexts in several treatment strategies like mindfulness-based relapse prevention [@lecocqConsideringDrugAssociatedContexts2020]. These findings underscore not only the potential wealth of information relating to lapse risk that an individual's location can provide, but also demonstrate the utility of incorporating location information into treatment. Furthermore, geolocation data have been identified as being of particular use in both understanding the precipitants to harmful substance use and its effective treatment [@stahlerGeospatialTechnologyExposome2013].
 
+<!--CP: not a huge fan of the raw features distinction, ditch it?-->
 Research at the intersection of geolocation and mental health has generated a number of promising features which are derived from basic movement patterns (hereafter called "raw" features). These raw features quantify individual activity patterns as a way to examine behavioral change. For example, geolocation data have been used to estimate loneliness and isolation through measures of circadian rhythmicity, movement speed, location variance, and clusters of frequently visited locations [@doryabIdentifyingBehavioralPhenotypes2019a]. Many of these same features, in addition to others such as location entropy (the variability of time spent across significant location clusters), amount of time spent at home, and time spent in transit, have also been used to quantify symptoms of depression [@saebRelationshipClinicalMomentary2015a; @saebMobilePhoneSensor2015b] and negative symptoms of schizophrenia [@raughGeolocationDigitalPhenotyping2020]. This research has also linked experiential diversity in movement patterns to positive mood [@hellerAssociationRealworldExperiential2020]. These data have not only been applied to the measurement of mood symptoms, but to also predict their emergence [for review, see @shinSystematicReviewLocation2023].
 
 In order to implement these features in the context of a monitoring and support system, it is important that these features be intervenable. In other words, the system has to be able to provide a recommendation to the individual using it. From an algorithmic perspective, it is important to balance both prediction and explanatory goals. Certain features detailed in the psychological literature, such as location variance and entropy, have clearer face validity in terms of intervenability as compared to others, like movement speed. For example, changes in the variability of someone's movement (e.g., location variance) might be indicative of significant life disruptions (e.g., losing one's job). In this scenario, encouraging the re-establishment of a regular routine to maintain recovery goals might be a helpful intervention point.
@@ -98,13 +137,13 @@ Participants enrolled in a three-month study consisting of five in-person visits
 
 To enable collection of geolocation data, participants downloaded either the Moves app or the FollowMee app during the intake visit. Moves was bought-out and subsequently deprecated while the study was ongoing (July 2018) and data collection continued using FollowMee until the end of the study. Both apps continuously tracked location via GPS and WiFi positioning technology. The FollowMee app uses adaptive sampling (samples location less frequently when the subject appears to be still), while the Moves app used fixed sampling (samples location steadily regardless of subject movement).
 
-After completion of the study, data were processed to filter out duplicated points, fast movement speeds (\>100mph), sudden positional jumps, and periods of long duration suggesting sampling error issues (\>24 hours with no movement or \>2 hours with a positional jump of more than 0.31 miles or 500 meters). Data points were classified as "in transit" when spacing between individual positions suggested a movement speed of greater than 4mph per NIH health guidelines [@u.s.departmentofhealthandhumanservicesPhysicalActivityGuidelines2018]. Participants were considered to be at a known contextual location if they were within 0.031 miles (50 meters) of a reported frequently visited location.
+After completion of the study, data were processed to filter out duplicated points, fast movement speeds (\>100mph), sudden positional jumps, and periods of long duration suggesting sampling error issues (\>24 hours with no movement or \>2 hours with a positional jump of more than 0.31 miles or 500 meters). Data points were classified as "in transit" when spacing between individual positions suggested a movement speed of greater than 4mph per NIH health guidelines [@u.s.departmentofhealthandhumanservicesPhysicalActivityGuidelines2018]. Participants were considered to be at a known contextual location if they were within 0.031 miles (50 meters) of a reported frequently visited location. Start and end dates were adjusted for subjects in the case of high missingness (e.g., if a subject was only adherent with GPS protocols for their last month on study, only their last month on study was retained). <!--CP: need to probably do something to make this sentence better.-->
 
 ### Data analytic strategy
 
 Data preprocessing, modeling, and Bayesian analyses were done in R using the tidymodels ecosystem [@kuhnTidymodelsCollectionPackages2020]. Models were trained using high-throughput computing resources provided by the University of Wisconsin Center for High Throughput Computing [@chtc].
 
-In the interest of transparency, all analysis scripts and results can be found publicly on our study website (https://jjcurtin.gitub.io/study_gps). We additionally include the Transparent Reporting of a Multivariate Prediction Model for Indiviudal Prognosis or Diagnosis extension for Artificial Intelligence (TRIPOD+AI) checklist in the supplement [@collinsTRIPODAIStatementUpdated2024].
+In the interest of transparency, all analysis scripts and results can be found publicly on our study website (https://jjcurtin.gitub.io/study_gps). We additionally include the Transparent Reporting of a Multivariate Prediction Model for Indiviudal Prognosis or Diagnosis extension for Artificial Intelligence (TRIPOD+AI) checklist in the supplement [@collinsTRIPODAIStatementUpdated2024]. <!--CP: saw this was mentioned in Kendra's paper, should we make this the new lab standard?-->
 
 ### Outcome variable: Lapses
 
@@ -151,47 +190,72 @@ Classes for fairness analyses were defined on the basis of personal individual c
 
 ## Results
 
-```{r}
-
-```
-
 ### Demographics
 
-A total of 192 individuals were eligible to participate in the study, of which 191 consented to participate and 169 enrolled in the study. Fifteen participants were excluded prior to the first monthly follow-up visit. One participant was excluded for not maintaining a recovery goal of abstinence during their time on study. Two participants were excluded due to low adherence to study procedures. A further five individuals were excluded due to poor geolocation data quality from software incompatibility, resulting in a final sample size of 146. A detailed breakdown of participant characteristics is presented in @tbl-demo. <!--CP: ADD IN TABLE-->
+A total of 192 individuals were eligible to participate in the study, of which 191 consented to participate and 169 enrolled in the study. Fifteen participants were excluded prior to the first monthly follow-up visit. One participant was excluded for not maintaining a recovery goal of abstinence during their time on study. Two participants were excluded due to low adherence to study procedures. A further five individuals were excluded due to poor geolocation data quality from software incompatibility, resulting in a final sample size of 146. A detailed breakdown of participant characteristics is presented in @tbl-1.
+
+{{< embed notebooks/mak_tables.qmd#tbl-1 >}}
 
 ### auROC and Model Comparisons
 
-The median auROC over all 30 folds was **INSERT**. **FIGURE HERE** displays a receiver operating characteristic curve representing aggregate predicted lapse probabilities across all folds superimposed over each fold's individual curve. An additional histogram of model performance distribution across folds can be seen in **FIGURE NUMBER** in the supplement.
+The median auROC over all 30 folds was `r sprintf("%.2f", pp_perf$pp_median[2])` (95% CI ([`r sprintf("%.2f", pp_perf$pp_lower[2])`, `r sprintf("%.2f", pp_perf$pp_upper[2])`])). @fig-1 displays a receiver operating characteristic curve representing aggregate predicted lapse probabilities across all folds superimposed over each fold's individual curve. An additional histogram of model performance distribution across folds can be seen in @fig-2. <!--CP: perhaps belongs in supplement?-->
 
-To further characterize the predictive value of our geolocation features, we further compared the performance of our model to one which only included demographic features (**INSERT**) as well as chance performance. Compared to these more simplistic models, the model including geolocation features performed better (probabilities = **INSERT**). **TABLE HERE** presents the median difference in auROC, 95% Bayesian credible interval, and posterior probability that the auROC difference was greater than 0 for all contrasts.
+{{< embed notebooks/mak_figures.qmd#fig-1 >}}
+{{< embed notebooks/mak_figures.qmd#fig-2 >}}
 
-Across fairness subgroup comparisons... <!--CP: maybe time to bring this in for log loss?-->
+To further characterize the predictive value of our geolocation features, we further compared the performance of our model to one which only included demographic features (`r sprintf("%.2f", pp_perf$pp_median[1])` (95% CI ([`r sprintf("%.2f", pp_perf$pp_lower[1])`, `r sprintf("%.2f", pp_perf$pp_upper[1])`])) as well as chance performance (.5). Compared to these more simplistic models, the model including geolocation features performed better (probabilities = 1).
+
+Across fairness subgroup comparisons, we found evidence to suggest that median auROC differed by income and educational attainment, such that our model discriminates better (i.e., more accurately preserves relative ordering) in individuals who are younger than 55 compared to older (probability = (`r sprintf("%.4f", contrast_dem_auroc$probability[4])`) and those with lower educational attainment compared to higher educational attainment (probability = (`r sprintf("%.4f", contrast_dem_auroc$probability[5])`)  (@fig-3). A table of these comparisons can be seen in @tbl-2. <!--CP: let's chat about this together, want to make sure all my contrasts are set up properly-->
+
+{{< embed notebooks/mak_figures.qmd#fig-3 >}}
+{{< embed notebooks/mak_tables.qmd#tbl-2 >}}
+
+To further characterize model fairness, we additionally assessed whether median mean log loss differed across these same demographic groups. Our results suggest that our model produces less accurate probabilities (i.e., higher log loss) for individuals who are below the poverty line compared to those above (probability = (`r sprintf("%.2f", contrast_dem_ll$probability[3])`) and women compared to men (probability = (`r sprintf("%.2f", contrast_dem_ll$probability[1])`) (@fig-4). A table of these comparisons can be seen in @tbl-3.
+
+<!--CP: median mean log loss is too clunky sounding-->
+
+{{< embed notebooks/mak_figures.qmd#fig-4 >}}
+{{< embed notebooks/mak_tables.qmd#tbl-3 >}}
 
 ### Calibration and Skill Scores
 
-The best model configuration produced relatively well-calibrated probabilities which were clustered around the observed lapse rate. We present a calibration plot collapsed across all folds as well as a histogram faceted by lapse event in **INSERT FIGURE (A + B)**. The number of observations in each bin are presented in **INSERT TABLE**. We provide calibration plots and raw probability distributions separated by fold, along with a table displaying the number of observation in each bin, in **FIGURE HERE**, **FIGURE HERE**, and **TABLE HERE** in the supplement.
+<!--CP: since we're not calibrating, I feel like I shouldn't call this a calibration plot! Maybe just a probability plot? Let me know thoughts-->
 
-The median skill score was **INSERT HERE**, suggesting that mean log loss was reduced by **INSERT HERE** in our model relative to one which predicts the baserate of lapse. Histograms displaying the distribution of mean log loss and skill scores across each fold are presented in **FIGURE HERE** and **FIGURE HERE** in the supplement.
+The best model configuration produced relatively well-calibrated probabilities which were clustered around the observed lapse rate. We present a calibration plot collapsed across all folds in @fig-5. The number of observations in each bin are presented in @tbl-4. We provide calibration plots and raw probability distributions separated by fold, along with a table displaying the number of observation in each bin, in @fig-6 and @tbl-5 in the supplement. <!--CP: including here for now--> For fidelity, bins with less than 50 observations are *not* included in the presented figures, but are available for reference in all tables.
+
+{{< embed notebooks/mak_figures.qmd#fig-5 >}}
+{{< embed notebooks/mak_tables.qmd#tbl-4 >}}
+
+{{< embed notebooks/mak_figures.qmd#fig-6 >}}
+{{< embed notebooks/mak_tables.qmd#tbl-5 >}}
+
+The median skill score was (`r sprintf("%.2f", skill_summary |> pull(skill) |> median())`, suggesting that mean log loss was reduced in our model relative to one which predicts the base rate of lapse. <!--CP: we could include figures here to show the distributions of log loss and skill scores?-->
 
 ### Feature Importance
 
-Global importance (mean absolute Shapley values) for feature categories are displayed in **INSERT FIGURE**. <!--CP: need to think about how we are aggregating across features, probably want to combine them more-->
+Global importance (mean absolute Shapley values) for the top 20 most important feature categories are displayed in @fig-7. Notably, the top three features were all related to self-reported risk (medium, high, and no). The most important demographic feature was income. There was an approximately three-fold difference in feature importance between the top performing geolocation feature as compared to the top performing demographic feature. <!--CP: need to think about how we are aggregating across features, probably want to combine them more. Also probably need to look at something that gives more directionality; I'm wondering, does time spent at no risk locations increase lapse risk because people have poor insight, or is it protective?-->
 
 ## Discussion
 
 ### Model Performance
 
-Our day-level model of alcohol lapse prediction using geolocation data has a median auROC of **INSERT**. Bayesian model comparisons indicated that this model performed better than both chance and a model which only included demographicv ariables. While not clinically implementable on its own, these findings confirm that there is strong evidence of predictive signal in these data and are an important first step towards an eventual continuous risk monitoring and support system. This study also provided explanatory insights by way of quantifying feature importance as well as a crucial examination of model fairness across classes, detailed in the following sections.
+Our day-level model of alcohol lapse prediction using geolocation data produced a median auROC of `r sprintf("%.2f", pp_perf$pp_median[2])`. Bayesian model comparisons indicated that this model performed better than both chance and a model which only included demographic variables. While not clinically implementable on its own, these findings confirm that there is strong evidence of predictive signal in these data and are an important first step towards an eventual continuous risk monitoring and support system. This study also provided explanatory insights by way of quantifying feature importance as well as a crucial examination of model fairness across classes, detailed in the following sections.
 
-We are not necessarily interested in communicating exact probabilities to individuals about their lapse risk (such as, *"There is a 92% chance that you lapse back to use today"*). Rather, we are more interested in communicating *relative* levels of risk (such as, *"You are at a low risk level of lapse today,"* or, *"Your risk of lapse is higher this week compared to last week"* where *low* or *high risk* correspond to a designated probability threshold).
+In general, our model was well-calibrated with predicted probabilities clustering around the observed event rate (i.e., lapse rate in our sample). As a result, additional calibration steps were not necessarily despite our restricted range of probabilities. Importantly, this truncated range may not be an issue when anticipating future implementation. We are not necessarily interested in communicating exact probabilities to individuals about their lapse risk (such as, *"There is a 92% chance that you lapse back to use today"*). Rather, we are more interested in communicating *relative* levels of risk (such as, *"You are at a low risk level of lapse today,"* or, *"Your risk of lapse is higher this week compared to last week"* where *low* or *high risk* correspond to a designated probability threshold).
 
-### Model Fairness
+To better understand our model's performance, we further examined model performance across coarsely divided subgroups (split by societal privilege) with respect to both median auROC and median mean log loss. We opted to leverage two approaches here as each results in a distinct on model output which reflect unique components of model fairness. For instance, we may be more concerned when relative ordering is reduced (as in our observation of reduced median auROCs in older adults or those with higher educational attainment) as compared to when probabilities are less accurate (as in our observation of higher mean log loss scores in women and those below the poverty line) if our goal is to ultimately communicate relative levels of lapse risk.
 
-auROC or log loss?
+Of equal importance is to consider potential motivating factors behind these performance discrepancies. Reduced median auROCs may reflect features which do not equally capture the recovery experiences of individuals who are older adults or who have higher educational attainment. Phrased differently, our features may simply have more signal for younger adults and individuals with lower educational attainment. On the other hand, higher median mean log loss may indicate that our model has a worse understanding of relative risk for women and those below the poverty line. Because we did not see differences in median auROCs for these groups, this suggests that our model can rank-order these individuals in terms of relative risk on par with their privileged counterparts. <!--CP: let's talk about this more. could this have anything to do with base rates for particular groups/is that something we should look at and report?--> It is possible that these differences may also be due to differences in mobility patterns associated with sex, age, and income (which is frequently associated with one's educational attainment) [@chenGeographicMobilityAmerica2020, @sila-nowickaAnalysisHumanMobility2016].
 
 ### Feature Importance
 
-We used Shapley values to quantify global feature importance.
+We used Shapley values to quantify global feature importance. Overall, geolocation features were more important in model predictions than demographic variables, with time spent at medium, high, and no risk locations being the strongest contributors to risk predictions.
+
+The most important demographic variable was income. This may be due to the fact that income can impact exposure to alcohol related cues in one's environment, with the potential for cues to drive increased craving and thus increase lapse risk. For instance, alcohol outlet density has been shown to be spatially related to income level [@morrisonRaceEthnicityExposure2016]. These findings highlight the potential importance of personalizing feedback for a continuous risk monitoring and support system based, in part, on key demographic characteristics. For example, the approach for intervening on craving for an individual who cannot as readily avoid triggering environments may benefit from placing a greater emphasis on building self-confidence around resisting cravings as opposed to avoiding those spaces altogether, such as in the instance of an individual who lives in a neighborhood with a high liquor outlet density.
+
+Though geolocation data provide a lower burden alternative to collecting important lapse-risk-relevant information as compared to EMA, we did survey our participants to provide us with their own contextual information about frequently visited locations. Some of our important features (such as time spent at restaurants or bars) could be automated and instead pulled from public map data to further reduce participant burden. Interestingly, our top four features (self-reported medium, high, or no risk and having previously drank alcohol at a location) may not be as easily garnered from public sources. For instance, what one person considers high risk to their recovery may not be high risk to another (e.g., what may be a town that one person passes through on their daily commute to another may be the location of an abusive ex-spouse). The same may be true for alcohol consumption. While public map data can assist in gathering information about liquor licenses, for instance, it cannot identify locations where individuals engaging in "secret drinking" (e.g., a flask in a car or at a place of work) might consume alcohol. <!--CP: I think this is a good point but I can't find a source to back me up on this. Maybe it needs to be phrased differently-->
+
+Overall, these results are well-aligned with the extant AUD literature, notably the focus of high-risk situations as an immediate determinant to relapse within the relapse prevention model [@larimerRelapsePreventionOverview1999b; @marlattRelapsePreventionMaintenance1985].
 
 ### Additional limitations and future directions
 
@@ -203,7 +267,7 @@ Finally, a future direction of this work is to integrate the features engineerin
 
 ### Conclusion
 
-This study demonstrated that geolocation data are able to predict next-day alcohol lapse at a fair level of performance (**INSERT**). Relative to our group's previously-developed EMA model [@wyantMachineLearningModels2023], geolocation data provide additional and unique contributing features to lapse risk predictions. While our model's level of performance is not sufficient for standalone implementation, these results suggest geolocation data are a viable supplement for a continuous risk monitoring and support system.
+This study demonstrated that geolocation data are able to predict next-day alcohol lapse at a fair level of performance (auROC =  `r sprintf("%.2f", pp_perf$pp_median[2])`). Relative to our group's previously-developed EMA model [@wyantMachineLearningModels2023], geolocation data provide additional and unique contributing features to lapse risk predictions. While our model's level of performance is not sufficient for standalone implementation, these results suggest geolocation data are a viable supplement for a continuous risk monitoring and support system.
 
 
 \newpage
