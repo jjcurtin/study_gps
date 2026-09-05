@@ -109,7 +109,7 @@ Plot histogram of 30 held out auROCs.
 #| fig-cap: "A histogram displaying median area under the receiver operating characteristic curve (auROC) for the full model across 30 folds."
 #| code-fold: true
 
-auroc_summary <- preds |>
+auroc_summary <- probs |>
   mutate(label = factor(label, levels = c("lapse", "no lapse"))) |>
   group_by(outer_split_num) |>
   roc_auc(truth = label, prob_raw) |>
