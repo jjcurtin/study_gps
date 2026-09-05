@@ -65,6 +65,10 @@ roc_folds <- probs |>
   mutate(roc = map(probs, \(probs) roc_curve(probs, prob_raw,
                                              truth = label)))
 
+roc_data <- probs |> 
+  mutate(label = factor(label, levels = c("lapse", "no lapse"))) |> 
+  roc_curve(prob_raw, truth = label)
+
 fig_roc_folds <- roc_data |>   # plot region from full concatenated data
   ggplot(aes(x = 1 - specificity, y = sensitivity)) +
   geom_abline(slope = 1, intercept = 0, linetype = "dotted", color = "#35383d") +
