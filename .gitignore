@@ -11,3 +11,5 @@
 
 
 /.quarto/
+
+**/*.quarto_ipynb

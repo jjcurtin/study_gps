@@ -1,0 +1,112 @@
+---
+title: "Restructured Introduction — Outline"
+subtitle: "Geolocation for Lapse Prediction in AUD (Psychological Medicine AI call)"
+date: last-modified
+format:
+  pdf:
+    toc: false
+    number-sections: false
+    geometry:
+      - margin=1in
+    fontsize: 11pt
+---
+
+## ¶1 — AUD as a chronic, relapsing disorder; lapses as a tractable target
+
+**Topic sentence:** *Alcohol use disorder is common and, for many, follows a chronic course in which hard-won recovery is repeatedly interrupted by returns to use.*
+
+- AUD prevalence (1 in 10 U.S. adults, 2022).
+- Chronic, relapsing course; recovery interspersed with returns to harmful use.
+- Lapses (single goal-inconsistent use) temporally precede relapse; clearly defined and observable → suitable early-intervention target.
+- Precipitants vary between and within people and are hard to anticipate → motivates ongoing, individualized monitoring.
+
+## ¶2 — The clinical problem: continuous risk monitoring can't scale through clinicians alone
+
+**Topic sentence:** *Sustained support for a lifelong, fluctuating risk process exceeds what clinicians can feasibly provide, creating a clear role for algorithmic decision support.*
+
+- Ideal ongoing support = a continuous risk monitoring and support system.
+- Real-time, day-by-day risk detection is infeasible in an overburdened addiction treatment system.
+- Frames the clinical decision-making need the call emphasizes: scalable, sustainable risk stratification to inform when/whom to support.
+- Two requirements previewed: temporally precise risk-relevant data + a scalable modeling engine.
+
+## ¶3 — Personal sensing + machine learning as the enabling technology
+
+**Topic sentence:** *Personal sensing paired with machine learning offers a route to risk monitoring that is both ecologically valid and scalable.*
+
+- Personal sensing = passively/actively collected data from ubiquitous devices (smartphones, wearables), including EMA.
+- Unobtrusive, continuous, low behavior change → sustainable and ecologically valid.
+- ML uncovers relationships between antecedent signals and lapse; enables scalability beyond clinician capacity.
+
+## ¶4 — Prior EMA work and its limitations
+
+**Topic sentence:** *Brief daily surveys have established that self-reported states can forecast lapse, but self-report carries feasibility and coverage limits that constrain a monitoring system.*
+
+- EMA predicts future alcohol use (Wyant et al., 2023); captures self-efficacy, past use, stress, mood.
+- Limits: requires insight; burden for people with jobs/comorbidities; fewer/inaccurate responses degrade prediction.
+- Discrete sampling vs. a dynamic recovery process → information loss between surveys.
+- Motivates a data source with finer temporal granularity and lower burden.
+
+# Subsection: *Geolocation Data for Risk Monitoring*
+
+## ¶5 — Geolocation's advantages over EMA
+
+**Topic sentence:** *Geolocation data can be sampled continuously with little user input, addressing several of EMA's core limitations.*
+
+- Latitude/longitude sampled at regular intervals → greater temporal sensitivity/specificity than EMA.
+- Passive after setup; often collected by default → low burden.
+- Potential equity benefit: accessible to people who can't complete multiple daily surveys (sets up fairness theme).
+
+## ¶6 — Why location is substantively linked to lapse
+
+**Topic sentence:** *Beyond convenience, where a person is carries genuine signal about lapse risk.*
+
+- Environmental cues and perceived riskiness of settings shape lapse (Janak; Walton).
+- Location-targeted coping is already embedded in treatments (e.g., mindfulness-based relapse prevention).
+- Geolocation flagged as valuable for understanding and treating substance use (Stahler).
+
+## ¶7 — Raw geolocation features from the digital phenotyping literature
+
+**Topic sentence:** *One body of work derives "raw" movement features that quantify behavioral patterns linked to mental health.*
+
+- Raw features = derived from basic movement (location variance, entropy, time at home, transit, circadian rhythmicity).
+- Linked to loneliness/isolation, depression, negative symptoms of schizophrenia, mood; used to predict symptom emergence.
+- Strength: minimal added input; limitation: strip out environmental context (two identical trajectories can mean very different exposures).
+
+## ¶8 — Contextualized features that restore person-specific meaning
+
+**Topic sentence:** *A complementary approach enriches location with brief context about what specific places mean to a person.*
+
+- Context-based features add environmental qualities (SES, crime) — but broad-strokes labels can misclassify person-specific risk (Mennis & Mason "Ecological Interview" example).
+- Contextualized features = geolocation + brief intermittent surveys about frequented locations (bridges EMA's personalization with geolocation's low burden).
+- Precedent: geographical momentary assessment; recovery apps using self-identified risky locations / geofences.
+- *(Intervenability/actionable-recommendation payoff deferred to Discussion, per current draft.)*
+
+## ¶9 — Responsible AI as a requirement, not an afterthought
+
+**Topic sentence:** *For a prediction model to be clinically meaningful, it must be evaluated not only for accuracy but for equity and interpretability across the people it is meant to serve.*
+
+- Risk models can perform unevenly across subgroups defined by race, age, income, education, sex → risk of amplifying disparities in care.
+- Passive geolocation may improve access for under-resourced groups but could also encode mobility patterns that differ systematically by demographics → fairness must be tested, not assumed.
+- Explainability (which features drive risk) is prerequisite for clinician trust and for eventual actionable use.
+- Positions the study within the call's responsible-AI scope (fairness, bias, explainability, reporting standards).
+
+## ¶10 — The gap
+
+**Topic sentence:** *Despite this promise, no work has tested the predictive value of geolocation for alcohol lapse, nor whether such prediction is equitable and interpretable.*
+
+- Prior geolocation-mental-health work is largely descriptive/associational, not predictive of AUD lapse.
+- Combining raw + contextualized features could capture heterogeneous precipitants (social isolation, alcohol presence, affect tied to place).
+- Open questions: Does geolocation predict lapse? Does it add value beyond demographics? Is performance fair across subgroups? Which features carry signal?
+
+# Subsection: *The Current Study*
+
+## ¶11 — Aims and contributions
+
+**Topic sentence:** *This study uses geolocation data and machine learning to predict next-day lapse in adults with AUD pursuing abstinence, addressing several gaps aligned with clinically meaningful, responsible AI.*
+
+- Novel use of geolocation to predict lapse, extending the lab's EMA work.
+- Raw + contextualized features to cast a wide net over precipitants.
+- Evaluate incremental value over demographic baseline.
+- **Assess algorithmic fairness across subgroups** (elevated to a stated aim).
+- Quantify feature importance (explanatory goal supporting eventual clinical use).
+- Frame as an initial step toward a continuous risk monitoring and support system.
